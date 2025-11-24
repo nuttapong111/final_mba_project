@@ -1,0 +1,31 @@
+{
+  "name": "lms-platform",
+  "version": "1.0.0",
+  "description": "Learning Management System Platform for Tutoring Schools",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "mobile"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=frontend",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:mobile": "npm run dev --workspace=mobile",
+    "build": "npm run build --workspace=frontend",
+    "build:backend": "npm run build --workspace=backend",
+    "start": "npm run start --workspace=frontend",
+    "lint": "npm run lint --workspace=frontend",
+    "test": "npm run test --workspaces"
+  },
+  "keywords": [
+    "lms",
+    "learning-management-system",
+    "education",
+    "e-learning",
+    "multi-tenant"
+  ],
+  "author": "",
+  "license": "PROPRIETARY"
+}
+
