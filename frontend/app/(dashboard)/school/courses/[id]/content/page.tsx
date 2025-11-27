@@ -344,6 +344,7 @@ export default function CourseContentPage() {
             fileSize: content.fileSize,
             duration: content.duration,
             order: content.order,
+            file: undefined, // เก็บไฟล์จริงสำหรับอัพโหลด
             quizSettings: content.quizSettings ? {
               totalQuestions: content.quizSettings.totalQuestions,
               duration: content.quizSettings.duration,
@@ -519,6 +520,38 @@ export default function CourseContentPage() {
 
   const handleSave = async () => {
     try {
+      // ตรวจสอบว่ามีไฟล์ใหม่ที่ต้องอัพโหลดหรือไม่
+      const contentsWithNewFiles: Array<{ lessonTitle: string; contentTitle: string }> = [];
+      
+      lessons.forEach((lesson) => {
+        lesson.contents.forEach((content) => {
+          // ถ้ามีไฟล์ใหม่ (file object) แต่ยังไม่มี URL หรือ fileUrl จาก backend
+          if ((content as any).file) {
+            const hasUrl = content.url && content.url.trim();
+            const hasFileUrl = content.fileUrl && content.fileUrl.startsWith('http');
+            
+            if (!hasUrl && !hasFileUrl) {
+              contentsWithNewFiles.push({
+                lessonTitle: lesson.title,
+                contentTitle: content.title,
+              });
+            }
+          }
+        });
+      });
+
+      // ถ้ามีไฟล์ใหม่ที่ยังไม่มี URL ให้แสดง error
+      if (contentsWithNewFiles.length > 0) {
+        const contentList = contentsWithNewFiles.map(c => `- ${c.contentTitle} (${c.lessonTitle})`).join('\n');
+        await Swal.fire({
+          icon: 'warning',
+          title: 'กรุณาระบุ URL',
+          html: `สำหรับเนื้อหาที่อัพโหลดไฟล์ กรุณาระบุ URL ของไฟล์ หรือใช้ URL จาก YouTube/Vimeo แทน<br/><br/>เนื้อหาที่ต้องระบุ URL:<br/>${contentList}`,
+          confirmButtonText: 'ตกลง',
+        });
+        return;
+      }
+
       // Prepare lessons data for API
       const lessonsData = lessons.map((lesson, index) => ({
         title: lesson.title,
@@ -531,10 +564,19 @@ export default function CourseContentPage() {
             order: contentIndex + 1,
           };
 
-          if (content.url) contentData.url = content.url;
-          if (content.fileUrl) contentData.fileUrl = content.fileUrl;
-          if (content.fileName) contentData.fileName = content.fileName;
-          if (content.fileSize) contentData.fileSize = content.fileSize;
+          // ถ้ามี URL ให้ใช้ URL (สำหรับ YouTube/Vimeo หรือไฟล์ที่อัพโหลดแล้ว)
+          if (content.url && content.url.trim()) {
+            contentData.url = content.url;
+          }
+          
+          // ถ้ามีไฟล์ใหม่ แต่มี URL แล้ว ให้ใช้ URL แทน
+          // ถ้า fileUrl เป็น URL จาก backend (http/https) ให้ใช้
+          if (content.fileUrl && content.fileUrl.startsWith('http')) {
+            contentData.fileUrl = content.fileUrl;
+            if (content.fileName) contentData.fileName = content.fileName;
+            if (content.fileSize) contentData.fileSize = content.fileSize;
+          }
+          
           if (content.duration) contentData.duration = content.duration;
           if (content.poll?.id) contentData.pollId = content.poll.id;
 
@@ -790,6 +832,8 @@ export default function CourseContentPage() {
                                       });
                                       return;
                                     }
+                                    // เก็บไฟล์จริงไว้ใน state สำหรับอัพโหลด
+                                    handleUpdateContent(lessonIndex, contentIndex, 'file', file);
                                     // สร้าง URL สำหรับแสดงตัวอย่าง (local preview)
                                     const fileUrl = URL.createObjectURL(file);
                                     handleUpdateContent(lessonIndex, contentIndex, 'fileUrl', fileUrl);
@@ -818,6 +862,7 @@ export default function CourseContentPage() {
                                     <button
                                       type="button"
                                       onClick={() => {
+                                        handleUpdateContent(lessonIndex, contentIndex, 'file', undefined);
                                         handleUpdateContent(lessonIndex, contentIndex, 'fileUrl', undefined);
                                         handleUpdateContent(lessonIndex, contentIndex, 'fileName', undefined);
                                         handleUpdateContent(lessonIndex, contentIndex, 'fileSize', undefined);
