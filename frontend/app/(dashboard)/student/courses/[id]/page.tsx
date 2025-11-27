@@ -23,7 +23,7 @@ export default function StudentCourseDetailPage() {
   const router = useRouter();
   const { user } = useAuthStore();
   const courseId = params.id as string;
-  const enrolledCourses = filterCoursesByRole(mockCourses, user);
+  const enrolledCourses = filterCoursesByRole(mockCourses, user as any);
   const course = enrolledCourses.find(c => c.id === courseId);
   const lessons = course ? getLessonsByCourse(courseId) : [];
 
