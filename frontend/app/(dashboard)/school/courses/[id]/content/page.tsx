@@ -617,10 +617,18 @@ export default function CourseContentPage() {
             console.log(`[DEBUG] Uploading file for ${contentKey}:`, uploadInfo);
             addDebugLog('info', `กำลังอัพโหลดไฟล์: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`, uploadInfo);
             
+            const fileKey = `${lessonIndex}-${contentIndex}`;
             uploadPromises.push(
               uploadApi.uploadFile(file, fileType, (progress) => {
                 // Update progress in debug log
                 addDebugLog('info', `อัพโหลดไฟล์ ${file.name}: ${progress}%`, { progress });
+                // Update progress map (will be used by Swal progress bar)
+                if (typeof window !== 'undefined') {
+                  const progressMap = (window as any).uploadProgressMap;
+                  if (progressMap) {
+                    progressMap.set(fileKey, progress);
+                  }
+                }
               })
                 .then((response) => {
                   if (response.success && response.data) {
@@ -668,12 +676,46 @@ export default function CourseContentPage() {
 
       // รอให้อัพโหลดไฟล์เสร็จก่อน
       if (uploadPromises.length > 0) {
+        // Create progress map accessible from upload callbacks
+        const uploadProgress = new Map<string, number>();
+        if (typeof window !== 'undefined') {
+          (window as any).uploadProgressMap = uploadProgress;
+        }
+        
         await Swal.fire({
           title: 'กำลังอัพโหลดไฟล์...',
-          text: `กำลังอัพโหลด ${uploadPromises.length} ไฟล์ กรุณารอสักครู่`,
+          html: `
+            <div class="text-center">
+              <p class="mb-4">กำลังอัพโหลด ${uploadPromises.length} ไฟล์ กรุณารอสักครู่</p>
+              <div class="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+                <div id="upload-progress-bar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+              </div>
+              <p id="upload-progress-text" class="text-sm text-gray-600">0%</p>
+              <p class="text-xs text-gray-500 mt-2">หากอัพโหลดนานเกิน 5 นาที กรุณาตรวจสอบการเชื่อมต่อ</p>
+            </div>
+          `,
           allowOutsideClick: false,
           didOpen: () => {
-            Swal.showLoading();
+            // Update progress periodically
+            const progressInterval = setInterval(() => {
+              const totalProgress = uploadProgress.size > 0
+                ? Array.from(uploadProgress.values()).reduce((sum, p) => sum + p, 0) / uploadPromises.length
+                : 0;
+              const progressBar = document.getElementById('upload-progress-bar');
+              const progressText = document.getElementById('upload-progress-text');
+              if (progressBar && progressText) {
+                progressBar.style.width = `${totalProgress}%`;
+                progressText.textContent = `${Math.round(totalProgress)}%`;
+              }
+            }, 100);
+            
+            // Clear interval when done
+            Promise.all(uploadPromises).finally(() => {
+              clearInterval(progressInterval);
+              if (typeof window !== 'undefined') {
+                delete (window as any).uploadProgressMap;
+              }
+            });
           },
         });
 
