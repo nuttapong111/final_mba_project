@@ -329,7 +329,7 @@ export default function CourseContentPage() {
       if (response.success && response.data) {
         setCourse(response.data);
         // Transform API data to match frontend format
-        const transformedLessons = (response.data.lessons || []).map((lesson: any) => ({
+        const transformedLessons = ((response.data as any).lessons || []).map((lesson: any) => ({
           id: lesson.id,
           title: lesson.title,
           description: lesson.description,
