@@ -536,228 +536,92 @@ export default function StudentContentPage() {
         </div>
       </div>
 
+      {/* Sidebar - Right Side */}
+      <div
+        className={`${
+          sidebarOpen ? 'w-80' : 'w-0'
+        } transition-all duration-300 bg-white border-l border-gray-200 overflow-hidden flex flex-col shadow-lg`}
+      >
+        <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-blue-600">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-white font-bold text-sm truncate">{course?.title || 'หลักสูตร'}</h2>
+              <p className="text-blue-100 text-xs mt-1">
+                {lessons.length} โมดูล
+              </p>
+            </div>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="text-white hover:bg-blue-700 p-1 rounded ml-2 flex-shrink-0"
+            >
+              <ChevronRightIcon className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {lessons.map((lesson, lessonIndex) => (
+            <div key={lesson.id} className="mb-2">
+              <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                <h3 className="font-semibold text-gray-900 text-sm">
+                  โมดูล {lessonIndex + 1}: {lesson.title}
+                </h3>
+              </div>
+              <div className="space-y-1 p-2">
+                {lesson.contents.map((content, contentIndex) => {
+                  const isActive = content.id === currentContent.id;
+                  const isCompleted = isContentCompleted(content.id);
+
+                  return (
+                    <button
+                      key={content.id}
+                      onClick={() => handleContentClick(content, lesson)}
+                      className={`w-full flex items-start space-x-3 p-3 rounded-lg transition-all text-left ${
+                        isActive
+                          ? 'bg-blue-50 border-l-4 border-blue-600'
+                          : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className={`flex-shrink-0 mt-0.5 ${
+                        isActive ? 'text-blue-600' : 'text-gray-400'
+                      }`}>
+                        {getContentIcon(content.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className={`text-sm font-medium truncate ${
+                            isActive ? 'text-blue-900' : 'text-gray-900'
+                          }`}>
+                            {content.title}
+                          </p>
+                          {isCompleted && !isActive && (
+                            <CheckCircleIcon className="h-4 w-4 text-green-600 flex-shrink-0 ml-2" />
+                          )}
+                        </div>
+                        <p className={`text-xs mt-0.5 ${
+                          isActive ? 'text-blue-600' : 'text-gray-500'
+                        }`}>
+                          {getContentTypeLabel(content.type)}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Sidebar Toggle Button (when closed) */}
       {!sidebarOpen && (
         <button
           onClick={() => setSidebarOpen(true)}
-          className="fixed left-0 top-1/2 transform -translate-y-1/2 bg-blue-600 text-white p-2 rounded-r-lg shadow-lg hover:bg-blue-700 z-10"
+          className="fixed right-0 top-1/2 transform -translate-y-1/2 bg-blue-600 text-white p-2 rounded-l-lg shadow-lg hover:bg-blue-700 z-10"
         >
-          <ChevronRightIcon className="h-5 w-5 rotate-180" />
+          <ChevronRightIcon className="h-5 w-5" />
         </button>
       )}
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{currentContent.title}</h1>
-              <p className="text-sm text-gray-600 mt-1">
-                {currentLesson.title} • {getContentTypeLabel(currentContent.type)}
-              </p>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Button
-                variant="outline"
-                onClick={() => router.push(`/student/courses/${courseId}`)}
-              >
-                กลับไปหน้าหลักสูตร
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Content Display */}
-        <div className="flex-1 overflow-hidden bg-gray-50 flex flex-col">
-          {currentContent.type === 'video' && (
-            <div className="flex-1 bg-black flex items-center justify-center">
-              {(() => {
-                const videoUrl = currentContent.url;
-                let fileUrl = currentContent.fileUrl;
-                
-                // Convert fileUrl to full URL if needed
-                if (fileUrl && fileUrl.startsWith('/uploads/')) {
-                  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-                  const baseUrl = apiBaseUrl.replace('/api', '');
-                  fileUrl = `${baseUrl}${fileUrl}`;
-                }
-                
-                // Check if YouTube or Vimeo
-                if (videoUrl) {
-                  const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-                  const vimeoRegex = /(?:vimeo\.com\/)(\d+)/;
-                  
-                  const youtubeMatch = videoUrl.match(youtubeRegex);
-                  const vimeoMatch = videoUrl.match(vimeoRegex);
-
-                  if (youtubeMatch) {
-                    const videoId = youtubeMatch[1];
-                    return (
-                      <iframe
-                        src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
-                        className="w-full h-full"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        title={currentContent.title}
-                        onLoad={handleContentComplete}
-                      />
-                    );
-                  } else if (vimeoMatch) {
-                    const videoId = vimeoMatch[1];
-                    return (
-                      <iframe
-                        src={`https://player.vimeo.com/video/${videoId}?autoplay=1`}
-                        className="w-full h-full"
-                        allowFullScreen
-                        title={currentContent.title}
-                        onLoad={handleContentComplete}
-                      />
-                    );
-                  }
-                }
-                
-                // Direct video file
-                if (fileUrl || videoUrl) {
-                  const videoSrc = fileUrl || videoUrl;
-                  return (
-                    <video
-                      src={videoSrc}
-                      controls
-                      className="w-full h-full"
-                      onEnded={handleContentComplete}
-                      autoPlay
-                    >
-                      <source src={videoSrc} type="video/mp4" />
-                      <source src={videoSrc} type="video/webm" />
-                      <source src={videoSrc} type="video/ogg" />
-                      เบราว์เซอร์ของคุณไม่รองรับการเล่นวิดีโอ
-                    </video>
-                  );
-                }
-                
-                return (
-                  <div className="flex items-center justify-center w-full h-full text-white">
-                    <div className="text-center">
-                      <p className="text-xl mb-2">ไม่พบวิดีโอ</p>
-                      <p className="text-sm text-gray-400">กรุณาตรวจสอบ URL หรือไฟล์วิดีโอ</p>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          )}
-
-          {currentContent.type === 'document' && (
-            <div className="flex-1 bg-white flex flex-col">
-              {(() => {
-                let fileUrl = currentContent.fileUrl;
-                
-                // Convert fileUrl to full URL if needed
-                if (fileUrl && fileUrl.startsWith('/uploads/')) {
-                  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-                  const baseUrl = apiBaseUrl.replace('/api', '');
-                  fileUrl = `${baseUrl}${fileUrl}`;
-                }
-                
-                if (fileUrl) {
-                  return (
-                    <>
-                      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
-                        <div className="flex items-center space-x-3">
-                          <h3 className="text-lg font-semibold text-gray-900">{currentContent.title}</h3>
-                          {currentContent.fileName && (
-                            <span className="text-sm text-gray-500">({currentContent.fileName})</span>
-                          )}
-                        </div>
-                        <a
-                          href={fileUrl}
-                          download
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-                        >
-                          <ArrowDownTrayIcon className="h-5 w-5" />
-                          <span>ดาวน์โหลด</span>
-                        </a>
-                      </div>
-                      <div className="flex-1 overflow-hidden">
-                        <iframe
-                          src={fileUrl}
-                          className="w-full h-full"
-                          title={currentContent.title}
-                          onLoad={handleContentComplete}
-                        />
-                      </div>
-                    </>
-                  );
-                }
-                
-                return (
-                  <div className="flex items-center justify-center w-full h-full text-gray-600">
-                    <div className="text-center">
-                      <p className="text-xl mb-2">ไม่พบเอกสาร</p>
-                      <p className="text-sm text-gray-400">กรุณาตรวจสอบไฟล์เอกสาร</p>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          )}
-
-          {(currentContent.type === 'quiz' || currentContent.type === 'pre_test') && (
-            <div className="flex-1 bg-white flex items-center justify-center">
-              <div className="text-center max-w-md">
-                <ClipboardDocumentCheckIcon className="h-16 w-16 text-blue-600 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-gray-900 mb-2">แบบทดสอบ</h3>
-                <p className="text-gray-600 mb-6">{currentContent.title}</p>
-                <Button
-                  onClick={() => router.push(`/student/courses/${courseId}/quiz/${currentContent.id}`)}
-                  className="w-full"
-                >
-                  เริ่มทำแบบทดสอบ
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {currentContent.type === 'poll' && (
-            <div className="flex-1 bg-white flex items-center justify-center">
-              <div className="text-center max-w-md">
-                <ClipboardDocumentCheckIcon className="h-16 w-16 text-purple-600 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-gray-900 mb-2">แบบประเมิน</h3>
-                <p className="text-gray-600 mb-6">{currentContent.title}</p>
-                <Button
-                  onClick={() => router.push(`/student/courses/${courseId}/poll/${currentContent.poll?.id || currentContent.id}`)}
-                  className="w-full"
-                >
-                  เริ่มทำแบบประเมิน
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Navigation Buttons */}
-          <div className="px-6 py-4 bg-white border-t border-gray-200 flex justify-between">
-            <Button
-              variant="outline"
-              onClick={handlePrevContent}
-              disabled={!currentLesson || currentLesson.contents.findIndex((c) => c.id === currentContent.id) === 0 && lessons.findIndex((l) => l.id === currentLesson.id) === 0}
-            >
-              ← เนื้อหาก่อนหน้า
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleNextContent}
-              disabled={
-                !currentLesson ||
-                (currentLesson.contents.findIndex((c) => c.id === currentContent.id) === currentLesson.contents.length - 1 &&
-                 lessons.findIndex((l) => l.id === currentLesson.id) === lessons.length - 1)
-              }
-            >
-              เนื้อหาถัดไป →
-            </Button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
