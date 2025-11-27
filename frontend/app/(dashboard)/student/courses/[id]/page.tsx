@@ -399,7 +399,7 @@ export default function StudentCourseDetailPage() {
   const videoUrl = getVideoUrl();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white w-full">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="w-full px-6 py-4">

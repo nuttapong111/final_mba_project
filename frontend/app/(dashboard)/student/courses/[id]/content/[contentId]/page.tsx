@@ -275,10 +275,23 @@ export default function StudentContentPage() {
   // Convert fileUrl to full URL if needed
   const getFullUrl = (url?: string, fileUrl?: string) => {
     if (url) return url;
-    if (fileUrl && fileUrl.startsWith('/uploads/')) {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-      const baseUrl = apiBaseUrl.replace('/api', '');
-      return `${baseUrl}${fileUrl}`;
+    if (fileUrl) {
+      // If already a full URL, return as is
+      if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
+        return fileUrl;
+      }
+      // If relative path starting with /uploads/
+      if (fileUrl.startsWith('/uploads/')) {
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+        const baseUrl = apiBaseUrl.replace('/api', '');
+        return `${baseUrl}${fileUrl}`;
+      }
+      // If just filename, assume it's in uploads
+      if (!fileUrl.startsWith('/')) {
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+        const baseUrl = apiBaseUrl.replace('/api', '');
+        return `${baseUrl}/uploads/${fileUrl}`;
+      }
     }
     return fileUrl;
   };
@@ -286,7 +299,7 @@ export default function StudentContentPage() {
   const contentUrl = getFullUrl(currentContent.url, currentContent.fileUrl);
 
   return (
-    <div className="flex h-screen bg-white overflow-hidden">
+    <div className="flex h-full bg-white overflow-hidden w-full">
       {/* Main Content Area - Left Side (Full Width) */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}

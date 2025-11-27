@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { getRoleDashboardPath } from '@/lib/roleConfig';
 import Header from '@/components/layout/Header';
@@ -12,8 +12,12 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { isAuthenticated, user, checkAuth } = useAuthStore();
   const [isChecking, setIsChecking] = useState(true);
+  
+  // Check if current path is a full-screen page (content page)
+  const isFullScreenPage = pathname?.includes('/content/') || false;
 
   useEffect(() => {
     // Check authentication on mount
@@ -79,9 +83,15 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {children}
-      </main>
+      {isFullScreenPage ? (
+        <main className="w-full h-[calc(100vh-64px)] overflow-hidden">
+          {children}
+        </main>
+      ) : (
+        <main className="w-full px-4 sm:px-6 lg:px-8 py-6">
+          {children}
+        </main>
+      )}
     </div>
   );
 }
