@@ -17,7 +17,7 @@ import pollRoutes from './routes/polls';
 import questionBankRoutes from './routes/questionBanks';
 import uploadRoutes from './routes/upload';
 import examRoutes from './routes/exams';
-import { serveStatic } from 'hono/node-server/serve-static';
+import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
 const app = new Hono();
@@ -30,7 +30,35 @@ app.use('/*', cors({
 
 // Serve static files (uploads)
 const UPLOAD_DIR = process.env.UPLOAD_DIR || join(process.cwd(), 'uploads');
-app.use('/uploads/*', serveStatic({ root: './' }));
+app.get('/uploads/*', async (c) => {
+  const filePath = c.req.path.replace('/uploads/', '');
+  const fullPath = join(UPLOAD_DIR, filePath);
+  
+  try {
+    if (!existsSync(fullPath)) {
+      return c.json({ success: false, error: 'File not found' }, 404);
+    }
+    
+    const file = readFileSync(fullPath);
+    const ext = filePath.split('.').pop()?.toLowerCase();
+    const mimeTypes: Record<string, string> = {
+      'mp4': 'video/mp4',
+      'webm': 'video/webm',
+      'ogg': 'video/ogg',
+      'mov': 'video/quicktime',
+      'pdf': 'application/pdf',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    };
+    const contentType = mimeTypes[ext || ''] || 'application/octet-stream';
+    
+    return c.body(file, 200, {
+      'Content-Type': contentType,
+    });
+  } catch (error) {
+    return c.json({ success: false, error: 'File not found' }, 404);
+  }
+});
 
 // Health check
 app.get('/health', (c) => {
