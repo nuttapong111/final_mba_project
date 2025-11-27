@@ -868,6 +868,12 @@ export default function CourseContentPage() {
 
       // Debug: Log data being sent to API
       console.log('[DEBUG] Sending to API:', JSON.stringify(lessonsData, null, 2));
+      console.log('[DEBUG] File upload results map:', Array.from(fileUploadResults.entries()));
+      addDebugLog('info', 'กำลังส่งข้อมูลไป API', {
+        lessonCount: lessonsData.length,
+        fileUploadResultsCount: fileUploadResults.size,
+        fileUploadResults: Array.from(fileUploadResults.entries()),
+      });
 
       const response = await coursesApi.saveContent(courseId, lessonsData);
 
