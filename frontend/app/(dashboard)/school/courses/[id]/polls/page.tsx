@@ -185,14 +185,14 @@ export default function CoursePollsPage() {
                 </div>
                 <div className="flex flex-col space-y-2 ml-4">
                   <button
-                    onClick={() => handleEditPoll(pollItem.id)}
+                    onClick={() => handleEditPoll(pollItem.poll.id)}
                     className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                     title="แก้ไข"
                   >
                     <PencilIcon className="h-5 w-5" />
                   </button>
                   <button
-                    onClick={() => handleDeletePoll(pollItem.id)}
+                    onClick={() => handleDeletePoll(pollItem.poll.id)}
                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     title="ลบ"
                   >

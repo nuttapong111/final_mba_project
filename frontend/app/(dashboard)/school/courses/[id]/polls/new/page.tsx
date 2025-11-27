@@ -186,7 +186,12 @@ export default function NewPollPage() {
           showConfirmButton: false,
         });
 
+        // Use router.replace to avoid back button issues, or router.push with refresh
         router.push(`/school/courses/${courseId}/polls`);
+        // Force refresh after navigation
+        setTimeout(() => {
+          window.location.reload();
+        }, 100);
       } else {
         await Swal.fire({
           icon: 'error',
