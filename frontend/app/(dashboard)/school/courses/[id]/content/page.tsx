@@ -511,7 +511,6 @@ export default function CourseContentPage() {
       updated[lessonIndex].contents[contentIndex] = {
         ...updated[lessonIndex].contents[contentIndex],
         poll: selectedPoll.poll,
-        pollId: selectedPoll.poll.id,
         title: selectedPoll.title || selectedPoll.poll.title,
       };
       setLessons(updated);
