@@ -405,7 +405,7 @@ export default function NewPollPage() {
                             type="number"
                             min="1"
                             max="10"
-                            value={question.minRating || 1}
+                            value={(question as any).minRating || 1}
                             onChange={(e) => handleUpdateQuestion(index, 'minRating', parseInt(e.target.value))}
                           />
                         </div>
@@ -415,7 +415,7 @@ export default function NewPollPage() {
                             type="number"
                             min="1"
                             max="10"
-                            value={question.maxRating || 5}
+                            value={(question as any).maxRating || 5}
                             onChange={(e) => handleUpdateQuestion(index, 'maxRating', parseInt(e.target.value))}
                           />
                         </div>
