@@ -853,10 +853,97 @@ export default function CourseContentPage() {
           <h2 className="text-2xl font-bold text-gray-900">จัดการเนื้อหาหลักสูตร</h2>
           <p className="text-gray-600 mt-1">{course?.title}</p>
         </div>
-        <Button onClick={handleSave}>
-          บันทึกการเปลี่ยนแปลง
-        </Button>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowDebugPanel(!showDebugPanel)}
+            className="text-xs"
+          >
+            {showDebugPanel ? 'ซ่อน' : 'แสดง'} Debug Panel
+          </Button>
+          <Button onClick={handleSave}>
+            บันทึกการเปลี่ยนแปลง
+          </Button>
+        </div>
       </div>
+
+      {/* Debug Panel */}
+      {showDebugPanel && (
+        <Card className="bg-gray-900 text-white">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold">Debug Panel</h3>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDebugLogs([])}
+                className="text-xs bg-gray-800 text-white border-gray-700"
+              >
+                ล้าง Logs
+              </Button>
+              <button
+                onClick={() => setShowDebugPanel(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {debugLogs.length === 0 ? (
+              <p className="text-gray-400 text-sm">ยังไม่มี logs</p>
+            ) : (
+              debugLogs.map((log, index) => (
+                <div
+                  key={index}
+                  className={`p-3 rounded text-sm ${
+                    log.type === 'success'
+                      ? 'bg-green-900 bg-opacity-50 border-l-4 border-green-500'
+                      : log.type === 'error'
+                      ? 'bg-red-900 bg-opacity-50 border-l-4 border-red-500'
+                      : log.type === 'warning'
+                      ? 'bg-yellow-900 bg-opacity-50 border-l-4 border-yellow-500'
+                      : 'bg-gray-800 bg-opacity-50 border-l-4 border-blue-500'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <span className="text-xs text-gray-400">{log.time}</span>
+                        <span
+                          className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            log.type === 'success'
+                              ? 'bg-green-700 text-green-100'
+                              : log.type === 'error'
+                              ? 'bg-red-700 text-red-100'
+                              : log.type === 'warning'
+                              ? 'bg-yellow-700 text-yellow-100'
+                              : 'bg-blue-700 text-blue-100'
+                          }`}
+                        >
+                          {log.type.toUpperCase()}
+                        </span>
+                      </div>
+                      <p className="text-white mb-1">{log.message}</p>
+                      {log.data && (
+                        <details className="mt-2">
+                          <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-300">
+                            ดูข้อมูลเพิ่มเติม
+                          </summary>
+                          <pre className="mt-2 p-2 bg-black bg-opacity-50 rounded text-xs overflow-x-auto">
+                            {JSON.stringify(log.data, null, 2)}
+                          </pre>
+                        </details>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </Card>
+      )}
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
         <p className="text-sm text-blue-800">
