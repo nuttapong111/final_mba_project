@@ -438,7 +438,7 @@ export default function CourseContentPage() {
       title: `บทเรียน ${lessons.length + 1}`,
       order: lessons.length + 1,
       contents: [],
-      createdAt: new Date(),
+      createdAt: new Date().toISOString(),
     };
     setLessons([...lessons, newLesson]);
   };
