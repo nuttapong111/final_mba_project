@@ -434,9 +434,11 @@ export default function CourseContentPage() {
   const handleAddLesson = () => {
     const newLesson: Lesson = {
       id: `lesson-${Date.now()}`,
+      courseId: courseId,
       title: `บทเรียน ${lessons.length + 1}`,
       order: lessons.length + 1,
       contents: [],
+      createdAt: new Date(),
     };
     setLessons([...lessons, newLesson]);
   };
