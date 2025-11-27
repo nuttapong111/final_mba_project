@@ -16,7 +16,18 @@ export const getPollsByCourse = async (courseId: string, user: AuthUser) => {
     throw new Error('ไม่มีสิทธิ์เข้าถึงหลักสูตรนี้');
   }
 
-  // Get all polls from course lessons
+  // Get all polls for this course (not just those connected to LessonContent)
+  const allPolls = await prisma.poll.findMany({
+    where: { courseId },
+    include: {
+      questions: {
+        orderBy: { order: 'asc' },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  // Get polls that are connected to LessonContent (for lessonTitle and contentId)
   const lessons = await prisma.lesson.findMany({
     where: { courseId },
     include: {
@@ -25,13 +36,7 @@ export const getPollsByCourse = async (courseId: string, user: AuthUser) => {
           type: 'POLL',
         },
         include: {
-          poll: {
-            include: {
-              questions: {
-                orderBy: { order: 'asc' },
-              },
-            },
-          },
+          poll: true,
         },
         orderBy: { order: 'asc' },
       },
@@ -39,6 +44,22 @@ export const getPollsByCourse = async (courseId: string, user: AuthUser) => {
     orderBy: { order: 'asc' },
   });
 
+  // Create a map of pollId -> content info
+  const pollContentMap = new Map<string, { lessonTitle: string; lessonId: string; contentId: string; contentTitle: string }>();
+  lessons.forEach((lesson) => {
+    lesson.contents.forEach((content) => {
+      if (content.pollId) {
+        pollContentMap.set(content.pollId, {
+          lessonTitle: lesson.title,
+          lessonId: lesson.id,
+          contentId: content.id,
+          contentTitle: content.title,
+        });
+      }
+    });
+  });
+
+  // Map all polls to the response format
   const polls: Array<{
     id: string;
     title: string;
@@ -46,21 +67,30 @@ export const getPollsByCourse = async (courseId: string, user: AuthUser) => {
     lessonId: string;
     contentId: string;
     poll: any;
-  }> = [];
-
-  lessons.forEach((lesson) => {
-    lesson.contents.forEach((content) => {
-      if (content.poll) {
-        polls.push({
-          id: content.id,
-          title: content.title || content.poll.title,
-          lessonTitle: lesson.title,
-          lessonId: lesson.id,
-          contentId: content.id,
-          poll: content.poll,
-        });
-      }
-    });
+  }> = allPolls.map((poll) => {
+    const contentInfo = pollContentMap.get(poll.id);
+    return {
+      id: poll.id, // Use poll.id instead of content.id so we can identify polls not yet connected
+      title: contentInfo?.contentTitle || poll.title,
+      lessonTitle: contentInfo?.lessonTitle || 'ยังไม่ได้เชื่อมกับบทเรียน',
+      lessonId: contentInfo?.lessonId || '',
+      contentId: contentInfo?.contentId || '',
+      poll: {
+        id: poll.id,
+        title: poll.title,
+        description: poll.description,
+        questions: poll.questions.map((q) => ({
+          id: q.id,
+          question: q.question,
+          type: q.type.toLowerCase(),
+          required: q.required,
+          options: q.options,
+          order: q.order,
+        })),
+        createdAt: poll.createdAt.toISOString(),
+        updatedAt: poll.updatedAt.toISOString(),
+      },
+    };
   });
 
   return polls;
