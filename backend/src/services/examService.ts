@@ -105,6 +105,7 @@ export const submitExam = async (
       }
 
       const question = examQuestion.question;
+      const questionType = question.type.toUpperCase();
 
       // Create exam answer
       await tx.examAnswer.create({
@@ -113,7 +114,6 @@ export const submitExam = async (
           questionId: answerData.questionId,
           answer: answerData.answer,
           // For non-essay questions, check if answer is correct
-          const questionType = question.type.toUpperCase();
           isCorrect:
             questionType === 'MULTIPLE_CHOICE' || questionType === 'TRUE_FALSE'
               ? question.options.some(
@@ -142,7 +142,7 @@ export const submitExam = async (
       });
 
       // For essay questions, create grading task and call AI
-      if (question.type === 'ESSAY') {
+      if (questionType === 'ESSAY') {
         // Get correct answer if exists (from question options or explanation)
         const correctAnswer =
           question.options.length > 0
