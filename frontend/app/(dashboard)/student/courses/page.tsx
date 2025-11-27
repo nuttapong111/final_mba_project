@@ -45,9 +45,18 @@ export default function StudentCoursesPage() {
     fetchCourses();
   }, []);
 
+  interface EnrolledStudent {
+    id: string;
+    name: string;
+    email: string;
+    avatar?: string;
+    enrolledAt: string;
+    progress: number;
+  }
+
   const getCourseProgress = (courseId: string) => {
-    const course = enrolledCourses.find(c => c.id === courseId);
-    const student = course?.enrolledStudents?.find(s => s.id === user?.id);
+    const course = enrolledCourses.find((c: any) => c.id === courseId);
+    const student = course?.enrolledStudents?.find((s: EnrolledStudent) => s.id === user?.id);
     return student?.progress || 0;
   };
 
