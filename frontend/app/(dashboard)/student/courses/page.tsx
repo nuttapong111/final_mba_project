@@ -11,7 +11,7 @@ import { BookOpenIcon, ClockIcon, CheckCircleIcon } from '@heroicons/react/24/ou
 export default function StudentCoursesPage() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const enrolledCourses = filterCoursesByRole(mockCourses, user);
+  const enrolledCourses = filterCoursesByRole(mockCourses, user as any);
 
   const getCourseProgress = (courseId: string) => {
     const course = enrolledCourses.find(c => c.id === courseId);
