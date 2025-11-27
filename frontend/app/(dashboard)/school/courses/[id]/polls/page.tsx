@@ -144,7 +144,7 @@ export default function CoursePollsPage() {
       ) : (
         <div className="space-y-4">
           {polls.map((pollItem) => (
-            <Card key={pollItem.id}>
+            <Card key={pollItem.poll.id}>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-3">
