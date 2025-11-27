@@ -67,7 +67,7 @@ export default function EditCoursePage() {
           category: course.category || '',
           categoryId: (course as any).categoryId || '',
           level: course.level?.toLowerCase() || 'beginner',
-          courseType: course.courseType?.toLowerCase() || 'video',
+          courseType: (course.courseType?.toLowerCase() || 'video') as 'video' | 'live',
           livePlatform: (course as any).livePlatform?.toLowerCase() || '',
           instructorId: course.instructor?.id || '',
           startDate: (course as any).startDate ? new Date((course as any).startDate).toISOString().split('T')[0] : '',
