@@ -8,7 +8,7 @@ import Input from '@/components/ui/Input';
 import { PlusIcon, XMarkIcon, ChevronUpIcon, ChevronDownIcon, Bars3Icon } from '@heroicons/react/24/outline';
 import Swal from 'sweetalert2';
 import { mockQuestionCategories, type Lesson, type LessonContent, type Poll, type QuestionCategory, type ExamQuestionSelection, type QuizSettings } from '@/lib/mockData';
-import { coursesApi, pollsApi } from '@/lib/api';
+import { coursesApi, pollsApi, uploadApi } from '@/lib/api';
 
 // Component สำหรับการตั้งค่าข้อสอบ
 function QuizSettingsForm({
@@ -520,36 +520,50 @@ export default function CourseContentPage() {
 
   const handleSave = async () => {
     try {
-      // ตรวจสอบว่ามีไฟล์ใหม่ที่ต้องอัพโหลดหรือไม่
-      const contentsWithNewFiles: Array<{ lessonTitle: string; contentTitle: string }> = [];
+      // อัพโหลดไฟล์ใหม่ก่อน
+      const uploadPromises: Array<Promise<void>> = [];
       
-      lessons.forEach((lesson) => {
-        lesson.contents.forEach((content) => {
-          // ถ้ามีไฟล์ใหม่ (file object) แต่ยังไม่มี URL หรือ fileUrl จาก backend
-          if ((content as any).file) {
-            const hasUrl = content.url && content.url.trim();
-            const hasFileUrl = content.fileUrl && content.fileUrl.startsWith('http');
+      lessons.forEach((lesson, lessonIndex) => {
+        lesson.contents.forEach((content, contentIndex) => {
+          // ถ้ามีไฟล์ใหม่ (file object) และยังไม่มี URL
+          if ((content as any).file && !content.url?.trim()) {
+            const file = (content as any).file as File;
+            const fileType = content.type === 'video' ? 'video' : 'document';
             
-            if (!hasUrl && !hasFileUrl) {
-              contentsWithNewFiles.push({
-                lessonTitle: lesson.title,
-                contentTitle: content.title,
-              });
-            }
+            uploadPromises.push(
+              uploadApi.uploadFile(file, fileType)
+                .then((response) => {
+                  if (response.success && response.data) {
+                    // อัพเดต fileUrl, fileName, fileSize จาก response
+                    handleUpdateContent(lessonIndex, contentIndex, 'fileUrl', response.data.url);
+                    handleUpdateContent(lessonIndex, contentIndex, 'fileName', response.data.fileName);
+                    handleUpdateContent(lessonIndex, contentIndex, 'fileSize', response.data.fileSize);
+                    // ลบ file object ออก
+                    handleUpdateContent(lessonIndex, contentIndex, 'file', undefined);
+                  } else {
+                    throw new Error(response.error || 'ไม่สามารถอัพโหลดไฟล์ได้');
+                  }
+                })
+                .catch((error) => {
+                  throw new Error(`ไม่สามารถอัพโหลดไฟล์ "${content.title}": ${error.message}`);
+                })
+            );
           }
         });
       });
 
-      // ถ้ามีไฟล์ใหม่ที่ยังไม่มี URL ให้แสดง error
-      if (contentsWithNewFiles.length > 0) {
-        const contentList = contentsWithNewFiles.map(c => `- ${c.contentTitle} (${c.lessonTitle})`).join('\n');
+      // รอให้อัพโหลดไฟล์เสร็จก่อน
+      if (uploadPromises.length > 0) {
         await Swal.fire({
-          icon: 'warning',
-          title: 'กรุณาระบุ URL',
-          html: `สำหรับเนื้อหาที่อัพโหลดไฟล์ กรุณาระบุ URL ของไฟล์ หรือใช้ URL จาก YouTube/Vimeo แทน<br/><br/>เนื้อหาที่ต้องระบุ URL:<br/>${contentList}`,
-          confirmButtonText: 'ตกลง',
+          title: 'กำลังอัพโหลดไฟล์...',
+          text: `กำลังอัพโหลด ${uploadPromises.length} ไฟล์ กรุณารอสักครู่`,
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
         });
-        return;
+
+        await Promise.all(uploadPromises);
       }
 
       // Prepare lessons data for API
@@ -569,9 +583,8 @@ export default function CourseContentPage() {
             contentData.url = content.url;
           }
           
-          // ถ้ามีไฟล์ใหม่ แต่มี URL แล้ว ให้ใช้ URL แทน
-          // ถ้า fileUrl เป็น URL จาก backend (http/https) ให้ใช้
-          if (content.fileUrl && content.fileUrl.startsWith('http')) {
+          // ถ้า fileUrl เป็น URL จาก backend (http/https หรือ /uploads/) ให้ใช้
+          if (content.fileUrl && (content.fileUrl.startsWith('http') || content.fileUrl.startsWith('/uploads/'))) {
             contentData.fileUrl = content.fileUrl;
             if (content.fileName) contentData.fileName = content.fileName;
             if (content.fileSize) contentData.fileSize = content.fileSize;

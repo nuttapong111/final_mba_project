@@ -9,6 +9,15 @@ export const apiClient = axios.create({
   },
 });
 
+// Helper to set Content-Type for multipart/form-data only when needed
+apiClient.interceptors.request.use((config) => {
+  // If data is FormData, let axios set Content-Type automatically
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type'];
+  }
+  return config;
+});
+
 // Add token to requests
 apiClient.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {

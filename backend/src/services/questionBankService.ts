@@ -283,3 +283,91 @@ export const deleteQuestion = async (questionId: string, user: AuthUser) => {
   return { message: 'ลบข้อสอบสำเร็จ' };
 };
 
+export const createQuestion = async (
+  questionBankId: string,
+  data: {
+    question: string;
+    type: string;
+    categoryId?: string;
+    difficulty: string;
+    points: number;
+    explanation?: string;
+    options?: Array<{ text: string; isCorrect: boolean; order: number }>;
+    correctAnswer?: string; // สำหรับ short_answer (essay ไม่ต้องระบุ)
+  },
+  user: AuthUser
+) => {
+  const questionBank = await prisma.questionBank.findUnique({
+    where: { id: questionBankId },
+    include: { course: true },
+  });
+
+  if (!questionBank) {
+    throw new Error('ไม่พบคลังข้อสอบ');
+  }
+
+  // Check permission
+  if (user.role === 'SCHOOL_ADMIN' && questionBank.course?.schoolId !== user.schoolId) {
+    throw new Error('ไม่มีสิทธิ์สร้างข้อสอบในคลังข้อสอบนี้');
+  }
+
+  if (!data.question || !data.question.trim()) {
+    throw new Error('กรุณากรอกคำถาม');
+  }
+
+  if (!data.type) {
+    throw new Error('กรุณาเลือกประเภทข้อสอบ');
+  }
+
+  // Validate options for multiple choice and true/false
+  if ((data.type === 'MULTIPLE_CHOICE' || data.type === 'multiple_choice') && (!data.options || data.options.length < 2)) {
+    throw new Error('ข้อสอบแบบตัวเลือกต้องมีตัวเลือกอย่างน้อย 2 ตัวเลือก');
+  }
+
+  if ((data.type === 'MULTIPLE_CHOICE' || data.type === 'multiple_choice') && !data.options?.some(opt => opt.isCorrect)) {
+    throw new Error('ต้องมีตัวเลือกอย่างน้อย 1 ตัวเลือกที่ถูกต้อง');
+  }
+
+  // Validate correct answer for short_answer (essay ไม่ต้องระบุ)
+  if (data.type === 'SHORT_ANSWER' || data.type === 'short_answer') {
+    if (!data.correctAnswer || !data.correctAnswer.trim()) {
+      throw new Error('กรุณากรอกคำตอบที่ถูกต้องสำหรับข้อสอบแบบคำตอบสั้น');
+    }
+  }
+
+  // Create question
+  const question = await prisma.question.create({
+    data: {
+      questionBankId,
+      categoryId: data.categoryId || null,
+      question: data.question.trim(),
+      type: (data.type.toUpperCase() as any),
+      difficulty: (data.difficulty.toUpperCase() as any),
+      points: data.points || 1,
+      explanation: data.explanation?.trim() || null,
+      options: (data.type === 'MULTIPLE_CHOICE' || data.type === 'multiple_choice' || data.type === 'TRUE_FALSE' || data.type === 'true_false') && data.options
+        ? {
+            create: data.options.map((opt) => ({
+              text: opt.text.trim(),
+              isCorrect: opt.isCorrect,
+              order: opt.order,
+            })),
+          }
+        : undefined,
+    },
+    include: {
+      category: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      options: {
+        orderBy: { order: 'asc' },
+      },
+    },
+  });
+
+  return question;
+};
+

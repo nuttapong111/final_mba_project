@@ -140,4 +140,63 @@ export const updateGradingTask = async (
   return updated;
 };
 
+// AI Grading Service (Mock implementation - can be replaced with actual AI service)
+export const gradeWithAI = async (
+  question: string,
+  studentAnswer: string,
+  correctAnswer?: string,
+  points: number = 100
+): Promise<{ score: number; feedback: string }> => {
+  // Mock AI grading - in production, this would call an actual AI service
+  // For now, we'll do a simple keyword matching and length analysis
+  
+  const answerLength = studentAnswer.trim().length;
+  const questionLength = question.length;
+  
+  // Simple scoring logic (can be replaced with actual AI)
+  let score = 0;
+  let feedback = '';
+  
+  if (answerLength === 0) {
+    score = 0;
+    feedback = 'ไม่มีการตอบคำถาม';
+  } else if (answerLength < 50) {
+    score = Math.min(30, points * 0.3);
+    feedback = 'คำตอบสั้นเกินไป ควรอธิบายให้ละเอียดมากขึ้น';
+  } else if (answerLength < 100) {
+    score = Math.min(60, points * 0.6);
+    feedback = 'คำตอบดี แต่ควรอธิบายให้ละเอียดมากขึ้น';
+  } else if (answerLength < 200) {
+    score = Math.min(80, points * 0.8);
+    feedback = 'คำตอบดี มีการอธิบายที่ชัดเจน';
+  } else {
+    score = Math.min(95, points * 0.95);
+    feedback = 'คำตอบดีมาก มีการอธิบายที่ละเอียดและชัดเจน';
+  }
+  
+  // If correct answer is provided, do keyword matching
+  if (correctAnswer && correctAnswer.trim()) {
+    const correctKeywords = correctAnswer.toLowerCase().split(/\s+/);
+    const answerKeywords = studentAnswer.toLowerCase().split(/\s+/);
+    const matchedKeywords = correctKeywords.filter(keyword => 
+      answerKeywords.some(ans => ans.includes(keyword) || keyword.includes(ans))
+    );
+    const keywordMatchRatio = matchedKeywords.length / correctKeywords.length;
+    
+    // Adjust score based on keyword matching
+    score = Math.min(points, score * 0.7 + (points * keywordMatchRatio * 0.3));
+    
+    if (keywordMatchRatio > 0.7) {
+      feedback += ' คำตอบมีความเกี่ยวข้องกับคำตอบที่ถูกต้อง';
+    } else if (keywordMatchRatio < 0.3) {
+      feedback += ' คำตอบอาจไม่ตรงกับคำตอบที่ถูกต้อง';
+    }
+  }
+  
+  // Round to 2 decimal places
+  score = Math.round(score * 100) / 100;
+  
+  return { score, feedback };
+};
+
 

@@ -15,6 +15,9 @@ import dashboardRoutes from './routes/dashboard';
 import courseCategoryRoutes from './routes/courseCategories';
 import pollRoutes from './routes/polls';
 import questionBankRoutes from './routes/questionBanks';
+import uploadRoutes from './routes/upload';
+import { serveStatic } from 'hono/node-server/serve-static';
+import { join } from 'path';
 
 const app = new Hono();
 
@@ -23,6 +26,10 @@ app.use('/*', cors({
   origin: env.CORS_ORIGIN,
   credentials: true,
 }));
+
+// Serve static files (uploads)
+const UPLOAD_DIR = process.env.UPLOAD_DIR || join(process.cwd(), 'uploads');
+app.use('/uploads/*', serveStatic({ root: './' }));
 
 // Health check
 app.get('/health', (c) => {
@@ -42,6 +49,7 @@ app.route('/api/dashboard', dashboardRoutes);
 app.route('/api/course-categories', courseCategoryRoutes);
 app.route('/api/polls', pollRoutes);
 app.route('/api/question-banks', questionBankRoutes);
+app.route('/api/upload', uploadRoutes);
 
 // 404
 app.notFound((c) => {

@@ -158,23 +158,93 @@ export default function NewQuestionPage() {
       return;
     }
 
-    if ((formData.type === 'short_answer' || formData.type === 'essay') && !correctAnswer.trim()) {
+    // สำหรับ essay questions ไม่ต้องระบุคำตอบที่ถูกต้อง (จะใช้ AI ตรวจ)
+    if (formData.type === 'short_answer' && !correctAnswer.trim()) {
       Swal.fire({
         icon: 'error',
         title: 'กรุณากรอกคำตอบที่ถูกต้อง',
       });
       return;
     }
+    
+    // สำหรับ essay questions แจ้งเตือนว่าต้องใช้ AI ตรวจ
+    if (formData.type === 'essay' && !correctAnswer.trim()) {
+      const result = await Swal.fire({
+        icon: 'info',
+        title: 'ข้อสอบอัตนัย',
+        text: 'ข้อสอบอัตนัยจะใช้ AI ตรวจสอบและให้อาจารย์ตรวจสอบอีกครั้ง คุณต้องการดำเนินการต่อหรือไม่?',
+        showCancelButton: true,
+        confirmButtonText: 'ดำเนินการต่อ',
+        cancelButtonText: 'ยกเลิก',
+      });
+      
+      if (!result.isConfirmed) {
+        return;
+      }
+    }
 
-    await Swal.fire({
-      icon: 'success',
-      title: 'เพิ่มข้อสอบสำเร็จ!',
-      text: 'ข้อสอบถูกเพิ่มเข้าไปในคลังข้อสอบเรียบร้อยแล้ว',
-      timer: 1500,
-      showConfirmButton: false,
-    });
+    try {
+      if (!questionBank?.id) {
+        Swal.fire({
+          icon: 'error',
+          title: 'เกิดข้อผิดพลาด',
+          text: 'ไม่พบคลังข้อสอบ',
+        });
+        return;
+      }
 
-    router.push(`/school/courses/${courseId}/question-bank`);
+      // Prepare question data
+      const questionData: any = {
+        question: formData.question.trim(),
+        type: formData.type,
+        categoryId: formData.category || undefined,
+        difficulty: formData.difficulty,
+        points: formData.points,
+        explanation: formData.explanation?.trim() || undefined,
+      };
+
+      // Add options for multiple choice and true/false
+      if (formData.type === 'multiple_choice' || formData.type === 'true_false') {
+        questionData.options = options
+          .filter(opt => opt.text.trim())
+          .map((opt, index) => ({
+            text: opt.text.trim(),
+            isCorrect: opt.isCorrect,
+            order: index + 1,
+          }));
+      }
+
+      // Add correct answer for short_answer (essay ไม่ต้องระบุ)
+      if (formData.type === 'short_answer' && correctAnswer.trim()) {
+        questionData.correctAnswer = correctAnswer.trim();
+      }
+
+      const response = await questionBanksApi.createQuestion(questionBank.id, questionData);
+
+      if (response.success) {
+        await Swal.fire({
+          icon: 'success',
+          title: 'เพิ่มข้อสอบสำเร็จ!',
+          text: 'ข้อสอบถูกเพิ่มเข้าไปในคลังข้อสอบเรียบร้อยแล้ว',
+          timer: 1500,
+          showConfirmButton: false,
+        });
+
+        router.push(`/school/courses/${courseId}/question-bank`);
+      } else {
+        await Swal.fire({
+          icon: 'error',
+          title: 'เกิดข้อผิดพลาด',
+          text: response.error || 'ไม่สามารถเพิ่มข้อสอบได้',
+        });
+      }
+    } catch (error: any) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: error.response?.data?.error || error.message || 'ไม่สามารถเพิ่มข้อสอบได้',
+      });
+    }
   };
 
   if (loading) {
@@ -379,8 +449,8 @@ export default function NewQuestionPage() {
               </Card>
             )}
 
-            {/* Answer for Short Answer and Essay */}
-            {(formData.type === 'short_answer' || formData.type === 'essay') && (
+            {/* Answer for Short Answer */}
+            {formData.type === 'short_answer' && (
               <Card>
                 <h3 className="text-xl font-bold text-gray-900 mb-4">คำตอบที่ถูกต้อง</h3>
                 <div>
@@ -390,11 +460,51 @@ export default function NewQuestionPage() {
                   <textarea
                     value={correctAnswer}
                     onChange={(e) => setCorrectAnswer(e.target.value)}
-                    rows={formData.type === 'essay' ? 5 : 3}
+                    rows={3}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     placeholder="กรอกคำตอบที่ถูกต้อง..."
                     required
                   />
+                </div>
+              </Card>
+            )}
+
+            {/* Info for Essay Questions */}
+            {formData.type === 'essay' && (
+              <Card>
+                <h3 className="text-xl font-bold text-gray-900 mb-4">ข้อมูลข้อสอบอัตนัย</h3>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-blue-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-sm font-medium text-blue-900 mb-2">ข้อสอบอัตนัยจะใช้ AI ตรวจสอบ</h4>
+                      <ul className="text-sm text-blue-800 space-y-1">
+                        <li>• ข้อสอบอัตนัยไม่ต้องระบุคำตอบที่ถูกต้อง</li>
+                        <li>• ระบบจะใช้ AI ตรวจสอบคำตอบของนักเรียนอัตโนมัติ</li>
+                        <li>• อาจารย์ผู้สอนจะตรวจสอบและให้คะแนนขั้นสุดท้ายอีกครั้ง</li>
+                        <li>• AI จะให้คะแนนและ feedback เบื้องต้นเพื่อช่วยอาจารย์</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    คำตอบตัวอย่าง (ไม่บังคับ)
+                  </label>
+                  <textarea
+                    value={correctAnswer}
+                    onChange={(e) => setCorrectAnswer(e.target.value)}
+                    rows={5}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    placeholder="กรอกคำตอบตัวอย่างเพื่อช่วย AI ตรวจสอบ (ไม่บังคับ)..."
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    คำตอบตัวอย่างจะช่วยให้ AI ตรวจสอบได้แม่นยำขึ้น แต่ไม่บังคับ
+                  </p>
                 </div>
               </Card>
             )}
@@ -424,6 +534,7 @@ export default function NewQuestionPage() {
                 <li>• กรอกคำถามให้ชัดเจนและเข้าใจง่าย</li>
                 <li>• เลือกหมวดหมู่และระดับความยากให้เหมาะสม</li>
                 <li>• สำหรับข้อสอบแบบตัวเลือก ต้องมีคำตอบที่ถูกต้องอย่างน้อย 1 ตัวเลือก</li>
+                <li>• ข้อสอบอัตนัยจะใช้ AI ตรวจสอบและให้อาจารย์ตรวจสอบอีกครั้ง</li>
                 <li>• คำอธิบายจะช่วยให้นักเรียนเข้าใจมากขึ้น</li>
               </ul>
             </Card>

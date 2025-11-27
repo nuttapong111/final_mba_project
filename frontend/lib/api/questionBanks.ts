@@ -93,5 +93,23 @@ export const questionBanksApi = {
     const response = await apiClient.delete(`/question-banks/questions/${questionId}`);
     return response.data;
   },
+
+  createQuestion: async (questionBankId: string, data: {
+    question: string;
+    type: string;
+    categoryId?: string;
+    difficulty: string;
+    points: number;
+    explanation?: string;
+    options?: Array<{ text: string; isCorrect: boolean; order: number }>;
+    correctAnswer?: string;
+  }): Promise<{
+    success: boolean;
+    data: any;
+    error?: string;
+  }> => {
+    const response = await apiClient.post(`/question-banks/${questionBankId}/questions`, data);
+    return response.data;
+  },
 };
 
