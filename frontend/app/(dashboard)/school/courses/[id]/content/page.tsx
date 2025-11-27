@@ -635,8 +635,19 @@ export default function CourseContentPage() {
           }
           
           // ถ้า fileUrl เป็น URL จาก backend (http/https หรือ /uploads/) ให้ใช้
-          if (content.fileUrl && (content.fileUrl.startsWith('http') || content.fileUrl.startsWith('/uploads/'))) {
-            contentData.fileUrl = content.fileUrl;
+          // แต่ต้องแปลงเป็น relative path สำหรับส่งไป backend
+          if (content.fileUrl) {
+            // ถ้าเป็น full URL ให้แปลงกลับเป็น relative path
+            let fileUrl = content.fileUrl;
+            if (fileUrl.startsWith('http')) {
+              // แปลง full URL กลับเป็น relative path
+              const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+              const baseUrl = apiBaseUrl.replace('/api', '');
+              if (fileUrl.startsWith(baseUrl)) {
+                fileUrl = fileUrl.replace(baseUrl, '');
+              }
+            }
+            contentData.fileUrl = fileUrl;
             if (content.fileName) contentData.fileName = content.fileName;
             if (content.fileSize) contentData.fileSize = content.fileSize;
           }
