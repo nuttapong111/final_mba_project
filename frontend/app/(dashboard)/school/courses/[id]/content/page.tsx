@@ -7,8 +7,8 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { PlusIcon, XMarkIcon, ChevronUpIcon, ChevronDownIcon, Bars3Icon } from '@heroicons/react/24/outline';
 import Swal from 'sweetalert2';
-import { mockQuestionCategories, type Lesson, type LessonContent, type Poll, type QuestionCategory, type ExamQuestionSelection, type QuizSettings } from '@/lib/mockData';
-import { coursesApi, pollsApi, uploadApi } from '@/lib/api';
+import { type Lesson, type LessonContent, type Poll, type QuestionCategory, type ExamQuestionSelection, type QuizSettings } from '@/lib/mockData';
+import { coursesApi, pollsApi, uploadApi, questionBanksApi } from '@/lib/api';
 
 // Component สำหรับการตั้งค่าข้อสอบ
 function QuizSettingsForm({
@@ -24,7 +24,34 @@ function QuizSettingsForm({
   courseId: string;
   onUpdate: (lessonIndex: number, contentIndex: number, field: string, value: any) => void;
 }) {
-  const categories = mockQuestionCategories.filter(cat => cat.courseId === courseId || !cat.courseId);
+  const [categories, setCategories] = useState<QuestionCategory[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setLoadingCategories(true);
+        const response = await questionBanksApi.getByCourse(courseId);
+        if (response.success && response.data) {
+          const categoriesFromApi = response.data.categories.map((cat: any) => ({
+            id: cat.id,
+            name: cat.name,
+            description: cat.description,
+            courseId: courseId,
+            questionCount: cat._count?.questions || 0,
+            createdAt: cat.createdAt || new Date().toISOString(),
+          }));
+          setCategories(categoriesFromApi);
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+
+    fetchCategories();
+  }, [courseId]);
   const quizSettings = content.quizSettings || {
     totalQuestions: 0,
     categorySelections: [],
@@ -334,18 +361,28 @@ export default function CourseContentPage() {
           title: lesson.title,
           description: lesson.description,
           order: lesson.order,
-          contents: (lesson.contents || []).map((content: any) => ({
-            id: content.id,
-            type: content.type.toLowerCase(),
-            title: content.title,
-            url: content.url,
-            fileUrl: content.fileUrl,
-            fileName: content.fileName,
-            fileSize: content.fileSize,
-            duration: content.duration,
-            order: content.order,
-            file: undefined, // เก็บไฟล์จริงสำหรับอัพโหลด
-            quizSettings: content.quizSettings ? {
+          contents: (lesson.contents || []).map((content: any) => {
+            // แปลง fileUrl ให้เป็น full URL ถ้าเป็น relative path
+            let fileUrl = content.fileUrl;
+            if (fileUrl && fileUrl.startsWith('/uploads/')) {
+              const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+              // ลบ /api ออกเพราะ fileUrl เริ่มด้วย /uploads/ แล้ว
+              const baseUrl = apiBaseUrl.replace('/api', '');
+              fileUrl = `${baseUrl}${fileUrl}`;
+            }
+            
+            return {
+              id: content.id,
+              type: content.type.toLowerCase(),
+              title: content.title,
+              url: content.url,
+              fileUrl: fileUrl,
+              fileName: content.fileName,
+              fileSize: content.fileSize,
+              duration: content.duration,
+              order: content.order,
+              file: undefined, // เก็บไฟล์จริงสำหรับอัพโหลด
+              quizSettings: content.quizSettings ? {
               totalQuestions: content.quizSettings.totalQuestions,
               duration: content.quizSettings.duration,
               maxAttempts: content.quizSettings.maxAttempts,
@@ -361,9 +398,15 @@ export default function CourseContentPage() {
                 questionCount: sel.questionCount,
                 difficulty: sel.difficulty?.toLowerCase(),
               })),
-            } : undefined,
-            poll: content.poll,
-          })),
+              } : undefined,
+              poll: content.poll ? {
+                id: content.poll.id,
+                title: content.poll.title,
+                description: content.poll.description,
+                questions: content.poll.questions || [],
+              } : undefined,
+            };
+          }),
         }));
         setLessons(transformedLessons);
       }
@@ -534,8 +577,16 @@ export default function CourseContentPage() {
               uploadApi.uploadFile(file, fileType)
                 .then((response) => {
                   if (response.success && response.data) {
+                    // แปลง fileUrl ให้เป็น full URL ถ้าเป็น relative path
+                    let fileUrl = response.data.url;
+                    if (fileUrl && fileUrl.startsWith('/uploads/')) {
+                      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+                      const baseUrl = apiBaseUrl.replace('/api', '');
+                      fileUrl = `${baseUrl}${fileUrl}`;
+                    }
+                    
                     // อัพเดต fileUrl, fileName, fileSize จาก response
-                    handleUpdateContent(lessonIndex, contentIndex, 'fileUrl', response.data.url);
+                    handleUpdateContent(lessonIndex, contentIndex, 'fileUrl', fileUrl);
                     handleUpdateContent(lessonIndex, contentIndex, 'fileName', response.data.fileName);
                     handleUpdateContent(lessonIndex, contentIndex, 'fileSize', response.data.fileSize);
                     // ลบ file object ออก
