@@ -643,12 +643,15 @@ export default function CourseContentPage() {
                       fileUrl = `${baseUrl}${fileUrl}`;
                     }
                     
-                    // เก็บข้อมูลไฟล์ไว้ใน map
+                    // เก็บข้อมูลไฟล์ไว้ใน map - ใช้ contentKey ที่ตรงกับตอน prepare data
+                    // contentKey ใช้ `${lessonIndex}-${contentIndex}` ซึ่งจะตรงกับตอน prepare data
                     fileUploadResults.set(contentKey, {
                       fileUrl: response.data.url, // เก็บ relative path สำหรับส่งไป backend
                       fileName: response.data.fileName,
                       fileSize: response.data.fileSize,
                     });
+                    
+                    console.log(`[DEBUG] Stored in map with key: ${contentKey}`, fileUploadResults.get(contentKey));
                     
                     const storedData = fileUploadResults.get(contentKey);
                     console.log(`[DEBUG] Stored in map for ${contentKey}:`, storedData);
@@ -774,12 +777,13 @@ export default function CourseContentPage() {
       addDebugLog('info', 'เตรียมส่งข้อมูลไป API', { lessonCount: lessons.length, contentCount: lessons.reduce((sum, l) => sum + l.contents.length, 0) });
 
       // Prepare lessons data for API
-      const lessonsData = lessons.map((lesson, index) => ({
+      // IMPORTANT: ใช้ index ที่ตรงกับ lessonIndex ใน loop อัพโหลดไฟล์
+      const lessonsData = lessons.map((lesson, lessonIndex) => ({
         title: lesson.title,
         description: lesson.description || '',
-        order: index + 1,
+        order: lessonIndex + 1,
         contents: lesson.contents.map((content, contentIndex) => {
-          const contentKey = `${index}-${contentIndex}`;
+          const contentKey = `${lessonIndex}-${contentIndex}`;
           const contentData: any = {
             type: content.type,
             title: content.title,
