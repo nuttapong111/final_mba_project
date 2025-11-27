@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -12,31 +12,72 @@ import {
   CheckIcon,
 } from '@heroicons/react/24/outline';
 import Swal from 'sweetalert2';
-import {
-  mockCourses,
-  mockQuestionCategories,
-  type Question,
-  type QuestionOption,
-} from '@/lib/mockData';
+import { coursesApi, questionBanksApi } from '@/lib/api';
+import type { Question, QuestionOption } from '@/lib/mockData';
 
 export default function NewQuestionPage() {
   const params = useParams();
   const courseId = params.id as string;
   const router = useRouter();
-  const course = mockCourses.find(c => c.id === courseId);
-
-  const availableCategories = mockQuestionCategories.filter(
-    cat => cat.courseId === courseId || !cat.courseId
-  );
+  const [course, setCourse] = useState<any>(null);
+  const [questionBank, setQuestionBank] = useState<any>(null);
+  const [availableCategories, setAvailableCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [formData, setFormData] = useState({
     question: '',
     type: 'multiple_choice' as 'multiple_choice' | 'true_false' | 'short_answer' | 'essay',
-    category: availableCategories[0]?.id || '',
+    category: '',
     difficulty: 'easy' as 'easy' | 'medium' | 'hard',
     points: 2,
     explanation: '',
   });
+
+  useEffect(() => {
+    fetchData();
+  }, [courseId]);
+
+  useEffect(() => {
+    if (availableCategories.length > 0 && !formData.category) {
+      setFormData(prev => ({ ...prev, category: availableCategories[0]?.id || '' }));
+    }
+  }, [availableCategories]);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [courseResponse, questionBankResponse] = await Promise.all([
+        coursesApi.getById(courseId),
+        questionBanksApi.getByCourse(courseId),
+      ]);
+
+      if (courseResponse.success && courseResponse.data) {
+        setCourse(courseResponse.data);
+      }
+
+      if (questionBankResponse.success && questionBankResponse.data) {
+        setQuestionBank(questionBankResponse.data);
+        setAvailableCategories(
+          questionBankResponse.data.categories.map((cat: any) => ({
+            id: cat.id,
+            name: cat.name,
+            description: cat.description,
+            questionCount: cat._count?.questions || 0,
+            createdAt: cat.createdAt,
+          }))
+        );
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: 'ไม่สามารถโหลดข้อมูลได้',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [options, setOptions] = useState<Array<{ id: string; text: string; isCorrect: boolean }>>([
     { id: '1', text: '', isCorrect: false },
@@ -136,6 +177,32 @@ export default function NewQuestionPage() {
     router.push(`/school/courses/${courseId}/question-bank`);
   };
 
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">กำลังโหลดข้อมูล...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!course) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <div className="text-center py-12">
+            <p className="text-gray-600">ไม่พบหลักสูตร</p>
+            <Button onClick={() => router.back()} className="mt-4">
+              กลับ
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-4">
@@ -208,14 +275,22 @@ export default function NewQuestionPage() {
                       onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                       required
+                      disabled={availableCategories.length === 0}
                     >
-                      <option value="">เลือกหมวดหมู่</option>
+                      <option value="">
+                        {availableCategories.length === 0 ? 'ไม่มีหมวดหมู่ (กรุณาเพิ่มหมวดหมู่ก่อน)' : 'เลือกหมวดหมู่'}
+                      </option>
                       {availableCategories.map((cat) => (
                         <option key={cat.id} value={cat.id}>
                           {cat.name}
                         </option>
                       ))}
                     </select>
+                    {availableCategories.length === 0 && (
+                      <p className="text-xs text-red-600 mt-1">
+                        กรุณาเพิ่มหมวดหมู่ในหลักสูตรก่อน
+                      </p>
+                    )}
                   </div>
                 </div>
 
