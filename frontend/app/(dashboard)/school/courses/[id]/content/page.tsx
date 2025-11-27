@@ -614,8 +614,22 @@ export default function CourseContentPage() {
           },
         });
 
-        await Promise.all(uploadPromises);
+        try {
+          await Promise.all(uploadPromises);
+          await Swal.close(); // ปิด loading dialog
+        } catch (error: any) {
+          await Swal.close();
+          await Swal.fire({
+            icon: 'error',
+            title: 'เกิดข้อผิดพลาด',
+            text: error.message || 'ไม่สามารถอัพโหลดไฟล์ได้',
+          });
+          return;
+        }
       }
+
+      // Debug: Log data before sending
+      console.log('[DEBUG] Lessons data to save:', JSON.stringify(lessons, null, 2));
 
       // Prepare lessons data for API
       const lessonsData = lessons.map((lesson, index) => ({
@@ -681,6 +695,9 @@ export default function CourseContentPage() {
           return contentData;
         }),
       }));
+
+      // Debug: Log data being sent to API
+      console.log('[DEBUG] Sending to API:', JSON.stringify(lessonsData, null, 2));
 
       const response = await coursesApi.saveContent(courseId, lessonsData);
 

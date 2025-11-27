@@ -74,15 +74,27 @@ export const saveCourseContent = async (
           description: lessonData.description || null,
           order: lessonData.order,
           contents: {
-            create: lessonData.contents.map((contentData) => ({
-              type: contentData.type.toUpperCase() as any,
-              title: contentData.title,
-              url: contentData.url || null,
-              fileUrl: contentData.fileUrl || null,
-              fileName: contentData.fileName || null,
-              fileSize: contentData.fileSize || null,
-              duration: contentData.duration || null,
-              order: contentData.order,
+            create: lessonData.contents.map((contentData) => {
+              // Debug logging
+              if (contentData.fileUrl || contentData.fileName) {
+                console.log(`[DEBUG] Saving content with file:`, {
+                  title: contentData.title,
+                  type: contentData.type,
+                  fileUrl: contentData.fileUrl,
+                  fileName: contentData.fileName,
+                  fileSize: contentData.fileSize,
+                });
+              }
+              
+              return {
+                type: contentData.type.toUpperCase() as any,
+                title: contentData.title,
+                url: contentData.url || null,
+                fileUrl: contentData.fileUrl || null,
+                fileName: contentData.fileName || null,
+                fileSize: contentData.fileSize || null,
+                duration: contentData.duration || null,
+                order: contentData.order,
               quizSettings: contentData.quizSettings
                 ? {
                     create: {
@@ -121,7 +133,8 @@ export const saveCourseContent = async (
                     connect: { id: contentData.pollId },
                   }
                 : undefined,
-            })),
+              };
+            }),
           },
         },
       });

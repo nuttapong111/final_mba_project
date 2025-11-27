@@ -16,6 +16,7 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
     "db:setup": "bash scripts/setup-db.sh",
+    "db:check-files": "tsx scripts/check-uploaded-files.ts",
     "railway:deploy": "npm run build && npx prisma generate && npx prisma db push && npm run db:seed"
   },
   "prisma": {
