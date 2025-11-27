@@ -1,0 +1,221 @@
+import prisma from '../config/database';
+import { AuthUser } from '../middleware/auth';
+import { gradeWithAI } from './gradingService';
+
+export interface SubmitExamData {
+  examId: string;
+  answers: Array<{
+    questionId: string;
+    answer: string;
+  }>;
+  timeSpent?: number; // in minutes
+}
+
+export const submitExam = async (
+  data: SubmitExamData,
+  user: AuthUser
+) => {
+  // Verify exam exists
+  const exam = await prisma.exam.findUnique({
+    where: { id: data.examId },
+    include: {
+      examQuestions: {
+        include: {
+          question: {
+            include: {
+              options: true,
+            },
+          },
+        },
+        orderBy: { order: 'asc' },
+      },
+      course: true,
+    },
+  });
+
+  if (!exam) {
+    throw new Error('ไม่พบข้อสอบ');
+  }
+
+  // Check if user is student
+  if (user.role !== 'STUDENT') {
+    throw new Error('เฉพาะนักเรียนเท่านั้นที่สามารถส่งข้อสอบได้');
+  }
+
+  // Check if student is enrolled in the course
+  const enrollment = await prisma.courseStudent.findUnique({
+    where: {
+      courseId_studentId: {
+        courseId: exam.courseId,
+        studentId: user.id,
+      },
+    },
+  });
+
+  if (!enrollment) {
+    throw new Error('คุณไม่ได้ลงทะเบียนในหลักสูตรนี้');
+  }
+
+  // Check if exam is active
+  const now = new Date();
+  if (now < exam.startDate || now > exam.endDate) {
+    throw new Error('ข้อสอบยังไม่เปิดหรือหมดเวลาแล้ว');
+  }
+
+  // Check if already submitted
+  const existingSubmission = await prisma.examSubmission.findFirst({
+    where: {
+      examId: data.examId,
+      studentId: user.id,
+    },
+  });
+
+  if (existingSubmission) {
+    throw new Error('คุณได้ส่งข้อสอบนี้แล้ว');
+  }
+
+  // Use transaction to ensure data consistency
+  const submission = await prisma.$transaction(async (tx) => {
+    // Create exam submission
+    const examSubmission = await tx.examSubmission.create({
+      data: {
+        examId: data.examId,
+        studentId: user.id,
+        timeSpent: data.timeSpent || null,
+      },
+    });
+
+    // Process answers and create grading tasks for essay questions
+    const gradingTasksToCreate: Array<{
+      submissionId: string;
+      questionId: string;
+      studentId: string;
+      answer: string;
+      aiScore?: number;
+      aiFeedback?: string;
+    }> = [];
+
+    for (const answerData of data.answers) {
+      const examQuestion = exam.examQuestions.find(
+        (eq) => eq.questionId === answerData.questionId
+      );
+
+      if (!examQuestion) {
+        continue; // Skip if question not in exam
+      }
+
+      const question = examQuestion.question;
+
+      // Create exam answer
+      await tx.examAnswer.create({
+        data: {
+          submissionId: examSubmission.id,
+          questionId: answerData.questionId,
+          answer: answerData.answer,
+          // For non-essay questions, check if answer is correct
+          const questionType = question.type.toUpperCase();
+          isCorrect:
+            questionType === 'MULTIPLE_CHOICE' || questionType === 'TRUE_FALSE'
+              ? question.options.some(
+                  (opt) => opt.isCorrect && opt.text === answerData.answer
+                )
+              : questionType === 'SHORT_ANSWER' && question.options.length > 0
+              ? question.options[0].text.toLowerCase().trim() ===
+                answerData.answer.toLowerCase().trim()
+              : null,
+          // Calculate points for non-essay questions
+          points:
+            questionType === 'MULTIPLE_CHOICE' ||
+            questionType === 'TRUE_FALSE' ||
+            questionType === 'SHORT_ANSWER'
+              ? question.options.some(
+                  (opt) => opt.isCorrect && opt.text === answerData.answer
+                ) ||
+                (questionType === 'SHORT_ANSWER' &&
+                  question.options.length > 0 &&
+                  question.options[0].text.toLowerCase().trim() ===
+                    answerData.answer.toLowerCase().trim())
+                ? question.points
+                : 0
+              : null,
+        },
+      });
+
+      // For essay questions, create grading task and call AI
+      if (question.type === 'ESSAY') {
+        // Get correct answer if exists (from question options or explanation)
+        const correctAnswer =
+          question.options.length > 0
+            ? question.options[0].text
+            : question.explanation || undefined;
+
+        // Call AI grading
+        const aiResult = await gradeWithAI(
+          question.question,
+          answerData.answer,
+          correctAnswer,
+          question.points
+        );
+
+        gradingTasksToCreate.push({
+          submissionId: examSubmission.id,
+          questionId: answerData.questionId,
+          studentId: user.id,
+          answer: answerData.answer,
+          aiScore: aiResult.score,
+          aiFeedback: aiResult.feedback,
+        });
+      }
+    }
+
+    // Create grading tasks
+    if (gradingTasksToCreate.length > 0) {
+      await tx.gradingTask.createMany({
+        data: gradingTasksToCreate,
+      });
+    }
+
+    // Calculate score for non-essay questions
+    const answers = await tx.examAnswer.findMany({
+      where: { submissionId: examSubmission.id },
+      include: {
+        submission: {
+          include: {
+            exam: {
+              include: {
+                examQuestions: {
+                  include: {
+                    question: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const totalScore = answers.reduce((sum, ans) => sum + (ans.points || 0), 0);
+    const maxScore = exam.examQuestions.reduce(
+      (sum, eq) => sum + eq.question.points,
+      0
+    );
+    const percentage = maxScore > 0 ? (totalScore / maxScore) * 100 : 0;
+
+    // Update submission with initial score (will be updated when all grading tasks are done)
+    await tx.examSubmission.update({
+      where: { id: examSubmission.id },
+      data: {
+        score: totalScore,
+        percentage,
+        // Only mark as passed if no essay questions (will be updated later)
+        passed: gradingTasksToCreate.length === 0 ? percentage >= exam.passingScore : null,
+      },
+    });
+
+    return examSubmission;
+  });
+
+  return submission;
+};
+

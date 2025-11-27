@@ -16,6 +16,7 @@ import courseCategoryRoutes from './routes/courseCategories';
 import pollRoutes from './routes/polls';
 import questionBankRoutes from './routes/questionBanks';
 import uploadRoutes from './routes/upload';
+import examRoutes from './routes/exams';
 import { serveStatic } from 'hono/node-server/serve-static';
 import { join } from 'path';
 
@@ -50,6 +51,7 @@ app.route('/api/course-categories', courseCategoryRoutes);
 app.route('/api/polls', pollRoutes);
 app.route('/api/question-banks', questionBankRoutes);
 app.route('/api/upload', uploadRoutes);
+app.route('/api/exams', examRoutes);
 
 // 404
 app.notFound((c) => {
