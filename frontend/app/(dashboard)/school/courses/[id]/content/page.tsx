@@ -563,7 +563,8 @@ export default function CourseContentPage() {
 
   const handleSave = async () => {
     try {
-      // อัพโหลดไฟล์ใหม่ก่อน
+      // อัพโหลดไฟล์ใหม่ก่อน และเก็บข้อมูลไฟล์ไว้ใน map
+      const fileUploadResults = new Map<string, { fileUrl: string; fileName: string; fileSize: number }>();
       const uploadPromises: Array<Promise<void>> = [];
       
       lessons.forEach((lesson, lessonIndex) => {
@@ -572,6 +573,7 @@ export default function CourseContentPage() {
           if ((content as any).file && !content.url?.trim()) {
             const file = (content as any).file as File;
             const fileType = content.type === 'video' ? 'video' : 'document';
+            const contentKey = `${lessonIndex}-${contentIndex}`;
             
             uploadPromises.push(
               uploadApi.uploadFile(file, fileType)
@@ -585,7 +587,14 @@ export default function CourseContentPage() {
                       fileUrl = `${baseUrl}${fileUrl}`;
                     }
                     
-                    // อัพเดต fileUrl, fileName, fileSize จาก response
+                    // เก็บข้อมูลไฟล์ไว้ใน map
+                    fileUploadResults.set(contentKey, {
+                      fileUrl: response.data.url, // เก็บ relative path สำหรับส่งไป backend
+                      fileName: response.data.fileName,
+                      fileSize: response.data.fileSize,
+                    });
+                    
+                    // อัพเดต state สำหรับแสดงใน UI
                     handleUpdateContent(lessonIndex, contentIndex, 'fileUrl', fileUrl);
                     handleUpdateContent(lessonIndex, contentIndex, 'fileName', response.data.fileName);
                     handleUpdateContent(lessonIndex, contentIndex, 'fileSize', response.data.fileSize);
@@ -617,6 +626,9 @@ export default function CourseContentPage() {
         try {
           await Promise.all(uploadPromises);
           await Swal.close(); // ปิด loading dialog
+          
+          // รอให้ state อัพเดต (ใช้ setTimeout เพื่อให้ React re-render)
+          await new Promise(resolve => setTimeout(resolve, 100));
         } catch (error: any) {
           await Swal.close();
           await Swal.fire({
@@ -637,6 +649,7 @@ export default function CourseContentPage() {
         description: lesson.description || '',
         order: index + 1,
         contents: lesson.contents.map((content, contentIndex) => {
+          const contentKey = `${index}-${contentIndex}`;
           const contentData: any = {
             type: content.type,
             title: content.title,
@@ -648,10 +661,16 @@ export default function CourseContentPage() {
             contentData.url = content.url;
           }
           
-          // ถ้า fileUrl เป็น URL จาก backend (http/https หรือ /uploads/) ให้ใช้
-          // แต่ต้องแปลงเป็น relative path สำหรับส่งไป backend
-          if (content.fileUrl) {
-            // ถ้าเป็น full URL ให้แปลงกลับเป็น relative path
+          // ตรวจสอบว่ามีไฟล์ที่เพิ่งอัพโหลดใน map หรือไม่
+          const uploadedFile = fileUploadResults.get(contentKey);
+          if (uploadedFile) {
+            // ใช้ข้อมูลจาก upload result (เป็น relative path แล้ว)
+            contentData.fileUrl = uploadedFile.fileUrl;
+            contentData.fileName = uploadedFile.fileName;
+            contentData.fileSize = uploadedFile.fileSize;
+          } else if (content.fileUrl) {
+            // ถ้า fileUrl เป็น URL จาก backend (http/https หรือ /uploads/) ให้ใช้
+            // แต่ต้องแปลงเป็น relative path สำหรับส่งไป backend
             let fileUrl = content.fileUrl;
             if (fileUrl.startsWith('http')) {
               // แปลง full URL กลับเป็น relative path
