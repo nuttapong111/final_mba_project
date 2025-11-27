@@ -239,6 +239,8 @@ export default function StudentDashboardPage() {
           </div>
         </Card>
       )}
+        </>
+      )}
     </div>
   );
 }
