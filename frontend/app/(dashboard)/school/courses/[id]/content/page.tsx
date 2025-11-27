@@ -344,6 +344,25 @@ export default function CourseContentPage() {
   
   // Initialize lessons - include all lessons (pre_test can be in any lesson)
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  
+  // Debug panel state
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
+  const [debugLogs, setDebugLogs] = useState<Array<{ time: string; type: 'info' | 'success' | 'error' | 'warning'; message: string; data?: any }>>([]);
+  
+  // Helper function to add debug log
+  const addDebugLog = (type: 'info' | 'success' | 'error' | 'warning', message: string, data?: any) => {
+    const log = {
+      time: new Date().toLocaleTimeString('th-TH'),
+      type,
+      message,
+      data,
+    };
+    setDebugLogs(prev => [...prev, log]);
+    // Keep only last 50 logs
+    if (debugLogs.length >= 50) {
+      setDebugLogs(prev => prev.slice(-49));
+    }
+  };
 
   useEffect(() => {
     fetchCourseContent();
@@ -573,14 +592,16 @@ export default function CourseContentPage() {
           const hasNewFile = (content as any).file && !content.url?.trim();
           const hasExistingFileUrl = content.fileUrl && !content.url?.trim();
           
-          console.log(`[DEBUG] Content ${lessonIndex}-${contentIndex} (${content.type}):`, {
+          const debugInfo = {
             hasNewFile,
             hasExistingFileUrl,
             fileUrl: content.fileUrl,
             fileName: content.fileName,
             fileSize: content.fileSize,
             url: content.url,
-          });
+          };
+          console.log(`[DEBUG] Content ${lessonIndex}-${contentIndex} (${content.type}):`, debugInfo);
+          addDebugLog('info', `ตรวจสอบ Content ${lessonIndex}-${contentIndex} (${content.type})`, debugInfo);
           
           // ถ้ามีไฟล์ใหม่ (file object) และยังไม่มี URL
           if (hasNewFile) {
@@ -588,17 +609,20 @@ export default function CourseContentPage() {
             const fileType = content.type === 'video' ? 'video' : 'document';
             const contentKey = `${lessonIndex}-${contentIndex}`;
             
-            console.log(`[DEBUG] Uploading file for ${contentKey}:`, {
+            const uploadInfo = {
               fileName: file.name,
               fileSize: file.size,
               fileType,
-            });
+            };
+            console.log(`[DEBUG] Uploading file for ${contentKey}:`, uploadInfo);
+            addDebugLog('info', `กำลังอัพโหลดไฟล์: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`, uploadInfo);
             
             uploadPromises.push(
               uploadApi.uploadFile(file, fileType)
                 .then((response) => {
                   if (response.success && response.data) {
                     console.log(`[DEBUG] Upload success for ${contentKey}:`, response.data);
+                    addDebugLog('success', `อัพโหลดไฟล์สำเร็จ: ${response.data.fileName}`, response.data);
                     
                     // แปลง fileUrl ให้เป็น full URL ถ้าเป็น relative path
                     let fileUrl = response.data.url;
@@ -615,7 +639,9 @@ export default function CourseContentPage() {
                       fileSize: response.data.fileSize,
                     });
                     
-                    console.log(`[DEBUG] Stored in map for ${contentKey}:`, fileUploadResults.get(contentKey));
+                    const storedData = fileUploadResults.get(contentKey);
+                    console.log(`[DEBUG] Stored in map for ${contentKey}:`, storedData);
+                    addDebugLog('info', `เก็บข้อมูลไฟล์ใน Map: ${contentKey}`, storedData);
                     
                     // อัพเดต state สำหรับแสดงใน UI
                     handleUpdateContent(lessonIndex, contentIndex, 'fileUrl', fileUrl);
@@ -629,6 +655,7 @@ export default function CourseContentPage() {
                 })
                 .catch((error) => {
                   console.error(`[DEBUG] Upload error for ${contentKey}:`, error);
+                  addDebugLog('error', `อัพโหลดไฟล์ล้มเหลว: ${content.title}`, error.message);
                   throw new Error(`ไม่สามารถอัพโหลดไฟล์ "${content.title}": ${error.message}`);
                 })
             );
@@ -653,19 +680,21 @@ export default function CourseContentPage() {
           
           // รอให้ state อัพเดต (ใช้ setTimeout เพื่อให้ React re-render)
           await new Promise(resolve => setTimeout(resolve, 100));
-        } catch (error: any) {
-          await Swal.close();
-          await Swal.fire({
-            icon: 'error',
-            title: 'เกิดข้อผิดพลาด',
-            text: error.message || 'ไม่สามารถอัพโหลดไฟล์ได้',
-          });
-          return;
-        }
+          } catch (error: any) {
+            await Swal.close();
+            addDebugLog('error', 'อัพโหลดไฟล์ล้มเหลว', error.message);
+            await Swal.fire({
+              icon: 'error',
+              title: 'เกิดข้อผิดพลาด',
+              text: error.message || 'ไม่สามารถอัพโหลดไฟล์ได้',
+            });
+            return;
+          }
       }
 
       // Debug: Log data before sending
       console.log('[DEBUG] Lessons data to save:', JSON.stringify(lessons, null, 2));
+      addDebugLog('info', 'เตรียมส่งข้อมูลไป API', { lessonCount: lessons.length, contentCount: lessons.reduce((sum, l) => sum + l.contents.length, 0) });
 
       // Prepare lessons data for API
       const lessonsData = lessons.map((lesson, index) => ({
@@ -687,17 +716,20 @@ export default function CourseContentPage() {
           
           // ตรวจสอบว่ามีไฟล์ที่เพิ่งอัพโหลดใน map หรือไม่
           const uploadedFile = fileUploadResults.get(contentKey);
-          console.log(`[DEBUG] Preparing content ${contentKey}:`, {
+          const prepareInfo = {
             hasUploadedFile: !!uploadedFile,
             uploadedFile,
             contentFileUrl: content.fileUrl,
             contentFileName: content.fileName,
             contentFileSize: content.fileSize,
-          });
+          };
+          console.log(`[DEBUG] Preparing content ${contentKey}:`, prepareInfo);
+          addDebugLog('info', `เตรียมข้อมูล Content ${contentKey} (${content.type})`, prepareInfo);
           
           if (uploadedFile) {
             // ใช้ข้อมูลจาก upload result (เป็น relative path แล้ว)
             console.log(`[DEBUG] Using uploaded file data for ${contentKey}`);
+            addDebugLog('success', `ใช้ข้อมูลไฟล์จาก Map: ${contentKey}`, uploadedFile);
             contentData.fileUrl = uploadedFile.fileUrl;
             contentData.fileName = uploadedFile.fileName;
             contentData.fileSize = uploadedFile.fileSize;
@@ -705,6 +737,7 @@ export default function CourseContentPage() {
             // ถ้า fileUrl เป็น URL จาก backend (http/https หรือ /uploads/) ให้ใช้
             // แต่ต้องแปลงเป็น relative path สำหรับส่งไป backend
             console.log(`[DEBUG] Using existing fileUrl for ${contentKey}:`, content.fileUrl);
+            addDebugLog('info', `ใช้ fileUrl ที่มีอยู่: ${contentKey}`, content.fileUrl);
             let fileUrl = content.fileUrl;
             if (fileUrl.startsWith('http')) {
               // แปลง full URL กลับเป็น relative path
@@ -719,6 +752,7 @@ export default function CourseContentPage() {
             if (content.fileSize) contentData.fileSize = content.fileSize;
           } else {
             console.log(`[DEBUG] No file data for ${contentKey} (type: ${content.type})`);
+            addDebugLog('warning', `ไม่มีข้อมูลไฟล์สำหรับ ${contentKey} (type: ${content.type})`);
           }
           
           if (content.duration) contentData.duration = content.duration;
