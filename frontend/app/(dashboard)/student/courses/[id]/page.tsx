@@ -1,12 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { mockCourses, getLessonsByCourse } from '@/lib/mockData';
-import { filterCoursesByRole } from '@/lib/utils';
+import { coursesApi } from '@/lib/api';
 import {
   PlayIcon,
   DocumentTextIcon,
@@ -23,12 +22,52 @@ export default function StudentCourseDetailPage() {
   const router = useRouter();
   const { user } = useAuthStore();
   const courseId = params.id as string;
-  const enrolledCourses = filterCoursesByRole(mockCourses, user as any);
-  const course = enrolledCourses.find(c => c.id === courseId);
-  const lessons = course ? getLessonsByCourse(courseId) : [];
-
+  const [course, setCourse] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [completedContents, setCompletedContents] = useState<Set<string>>(new Set());
   const [quizScores, setQuizScores] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    const fetchCourse = async () => {
+      try {
+        setLoading(true);
+        const response = await coursesApi.getById(courseId);
+        if (response.success && response.data) {
+          setCourse(response.data);
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'เกิดข้อผิดพลาด',
+            text: response.error || 'ไม่พบหลักสูตร',
+          });
+          router.push('/student/courses');
+        }
+      } catch (error) {
+        console.error('Error fetching course:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'เกิดข้อผิดพลาด',
+          text: 'ไม่สามารถโหลดข้อมูลหลักสูตรได้',
+        });
+        router.push('/student/courses');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourse();
+  }, [courseId, router]);
+
+  if (loading) {
+    return (
+      <Card>
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">กำลังโหลดข้อมูล...</p>
+        </div>
+      </Card>
+    );
+  }
 
   if (!course) {
     return (
@@ -42,6 +81,26 @@ export default function StudentCourseDetailPage() {
       </Card>
     );
   }
+
+  const lessons = (course.lessons || []).map((lesson: any) => ({
+    id: lesson.id,
+    title: lesson.title,
+    description: lesson.description,
+    order: lesson.order,
+    contents: (lesson.contents || []).map((content: any) => ({
+      id: content.id,
+      type: content.type.toLowerCase(),
+      title: content.title,
+      url: content.url,
+      fileUrl: content.fileUrl,
+      fileName: content.fileName,
+      fileSize: content.fileSize,
+      duration: content.duration,
+      order: content.order,
+      quizSettings: content.quizSettings,
+      poll: content.poll,
+    })),
+  }));
 
   const getProgress = () => {
     let totalContents = 0;
