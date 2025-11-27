@@ -618,7 +618,10 @@ export default function CourseContentPage() {
             addDebugLog('info', `กำลังอัพโหลดไฟล์: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`, uploadInfo);
             
             uploadPromises.push(
-              uploadApi.uploadFile(file, fileType)
+              uploadApi.uploadFile(file, fileType, (progress) => {
+                // Update progress in debug log
+                addDebugLog('info', `อัพโหลดไฟล์ ${file.name}: ${progress}%`, { progress });
+              })
                 .then((response) => {
                   if (response.success && response.data) {
                     console.log(`[DEBUG] Upload success for ${contentKey}:`, response.data);

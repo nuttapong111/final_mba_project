@@ -3,7 +3,10 @@ import { uploadFile, uploadMultipleFiles } from '../services/uploadService';
 
 export const uploadFileController = async (c: Context) => {
   try {
+    const startTime = Date.now();
     const user = c.get('user');
+    
+    console.log('[UPLOAD] Receiving file upload request...');
     const formData = await c.req.formData();
     const file = formData.get('file') as File;
     const type = formData.get('type') as 'video' | 'document';
@@ -16,9 +19,16 @@ export const uploadFileController = async (c: Context) => {
       return c.json({ success: false, error: 'ประเภทไฟล์ไม่ถูกต้อง' }, 400);
     }
 
+    console.log(`[UPLOAD] File received: ${file.name}, size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+    
     const result = await uploadFile(file, type, user);
+    
+    const duration = Date.now() - startTime;
+    console.log(`[UPLOAD] Total time: ${(duration / 1000).toFixed(2)}s`);
+    
     return c.json({ success: true, data: result });
   } catch (error: any) {
+    console.error('[UPLOAD] Error:', error);
     return c.json({ success: false, error: error.message }, 400);
   }
 };

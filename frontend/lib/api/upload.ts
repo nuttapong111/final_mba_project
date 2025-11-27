@@ -12,7 +12,11 @@ export interface UploadFileResponse {
 }
 
 export const uploadApi = {
-  uploadFile: async (file: File, type: 'video' | 'document'): Promise<UploadFileResponse> => {
+  uploadFile: async (
+    file: File,
+    type: 'video' | 'document',
+    onProgress?: (progress: number) => void
+  ): Promise<UploadFileResponse> => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('type', type);
@@ -20,6 +24,15 @@ export const uploadApi = {
     const response = await apiClient.post('/upload/file', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
+      },
+      timeout: 300000, // 5 minutes timeout (300 seconds)
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+      onUploadProgress: (progressEvent) => {
+        if (onProgress && progressEvent.total) {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress(percentCompleted);
+        }
       },
     });
 

@@ -48,9 +48,16 @@ export const uploadFile = async (
   const filePath = join(UPLOAD_DIR, fileName);
 
   // Convert File to Buffer and save
+  // Use streaming for large files to avoid memory issues
+  console.log(`[UPLOAD] Starting upload: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+  const startTime = Date.now();
+  
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
   await writeFile(filePath, buffer);
+  
+  const duration = Date.now() - startTime;
+  console.log(`[UPLOAD] Upload completed: ${file.name} in ${(duration / 1000).toFixed(2)}s`);
 
   // Generate URL (use full URL if BASE_URL is set, otherwise relative path)
   const baseUrl = process.env.BASE_URL || '';

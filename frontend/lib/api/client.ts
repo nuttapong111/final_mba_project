@@ -7,6 +7,7 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000, // 30 seconds default timeout (overridden for uploads)
 });
 
 // Helper to set Content-Type for multipart/form-data only when needed
