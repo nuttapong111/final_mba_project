@@ -196,3 +196,64 @@ export const deleteQuestionCategory = async (categoryId: string, user: AuthUser)
   return { message: 'ลบหมวดหมู่สำเร็จ' };
 };
 
+export const getQuestionsByQuestionBank = async (
+  questionBankId: string,
+  user: AuthUser,
+  filters?: {
+    categoryId?: string;
+    difficulty?: string;
+    search?: string;
+  }
+) => {
+  const questionBank = await prisma.questionBank.findUnique({
+    where: { id: questionBankId },
+    include: { course: true },
+  });
+
+  if (!questionBank) {
+    throw new Error('ไม่พบคลังข้อสอบ');
+  }
+
+  // Check permission
+  if (user.role === 'SCHOOL_ADMIN' && questionBank.course?.schoolId !== user.schoolId) {
+    throw new Error('ไม่มีสิทธิ์เข้าถึงคลังข้อสอบนี้');
+  }
+
+  const where: any = {
+    questionBankId,
+  };
+
+  if (filters?.categoryId) {
+    where.categoryId = filters.categoryId;
+  }
+
+  if (filters?.difficulty) {
+    where.difficulty = filters.difficulty.toUpperCase();
+  }
+
+  if (filters?.search) {
+    where.question = {
+      contains: filters.search,
+      mode: 'insensitive',
+    };
+  }
+
+  const questions = await prisma.question.findMany({
+    where,
+    include: {
+      category: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      options: {
+        orderBy: { order: 'asc' },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return questions;
+};
+

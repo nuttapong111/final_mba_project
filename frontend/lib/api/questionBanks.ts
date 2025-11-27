@@ -64,5 +64,25 @@ export const questionBanksApi = {
     const response = await apiClient.delete(`/question-banks/categories/${categoryId}`);
     return response.data;
   },
+
+  getQuestions: async (questionBankId: string, filters?: {
+    categoryId?: string;
+    difficulty?: string;
+    search?: string;
+  }): Promise<{
+    success: boolean;
+    data: any[];
+    error?: string;
+  }> => {
+    const params = new URLSearchParams();
+    if (filters?.categoryId) params.append('categoryId', filters.categoryId);
+    if (filters?.difficulty) params.append('difficulty', filters.difficulty);
+    if (filters?.search) params.append('search', filters.search);
+    
+    const queryString = params.toString();
+    const url = `/question-banks/${questionBankId}/questions${queryString ? `?${queryString}` : ''}`;
+    const response = await apiClient.get(url);
+    return response.data;
+  },
 };
 

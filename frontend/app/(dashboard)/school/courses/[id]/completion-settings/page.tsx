@@ -10,35 +10,62 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import Swal from 'sweetalert2';
-import {
-  mockCourses,
-  getCourseWithLessons,
-  type CourseCompletionRequirements,
-  type QuizPassingRequirement,
-} from '@/lib/mockData';
+import { coursesApi } from '@/lib/api';
+import type { CourseCompletionRequirements, QuizPassingRequirement } from '@/lib/mockData';
 
 export default function CourseCompletionSettingsPage() {
   const params = useParams();
   const courseId = params.id as string;
   const router = useRouter();
-  const course = mockCourses.find(c => c.id === courseId);
-  const courseWithLessons = getCourseWithLessons(courseId);
+  const [course, setCourse] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchCourse();
+  }, [courseId]);
+
+  const fetchCourse = async () => {
+    try {
+      setLoading(true);
+      const response = await coursesApi.getById(courseId);
+      if (response.success && response.data) {
+        setCourse(response.data);
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'เกิดข้อผิดพลาด',
+          text: 'ไม่สามารถโหลดข้อมูลหลักสูตรได้',
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching course:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: 'ไม่สามารถโหลดข้อมูลหลักสูตรได้',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // ดึง quiz ทั้งหมดจาก lessons
   const getAllQuizzes = () => {
-    if (!courseWithLessons?.lessons) return [];
+    if (!course?.lessons) return [];
     const quizzes: Array<{ id: string; title: string; lessonTitle: string }> = [];
     
-    courseWithLessons.lessons.forEach((lesson) => {
-      lesson.contents.forEach((content) => {
-        if (content.type === 'quiz' || content.type === 'pre_test') {
-          quizzes.push({
-            id: content.id,
-            title: content.title || (content.type === 'pre_test' ? 'แบบทดสอบก่อนเรียน' : 'แบบทดสอบ'),
-            lessonTitle: lesson.title,
-          });
-        }
-      });
+    course.lessons.forEach((lesson: any) => {
+      if (lesson.contents) {
+        lesson.contents.forEach((content: any) => {
+          if (content.type === 'QUIZ' || content.type === 'PRE_TEST') {
+            quizzes.push({
+              id: content.id,
+              title: content.title || (content.type === 'PRE_TEST' ? 'แบบทดสอบก่อนเรียน' : 'แบบทดสอบ'),
+              lessonTitle: lesson.title,
+            });
+          }
+        });
+      }
     });
     
     return quizzes;
@@ -63,8 +90,10 @@ export default function CourseCompletionSettingsPage() {
   });
 
   useEffect(() => {
+    if (!course) return;
+
     // โหลดข้อมูลจาก course ถ้ามี
-    if (course?.completionRequirements) {
+    if (course.completionRequirements) {
       const existingReqs = course.completionRequirements;
       
       // Sync quiz requirements กับ quizzes ที่มีอยู่จริง
@@ -159,6 +188,15 @@ export default function CourseCompletionSettingsPage() {
 
     router.push(`/school/courses/${courseId}`);
   };
+
+  if (loading) {
+    return (
+      <div className="text-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">กำลังโหลดข้อมูล...</p>
+      </div>
+    );
+  }
 
   if (!course) {
     return (
