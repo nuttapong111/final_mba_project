@@ -69,13 +69,47 @@ export default function StudentCourseDetailPage() {
         setLoading(true);
         const response = await coursesApi.getById(courseId);
         if (response.success && response.data) {
-          setCourse(response.data);
+          // Ensure all properties are properly serialized
+          const courseData = {
+            ...response.data,
+            instructor: response.data.instructor ? {
+              id: String(response.data.instructor.id || ''),
+              name: String(response.data.instructor.name || 'อาจารย์'),
+              avatar: response.data.instructor.avatar ? String(response.data.instructor.avatar) : undefined,
+            } : null,
+            school: response.data.school ? {
+              id: String(response.data.school.id || ''),
+              name: String(response.data.school.name || ''),
+            } : null,
+            enrolledStudents: Array.isArray(response.data.enrolledStudents) 
+              ? response.data.enrolledStudents.map((s: any) => ({
+                  id: String(s.id || ''),
+                  name: String(s.name || ''),
+                  email: String(s.email || ''),
+                  avatar: s.avatar ? String(s.avatar) : undefined,
+                  enrolledAt: s.enrolledAt ? String(s.enrolledAt) : new Date().toISOString(),
+                  progress: typeof s.progress === 'number' ? s.progress : 0,
+                }))
+              : [],
+            teachers: Array.isArray(response.data.teachers)
+              ? response.data.teachers.map((t: any) => ({
+                  id: String(t.id || ''),
+                  name: String(t.name || ''),
+                  email: String(t.email || ''),
+                  avatar: t.avatar ? String(t.avatar) : undefined,
+                  roles: t.roles || { liveTeaching: false, grading: false, webboard: false },
+                  addedAt: t.addedAt ? String(t.addedAt) : new Date().toISOString(),
+                }))
+              : [],
+          };
+          
+          setCourse(courseData);
           
           const transformedLessons: Lesson[] = (response.data.lessons || []).map((lesson: any) => ({
-            id: lesson.id,
-            title: lesson.title,
-            description: lesson.description,
-            order: lesson.order,
+            id: String(lesson.id || ''),
+            title: String(lesson.title || ''),
+            description: lesson.description ? String(lesson.description) : undefined,
+            order: typeof lesson.order === 'number' ? lesson.order : 0,
             contents: (lesson.contents || []).map((content: any) => {
               let fileUrl = content.fileUrl;
               if (fileUrl && fileUrl.startsWith('/uploads/')) {
@@ -85,17 +119,17 @@ export default function StudentCourseDetailPage() {
               }
               
               return {
-                id: content.id,
-                type: content.type.toLowerCase(),
-                title: content.title,
-                url: content.url,
-                fileUrl: fileUrl,
-                fileName: content.fileName,
-                fileSize: content.fileSize,
-                duration: content.duration,
-                order: content.order,
-                quizSettings: content.quizSettings,
-                poll: content.poll,
+                id: String(content.id || ''),
+                type: content.type ? String(content.type).toLowerCase() : 'document',
+                title: String(content.title || ''),
+                url: content.url ? String(content.url) : undefined,
+                fileUrl: fileUrl ? String(fileUrl) : undefined,
+                fileName: content.fileName ? String(content.fileName) : undefined,
+                fileSize: typeof content.fileSize === 'number' ? content.fileSize : undefined,
+                duration: typeof content.duration === 'number' ? content.duration : undefined,
+                order: typeof content.order === 'number' ? content.order : 0,
+                quizSettings: content.quizSettings || undefined,
+                poll: content.poll || undefined,
               };
             }),
           }));
@@ -381,11 +415,11 @@ export default function StudentCourseDetailPage() {
               <div className="flex items-center space-x-4 mt-2">
                 <div className="flex items-center space-x-2 text-sm text-gray-600">
                   <UserIcon className="h-4 w-4" />
-                  <span>{course.instructor?.name || 'อาจารย์'}</span>
+                  <span>{course?.instructor?.name || 'อาจารย์'}</span>
                 </div>
                 <div className="flex items-center space-x-2 text-sm text-gray-600">
                   <UsersIcon className="h-4 w-4" />
-                  <span>{course.students || 0} ผู้เรียน</span>
+                  <span>{typeof course?.students === 'number' ? course.students : (course?.enrolledStudents?.length || 0)} ผู้เรียน</span>
                 </div>
               </div>
             </div>

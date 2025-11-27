@@ -61,25 +61,51 @@ export default function StudentContentPage() {
         setLoading(true);
         const response = await coursesApi.getById(courseId);
         if (response.success && response.data) {
-          setCourse(response.data);
+          // Ensure all properties are properly serialized
+          const courseData = {
+            ...response.data,
+            id: String(response.data.id || ''),
+            title: String(response.data.title || ''),
+            description: String(response.data.description || ''),
+            instructor: response.data.instructor ? {
+              id: String(response.data.instructor.id || ''),
+              name: String(response.data.instructor.name || 'อาจารย์'),
+              avatar: response.data.instructor.avatar ? String(response.data.instructor.avatar) : undefined,
+            } : null,
+            school: response.data.school ? {
+              id: String(response.data.school.id || ''),
+              name: String(response.data.school.name || ''),
+            } : null,
+          };
+          
+          setCourse(courseData);
           
           // Transform lessons data
           const transformedLessons: Lesson[] = (response.data.lessons || []).map((lesson: any) => ({
-            id: lesson.id,
-            title: lesson.title,
-            order: lesson.order,
-            contents: (lesson.contents || []).map((content: any) => ({
-              id: content.id,
-              title: content.title,
-              type: content.type.toLowerCase(),
-              url: content.url,
-              fileUrl: content.fileUrl,
-              fileName: content.fileName,
-              order: content.order,
-              poll: content.poll,
-              quizSettings: content.quizSettings,
-              duration: content.duration,
-            })),
+            id: String(lesson.id || ''),
+            title: String(lesson.title || ''),
+            order: typeof lesson.order === 'number' ? lesson.order : 0,
+            contents: (lesson.contents || []).map((content: any) => {
+              let fileUrl = content.fileUrl;
+              if (fileUrl && fileUrl.startsWith('/uploads/')) {
+                const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+                const baseUrl = apiBaseUrl.replace('/api', '');
+                fileUrl = `${baseUrl}${fileUrl}`;
+              }
+              
+              return {
+                id: String(content.id || ''),
+                title: String(content.title || ''),
+                type: content.type ? String(content.type).toLowerCase() : 'document',
+                url: content.url ? String(content.url) : undefined,
+                fileUrl: fileUrl ? String(fileUrl) : undefined,
+                fileName: content.fileName ? String(content.fileName) : undefined,
+                order: typeof content.order === 'number' ? content.order : 0,
+                poll: content.poll || undefined,
+                quizSettings: content.quizSettings || undefined,
+                duration: typeof content.duration === 'number' ? content.duration : undefined,
+              };
+            }),
           }));
 
           setLessons(transformedLessons);
