@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { mockCourses, mockUsers, CourseTeacher, CourseStudent } from '@/lib/mockData';
+import { coursesApi, usersApi } from '@/lib/api';
 import { filterUsersByRole } from '@/lib/utils';
 import {
   UserPlusIcon,
@@ -22,10 +22,10 @@ export default function TeachersStudentsPage() {
   const params = useParams();
   const id = params.id as string;
   const { user: currentUser } = useAuthStore();
-  const course = mockCourses.find(c => c.id === id);
-
-  const [teachers, setTeachers] = useState<CourseTeacher[]>(course?.teachers || []);
-  const [students, setStudents] = useState<CourseStudent[]>(course?.enrolledStudents || []);
+  const [course, setCourse] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [teachers, setTeachers] = useState<any[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
   const [showAddTeacherModal, setShowAddTeacherModal] = useState(false);
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState<string>('');
@@ -35,6 +35,70 @@ export default function TeachersStudentsPage() {
     grading: false,
     webboard: false,
   });
+  const [availableUsers, setAvailableUsers] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchData();
+  }, [id]);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [courseResponse, usersResponse] = await Promise.all([
+        coursesApi.getById(id),
+        usersApi.getAll(),
+      ]);
+
+      if (courseResponse.success && courseResponse.data) {
+        setCourse(courseResponse.data);
+        // Map teachers and students from API response
+        setTeachers(
+          courseResponse.data.teachers?.map((t: any) => ({
+            id: t.id,
+            name: t.name,
+            email: t.email,
+            avatar: t.avatar,
+            roles: t.roles || { liveTeaching: false, grading: false, webboard: false },
+            addedAt: t.addedAt || new Date().toISOString(),
+          })) || []
+        );
+        setStudents(
+          courseResponse.data.enrolledStudents?.map((s: any) => ({
+            id: s.id,
+            name: s.name,
+            email: s.email,
+            avatar: s.avatar,
+            enrolledAt: s.enrolledAt || new Date().toISOString(),
+            progress: s.progress || 0,
+          })) || []
+        );
+      }
+
+      if (usersResponse.success && usersResponse.data) {
+        setAvailableUsers(usersResponse.data);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: 'ไม่สามารถโหลดข้อมูลได้',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">กำลังโหลดข้อมูล...</p>
+        </div>
+      </Card>
+    );
+  }
 
   if (!course) {
     return (
@@ -50,7 +114,7 @@ export default function TeachersStudentsPage() {
   // For school_admin, show all teachers/students from their school
   // For teacher, show only students from courses they teach
   const allAvailableTeachers = filterUsersByRole(
-    mockUsers.filter(u => u.role === 'teacher'),
+    availableUsers.filter((u: any) => u.role === 'TEACHER' || u.role === 'teacher'),
     currentUser as any,
     currentUser?.role === 'school_admin' ? undefined : [course]
   );
@@ -59,7 +123,7 @@ export default function TeachersStudentsPage() {
   );
   
   const allAvailableStudents = filterUsersByRole(
-    mockUsers.filter(u => u.role === 'student'),
+    availableUsers.filter((u: any) => u.role === 'STUDENT' || u.role === 'student'),
     currentUser as any,
     currentUser?.role === 'school_admin' ? undefined : [course]
   );
@@ -86,9 +150,9 @@ export default function TeachersStudentsPage() {
       return;
     }
 
-    const teacher = mockUsers.find((t) => t.id === selectedTeacher && t.role === 'teacher');
+    const teacher = availableUsers.find((t: any) => t.id === selectedTeacher && (t.role === 'TEACHER' || t.role === 'teacher'));
     if (teacher) {
-      const newTeacher: CourseTeacher = {
+      const newTeacher: any = {
         id: teacher.id,
         name: teacher.name,
         email: teacher.email,
@@ -146,9 +210,9 @@ export default function TeachersStudentsPage() {
       return;
     }
 
-    const student = mockUsers.find((s) => s.id === selectedStudent && s.role === 'student');
+    const student = availableUsers.find((s: any) => s.id === selectedStudent && (s.role === 'STUDENT' || s.role === 'student'));
     if (student) {
-      const newStudent: CourseStudent = {
+      const newStudent: any = {
         id: student.id,
         name: student.name,
         email: student.email,
@@ -195,7 +259,7 @@ export default function TeachersStudentsPage() {
     }
   };
 
-  const handleUpdateTeacherRoles = async (teacherId: string, newRoles: CourseTeacher['roles']) => {
+  const handleUpdateTeacherRoles = async (teacherId: string, newRoles: any) => {
     setTeachers(
       teachers.map((t) =>
         t.id === teacherId
