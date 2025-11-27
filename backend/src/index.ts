@@ -17,6 +17,7 @@ import pollRoutes from './routes/polls';
 import questionBankRoutes from './routes/questionBanks';
 import uploadRoutes from './routes/upload';
 import examRoutes from './routes/exams';
+import quizRoutes from './routes/quiz';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
@@ -80,6 +81,7 @@ app.route('/api/polls', pollRoutes);
 app.route('/api/question-banks', questionBankRoutes);
 app.route('/api/upload', uploadRoutes);
 app.route('/api/exams', examRoutes);
+app.route('/api/quiz', quizRoutes);
 
 // 404
 app.notFound((c) => {

@@ -25,6 +25,7 @@ export interface Course {
   status: string;
   createdAt: string;
   updatedAt: string;
+  lessons?: any[];
 }
 
 export interface CreateCourseRequest {

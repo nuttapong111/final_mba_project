@@ -7,6 +7,8 @@ export interface PollQuestion {
   required: boolean;
   options?: string[];
   order: number;
+  minRating?: number;
+  maxRating?: number;
 }
 
 export interface Poll {

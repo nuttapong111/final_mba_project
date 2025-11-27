@@ -25,7 +25,40 @@ export interface SubmitExamData {
   }>;
 }
 
+export interface QuizQuestion {
+  id: string;
+  question: string;
+  type: 'multiple_choice' | 'true_false' | 'short_answer' | 'essay';
+  points: number;
+  explanation?: string;
+  options: Array<{
+    id: string;
+    text: string;
+    isCorrect: boolean;
+    order: number;
+  }>;
+}
+
+export interface QuizData {
+  quizSettings: {
+    totalQuestions?: number;
+    duration?: number;
+    passingPercentage: number;
+    maxAttempts?: number;
+  };
+  questions: QuizQuestion[];
+}
+
 export const examsApi = {
+  getQuizQuestions: async (contentId: string): Promise<{
+    success: boolean;
+    data?: QuizData;
+    error?: string;
+  }> => {
+    const response = await apiClient.get(`/quiz/content/${contentId}/questions`);
+    return response.data;
+  },
+
   getExamByContent: async (contentId: string): Promise<{
     success: boolean;
     data?: Exam;
