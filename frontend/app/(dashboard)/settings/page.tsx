@@ -112,7 +112,7 @@ export default function SettingsPage() {
                   id="logo-upload"
                 />
                 <label htmlFor="logo-upload">
-                  <Button variant="outline" size="sm" as="span">
+                  <Button variant="outline" size="sm">
                     {schoolLogo ? 'เปลี่ยน Logo' : 'อัปโหลด Logo'}
                   </Button>
                 </label>
