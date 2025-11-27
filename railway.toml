@@ -1,0 +1,14 @@
+# Railway Configuration for Monorepo
+# This file tells Railway that this is a monorepo structure
+# You need to create separate services for backend and frontend
+# and set the Root Directory in each service settings
+
+[build]
+builder = "NIXPACKS"
+
+# Note: This is a monorepo. You must:
+# 1. Create separate services for backend and frontend
+# 2. Set Root Directory in service settings:
+#    - Backend service: Root Directory = "backend"
+#    - Frontend service: Root Directory = "frontend"
+

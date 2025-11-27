@@ -50,10 +50,14 @@
 #### 3.1 สร้าง Backend Service
 
 1. คลิก "+ New" → "GitHub Repo" (หรือ "Empty Service")
-2. เลือก repository และตั้งค่า:
-   - **Root Directory**: `backend`
-   - **Build Command**: `npm install && npm run build && npx prisma generate`
-   - **Start Command**: `npm run start`
+2. เลือก repository: `nuttapong111/final_mba_project`
+3. ตั้งค่า:
+   - **Service Name**: `backend` (หรือ `lms-backend`)
+   - **Root Directory**: `backend` ⚠️ **สำคัญมาก! ต้องตั้งค่านี้**
+   - **Build Command**: (จะใช้จาก `backend/railway.json` อัตโนมัติ หรือ `npm install && npm run build && npx prisma generate`)
+   - **Start Command**: (จะใช้จาก `backend/railway.json` อัตโนมัติ หรือ `npm run start`)
+
+**⚠️ หมายเหตุ**: ถ้าไม่ตั้ง Root Directory จะเกิด error "Railpack could not determine how to build the app"
 
 #### 3.2 ตั้งค่า Environment Variables
 
@@ -99,10 +103,14 @@ railway run --service backend npm run db:seed
 #### 4.1 สร้าง Frontend Service
 
 1. คลิก "+ New" → "GitHub Repo"
-2. เลือก repository เดียวกัน และตั้งค่า:
-   - **Root Directory**: `frontend`
-   - **Build Command**: `npm install && npm run build`
-   - **Start Command**: `npm run start`
+2. เลือก repository: `nuttapong111/final_mba_project` (เดียวกัน)
+3. ตั้งค่า:
+   - **Service Name**: `frontend` (หรือ `lms-frontend`)
+   - **Root Directory**: `frontend` ⚠️ **สำคัญมาก! ต้องตั้งค่านี้**
+   - **Build Command**: (จะใช้จาก `frontend/railway.json` อัตโนมัติ หรือ `npm install && npm run build`)
+   - **Start Command**: (จะใช้จาก `frontend/railway.json` อัตโนมัติ หรือ `npm run start`)
+
+**⚠️ หมายเหตุ**: ถ้าไม่ตั้ง Root Directory จะเกิด error "Railpack could not determine how to build the app"
 
 #### 4.2 ตั้งค่า Environment Variables
 
