@@ -74,14 +74,14 @@ export default function CourseCompletionSettingsPage() {
   const allQuizzes = getAllQuizzes();
 
   // ใช้ useMemo เพื่อป้องกันการสร้าง array ใหม่ทุกครั้ง
-  const quizIdsString = allQuizzes.map(q => q.id).join(',');
+  const quizIdsString = allQuizzes.map((q: { id: string; title: string; lessonTitle: string }) => q.id).join(',');
 
   const [requirements, setRequirements] = useState<CourseCompletionRequirements>({
     requireProgress: true,
     minProgressPercentage: 100,
     requireAllQuizzes: false,
     minQuizPassingPercentage: 70,
-    quizRequirements: allQuizzes.map(quiz => ({
+    quizRequirements: allQuizzes.map((quiz: { id: string; title: string; lessonTitle: string }) => ({
       quizId: quiz.id,
       quizTitle: quiz.title,
       passingPercentage: 70,
@@ -97,13 +97,13 @@ export default function CourseCompletionSettingsPage() {
       const existingReqs = course.completionRequirements;
       
       // Sync quiz requirements กับ quizzes ที่มีอยู่จริง
-      const existingQuizIds = existingReqs.quizRequirements?.map(q => q.quizId) || [];
-      const currentQuizIds = allQuizzes.map(q => q.id);
+      const existingQuizIds = existingReqs.quizRequirements?.map((q: QuizPassingRequirement) => q.quizId) || [];
+      const currentQuizIds = allQuizzes.map((q: { id: string; title: string; lessonTitle: string }) => q.id);
       
       // เพิ่ม quiz ใหม่ที่ยังไม่มีใน requirements
       const newQuizReqs = allQuizzes
-        .filter(q => !existingQuizIds.includes(q.id))
-        .map(quiz => ({
+        .filter((q: { id: string; title: string; lessonTitle: string }) => !existingQuizIds.includes(q.id))
+        .map((quiz: { id: string; title: string; lessonTitle: string }) => ({
           quizId: quiz.id,
           quizTitle: quiz.title,
           passingPercentage: existingReqs.minQuizPassingPercentage || 70,
@@ -112,7 +112,7 @@ export default function CourseCompletionSettingsPage() {
       
       // รวม quiz requirements ที่มีอยู่และใหม่
       const updatedQuizReqs = [
-        ...(existingReqs.quizRequirements || []).filter(q => currentQuizIds.includes(q.quizId)),
+        ...(existingReqs.quizRequirements || []).filter((q: QuizPassingRequirement) => currentQuizIds.includes(q.quizId)),
         ...newQuizReqs,
       ];
       
@@ -127,7 +127,7 @@ export default function CourseCompletionSettingsPage() {
         minProgressPercentage: 100,
         requireAllQuizzes: false,
         minQuizPassingPercentage: 70,
-        quizRequirements: allQuizzes.map(quiz => ({
+        quizRequirements: allQuizzes.map((quiz: { id: string; title: string; lessonTitle: string }) => ({
           quizId: quiz.id,
           quizTitle: quiz.title,
           passingPercentage: 70,
@@ -345,7 +345,7 @@ export default function CourseCompletionSettingsPage() {
               ) : (
                 <div className="space-y-4">
                   {requirements.quizRequirements?.map((quizReq, index) => {
-                    const quiz = allQuizzes.find(q => q.id === quizReq.quizId);
+                    const quiz = allQuizzes.find((q: { id: string; title: string; lessonTitle: string }) => q.id === quizReq.quizId);
                     if (!quiz) return null;
 
                     return (
