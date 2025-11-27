@@ -716,35 +716,47 @@ export default function CourseContentPage() {
         });
 
         try {
+          console.log('[DEBUG] Waiting for upload promises to complete...');
           await Promise.all(uploadPromises);
+          console.log('[DEBUG] All uploads completed successfully');
           
           // Clear progress interval
           if (progressInterval) {
             clearInterval(progressInterval);
+            progressInterval = null;
           }
           if (typeof window !== 'undefined') {
             delete (window as any).uploadProgressMap;
           }
           
           // Close upload dialog
+          console.log('[DEBUG] Closing upload dialog...');
           if (Swal.isVisible()) {
             await Swal.close();
+            console.log('[DEBUG] Upload dialog closed');
+          } else {
+            console.log('[DEBUG] Upload dialog is not visible, skipping close');
           }
           
           // รอให้ state อัพเดต (ใช้ setTimeout เพื่อให้ React re-render)
           await new Promise(resolve => setTimeout(resolve, 100));
         } catch (error: any) {
+          console.error('[DEBUG] Upload error:', error);
+          
           // Clear progress interval
           if (progressInterval) {
             clearInterval(progressInterval);
+            progressInterval = null;
           }
           if (typeof window !== 'undefined') {
             delete (window as any).uploadProgressMap;
           }
           
           // Close upload dialog
+          console.log('[DEBUG] Closing upload dialog due to error...');
           if (Swal.isVisible()) {
             await Swal.close();
+            console.log('[DEBUG] Upload dialog closed');
           }
           
           addDebugLog('error', 'อัพโหลดไฟล์ล้มเหลว', error.message);
