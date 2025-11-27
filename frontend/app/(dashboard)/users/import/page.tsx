@@ -253,7 +253,7 @@ export default function BulkImportUsersPage() {
             id="csv-upload"
           />
           <label htmlFor="csv-upload">
-            <Button variant="outline" as="span">
+            <Button variant="outline">
               เลือกไฟล์ CSV
             </Button>
           </label>
