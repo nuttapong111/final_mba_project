@@ -549,7 +549,7 @@ export default function CourseContentPage() {
               startTime: content.quizSettings.startTime || null,
               endDate: content.quizSettings.endDate || null,
               endTime: content.quizSettings.endTime || null,
-              passingPercentage: content.quizSettings.passingPercentage || 70,
+              passingPercentage: (content.quizSettings as any).passingPercentage || 70,
               categorySelections: (content.quizSettings.categorySelections || []).map(
                 (selection: any) => ({
                   categoryId: selection.categoryId,
