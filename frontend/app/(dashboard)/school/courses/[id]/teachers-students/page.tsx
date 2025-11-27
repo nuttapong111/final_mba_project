@@ -51,7 +51,7 @@ export default function TeachersStudentsPage() {
   // For teacher, show only students from courses they teach
   const allAvailableTeachers = filterUsersByRole(
     mockUsers.filter(u => u.role === 'teacher'),
-    currentUser,
+    currentUser as any,
     currentUser?.role === 'school_admin' ? undefined : [course]
   );
   const availableTeachers = allAvailableTeachers.filter(
@@ -60,7 +60,7 @@ export default function TeachersStudentsPage() {
   
   const allAvailableStudents = filterUsersByRole(
     mockUsers.filter(u => u.role === 'student'),
-    currentUser,
+    currentUser as any,
     currentUser?.role === 'school_admin' ? undefined : [course]
   );
   const availableStudents = allAvailableStudents.filter(
