@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/authStore';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { coursesApi } from '@/lib/api';
+import VideoPlayer from '@/components/VideoPlayer';
 import {
   PlayIcon,
   DocumentTextIcon,
@@ -26,6 +27,15 @@ export default function StudentCourseDetailPage() {
   const [loading, setLoading] = useState(true);
   const [completedContents, setCompletedContents] = useState<Set<string>>(new Set());
   const [quizScores, setQuizScores] = useState<Record<string, number>>({});
+  const [videoPlayer, setVideoPlayer] = useState<{
+    isOpen: boolean;
+    title: string;
+    videoUrl?: string;
+    fileUrl?: string;
+  }>({
+    isOpen: false,
+    title: '',
+  });
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -109,19 +119,29 @@ export default function StudentCourseDetailPage() {
     title: lesson.title,
     description: lesson.description,
     order: lesson.order,
-    contents: (lesson.contents || []).map((content: any) => ({
-      id: content.id,
-      type: content.type.toLowerCase(),
-      title: content.title,
-      url: content.url,
-      fileUrl: content.fileUrl,
-      fileName: content.fileName,
-      fileSize: content.fileSize,
-      duration: content.duration,
-      order: content.order,
-      quizSettings: content.quizSettings,
-      poll: content.poll,
-    })),
+    contents: (lesson.contents || []).map((content: any) => {
+      // แปลง fileUrl ให้เป็น full URL ถ้าเป็น relative path
+      let fileUrl = content.fileUrl;
+      if (fileUrl && fileUrl.startsWith('/uploads/')) {
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+        const baseUrl = apiBaseUrl.replace('/api', '');
+        fileUrl = `${baseUrl}${fileUrl}`;
+      }
+      
+      return {
+        id: content.id,
+        type: content.type.toLowerCase(),
+        title: content.title,
+        url: content.url,
+        fileUrl: fileUrl,
+        fileName: content.fileName,
+        fileSize: content.fileSize,
+        duration: content.duration,
+        order: content.order,
+        quizSettings: content.quizSettings,
+        poll: content.poll,
+      };
+    }),
   }));
 
   const getProgress = () => {
@@ -143,20 +163,14 @@ export default function StudentCourseDetailPage() {
   const progress = getProgress();
   const isCompleted = progress >= 100;
 
-  const handleContentClick = (content: any) => {
+  const handleContentClick = (content: LessonContent) => {
     if (content.type === 'video') {
-      Swal.fire({
-        title: 'เปิดวิดีโอ',
-        html: `
-          <div class="text-left">
-            <p class="mb-2"><strong>${content.title}</strong></p>
-            <p class="text-sm text-gray-600">กำลังเปิดวิดีโอ...</p>
-          </div>
-        `,
-        icon: 'info',
-        confirmButtonText: 'ตกลง',
-      }).then(() => {
-        setCompletedContents(new Set([...completedContents, content.id]));
+      // เปิด video player modal
+      setVideoPlayer({
+        isOpen: true,
+        title: content.title,
+        videoUrl: content.url,
+        fileUrl: content.fileUrl,
       });
     } else if (content.type === 'document') {
       Swal.fire({
@@ -356,6 +370,25 @@ export default function StudentCourseDetailPage() {
           </div>
         </Card>
       )}
+
+      {/* Video Player Modal */}
+      <VideoPlayer
+        isOpen={videoPlayer.isOpen}
+        onClose={() => setVideoPlayer({ ...videoPlayer, isOpen: false })}
+        title={videoPlayer.title}
+        videoUrl={videoPlayer.videoUrl}
+        fileUrl={videoPlayer.fileUrl}
+        onComplete={() => {
+          // Mark content as completed when video ends
+          const contentId = lessons
+            .flatMap(lesson => lesson.contents)
+            .find(c => c.title === videoPlayer.title)?.id;
+          if (contentId) {
+            setCompletedContents(new Set([...completedContents, contentId]));
+          }
+          setVideoPlayer({ ...videoPlayer, isOpen: false });
+        }}
+      />
     </div>
   );
 }
