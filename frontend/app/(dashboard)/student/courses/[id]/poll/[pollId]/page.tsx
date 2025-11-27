@@ -72,7 +72,7 @@ export default function TakePollPage() {
     for (const question of requiredQuestions) {
       if (!answers[question.id] || 
           (typeof answers[question.id]?.answer === 'string' && !(answers[question.id].answer as string).trim()) ||
-          (Array.isArray(answers[question.id]?.answer) && answers[question.id].answer.length === 0)) {
+          (Array.isArray(answers[question.id]?.answer) && (answers[question.id].answer as string[]).length === 0)) {
         Swal.fire({
           icon: 'error',
           title: 'กรุณาตอบคำถามที่จำเป็น',
