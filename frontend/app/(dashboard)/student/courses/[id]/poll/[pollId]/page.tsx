@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -11,12 +11,8 @@ import {
   StarIcon,
 } from '@heroicons/react/24/outline';
 import Swal from 'sweetalert2';
-import {
-  mockCourses,
-  getCourseWithLessons,
-  type Poll,
-  type PollQuestion,
-} from '@/lib/mockData';
+import { pollsApi, coursesApi } from '@/lib/api';
+import type { Poll, PollQuestion } from '@/lib/api/polls';
 
 interface PollAnswer {
   questionId: string;
@@ -28,25 +24,59 @@ export default function TakePollPage() {
   const courseId = params.id as string;
   const pollId = params.pollId as string;
   const router = useRouter();
-  const course = mockCourses.find(c => c.id === courseId);
-  const courseWithLessons = getCourseWithLessons(courseId);
-
-  // หา poll จาก course
-  const findPoll = (): Poll | null => {
-    if (!courseWithLessons?.lessons) return null;
-    for (const lesson of courseWithLessons.lessons) {
-      for (const content of lesson.contents) {
-        if (content.type === 'poll' && content.poll && content.id === pollId) {
-          return content.poll;
-        }
-      }
-    }
-    return null;
-  };
-
-  const poll = findPoll();
+  const [poll, setPoll] = useState<Poll | null>(null);
+  const [course, setCourse] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [answers, setAnswers] = useState<Record<string, PollAnswer>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [pollsResponse, courseResponse] = await Promise.all([
+          pollsApi.getByCourse(courseId),
+          coursesApi.getById(courseId),
+        ]);
+
+        if (pollsResponse.success && pollsResponse.data) {
+          // หา poll จาก list
+          const pollItem = pollsResponse.data.find(
+            (item) => item.poll.id === pollId || item.id === pollId
+          );
+          if (pollItem) {
+            setPoll(pollItem.poll);
+          }
+        }
+
+        if (courseResponse.success && courseResponse.data) {
+          setCourse(courseResponse.data);
+        }
+      } catch (error) {
+        console.error('Error fetching poll:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'เกิดข้อผิดพลาด',
+          text: 'ไม่สามารถโหลดแบบประเมินได้',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [courseId, pollId]);
+
+  if (loading) {
+    return (
+      <Card>
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">กำลังโหลดแบบประเมิน...</p>
+        </div>
+      </Card>
+    );
+  }
 
   if (!poll) {
     return (
@@ -70,9 +100,10 @@ export default function TakePollPage() {
     // ตรวจสอบคำถามที่จำเป็นต้องตอบ
     const requiredQuestions = poll.questions.filter(q => q.required);
     for (const question of requiredQuestions) {
-      if (!answers[question.id] || 
-          (typeof answers[question.id]?.answer === 'string' && !(answers[question.id].answer as string).trim()) ||
-          (Array.isArray(answers[question.id]?.answer) && (answers[question.id].answer as string[]).length === 0)) {
+      const questionId = question.id || '';
+      if (!answers[questionId] || 
+          (typeof answers[questionId]?.answer === 'string' && !(answers[questionId].answer as string).trim()) ||
+          (Array.isArray(answers[questionId]?.answer) && (answers[questionId].answer as string[]).length === 0)) {
         Swal.fire({
           icon: 'error',
           title: 'กรุณาตอบคำถามที่จำเป็น',
@@ -84,18 +115,29 @@ export default function TakePollPage() {
 
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      // TODO: Implement poll submission API when available
+      // For now, just show success message
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-    await Swal.fire({
-      icon: 'success',
-      title: 'ส่งแบบประเมินสำเร็จ!',
-      text: 'ขอบคุณที่ให้ความร่วมมือในการประเมิน',
-      timer: 2000,
-      showConfirmButton: false,
-    });
+      await Swal.fire({
+        icon: 'success',
+        title: 'ส่งแบบประเมินสำเร็จ!',
+        text: 'ขอบคุณที่ให้ความร่วมมือในการประเมิน',
+        timer: 2000,
+        showConfirmButton: false,
+      });
 
-    router.back();
+      router.back();
+    } catch (error: any) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: error.message || 'ไม่สามารถส่งแบบประเมินได้',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -121,8 +163,10 @@ export default function TakePollPage() {
 
       <Card>
         <div className="space-y-6">
-          {poll.questions.map((question, index) => (
-            <div key={question.id} className="border-b border-gray-200 pb-6 last:border-b-0 last:pb-0">
+          {poll.questions.map((question, index) => {
+            const questionId = question.id || `q-${index}`;
+            return (
+            <div key={questionId} className="border-b border-gray-200 pb-6 last:border-b-0 last:pb-0">
               <div className="mb-4">
                 <label className="block text-lg font-medium text-gray-900 mb-1">
                   {index + 1}. {question.question}
@@ -133,8 +177,8 @@ export default function TakePollPage() {
               <div className="ml-4">
                 {question.type === 'text' && (
                   <textarea
-                    value={(answers[question.id]?.answer as string) || ''}
-                    onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                    value={(answers[questionId]?.answer as string) || ''}
+                    onChange={(e) => handleAnswerChange(questionId, e.target.value)}
                     rows={4}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     placeholder="กรอกคำตอบ..."
@@ -151,10 +195,10 @@ export default function TakePollPage() {
                       >
                         <input
                           type="radio"
-                          name={`question-${question.id}`}
+                          name={`question-${questionId}`}
                           value={option}
-                          checked={answers[question.id]?.answer === option}
-                          onChange={(e) => handleAnswerChange(question.id, e.target.value)}
+                          checked={answers[questionId]?.answer === option}
+                          onChange={(e) => handleAnswerChange(questionId, e.target.value)}
                           className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                           required={question.required}
                         />
@@ -174,13 +218,13 @@ export default function TakePollPage() {
                         <input
                           type="checkbox"
                           value={option}
-                          checked={(answers[question.id]?.answer as string[])?.includes(option) || false}
+                          checked={(answers[questionId]?.answer as string[])?.includes(option) || false}
                           onChange={(e) => {
-                            const currentAnswers = (answers[question.id]?.answer as string[]) || [];
+                            const currentAnswers = (answers[questionId]?.answer as string[]) || [];
                             if (e.target.checked) {
-                              handleAnswerChange(question.id, [...currentAnswers, option]);
+                              handleAnswerChange(questionId, [...currentAnswers, option]);
                             } else {
-                              handleAnswerChange(question.id, currentAnswers.filter(a => a !== option));
+                              handleAnswerChange(questionId, currentAnswers.filter(a => a !== option));
                             }
                           }}
                           className="h-4 w-4 text-blue-600 focus:ring-blue-500 rounded"
@@ -203,9 +247,9 @@ export default function TakePollPage() {
                           <button
                             key={rating}
                             type="button"
-                            onClick={() => handleAnswerChange(question.id, rating)}
+                            onClick={() => handleAnswerChange(questionId, rating)}
                             className={`p-2 rounded-lg transition-colors ${
-                              answers[question.id]?.answer === rating
+                              answers[questionId]?.answer === rating
                                 ? 'bg-yellow-400 text-yellow-900'
                                 : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
                             }`}
@@ -218,16 +262,17 @@ export default function TakePollPage() {
                     <span className="text-sm text-gray-600">
                       {question.maxRating || 5}
                     </span>
-                    {answers[question.id]?.answer && (
+                    {answers[questionId]?.answer && (
                       <span className="text-sm font-medium text-gray-700 ml-2">
-                        ({answers[question.id].answer as number} คะแนน)
+                        ({answers[questionId].answer as number} คะแนน)
                       </span>
                     )}
                   </div>
                 )}
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
       </Card>
 

@@ -7,6 +7,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { coursesApi } from '@/lib/api';
 import VideoPlayer from '@/components/VideoPlayer';
+import DocumentViewer from '@/components/DocumentViewer';
 import {
   PlayIcon,
   DocumentTextIcon,
@@ -15,6 +16,7 @@ import {
   CheckCircleIcon,
   LockClosedIcon,
   ClockIcon,
+  ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline';
 import Swal from 'sweetalert2';
 
@@ -32,6 +34,15 @@ export default function StudentCourseDetailPage() {
     title: string;
     videoUrl?: string;
     fileUrl?: string;
+  }>({
+    isOpen: false,
+    title: '',
+  });
+  const [documentViewer, setDocumentViewer] = useState<{
+    isOpen: boolean;
+    title: string;
+    fileUrl?: string;
+    fileName?: string;
   }>({
     isOpen: false,
     title: '',
@@ -173,33 +184,34 @@ export default function StudentCourseDetailPage() {
         fileUrl: content.fileUrl,
       });
     } else if (content.type === 'document') {
-      Swal.fire({
-        title: 'เปิดเอกสาร',
-        html: `
-          <div class="text-left">
-            <p class="mb-2"><strong>${content.title}</strong></p>
-            <p class="text-sm text-gray-600">กำลังเปิดเอกสาร...</p>
-          </div>
-        `,
-        icon: 'info',
-        confirmButtonText: 'ตกลง',
-      }).then(() => {
-        setCompletedContents(new Set([...completedContents, content.id]));
+      // เปิด document viewer modal
+      setDocumentViewer({
+        isOpen: true,
+        title: content.title,
+        fileUrl: content.fileUrl,
+        fileName: content.fileName,
       });
+    } else if (content.type === 'poll') {
+      // เปิด poll page
+      router.push(`/student/courses/${courseId}/poll/${content.poll?.id || content.id}`);
     } else if (content.type === 'quiz' || content.type === 'pre_test') {
       router.push(`/student/courses/${courseId}/quiz/${content.id}`);
     } else if (content.type === 'live_link') {
-      Swal.fire({
-        title: 'เข้าห้องเรียนออนไลน์',
-        html: `
-          <div class="text-left">
-            <p class="mb-2"><strong>${content.title}</strong></p>
-            <p class="text-sm text-gray-600">กำลังเปิดลิงก์ห้องเรียนออนไลน์...</p>
-          </div>
-        `,
-        icon: 'info',
-        confirmButtonText: 'ตกลง',
-      });
+      if (content.url) {
+        window.open(content.url, '_blank');
+      } else {
+        Swal.fire({
+          title: 'เข้าห้องเรียนออนไลน์',
+          html: `
+            <div class="text-left">
+              <p class="mb-2"><strong>${content.title}</strong></p>
+              <p class="text-sm text-gray-600">ยังไม่มีลิงก์ห้องเรียนออนไลน์</p>
+            </div>
+          `,
+          icon: 'info',
+          confirmButtonText: 'ตกลง',
+        });
+      }
     }
   };
 
@@ -232,15 +244,24 @@ export default function StudentCourseDetailPage() {
           <div className="flex-1">
             <div className="flex items-center justify-between mb-2">
               <h1 className="text-3xl font-bold text-gray-900">{course.title}</h1>
-              {isCompleted && (
+              <div className="flex items-center space-x-2">
                 <Button
-                  variant="primary"
-                  onClick={() => router.push(`/student/courses/${courseId}/certificate`)}
+                  variant="outline"
+                  onClick={() => router.push(`/student/courses/${courseId}/webboard`)}
                 >
-                  <CheckCircleIcon className="h-5 w-5 mr-2 inline" />
-                  ดูใบประกาศนียบัตร
+                  <ChatBubbleLeftRightIcon className="h-5 w-5 mr-2 inline" />
+                  กระดานสนทนา
                 </Button>
-              )}
+                {isCompleted && (
+                  <Button
+                    variant="primary"
+                    onClick={() => router.push(`/student/courses/${courseId}/certificate`)}
+                  >
+                    <CheckCircleIcon className="h-5 w-5 mr-2 inline" />
+                    ดูใบประกาศนียบัตร
+                  </Button>
+                )}
+              </div>
             </div>
             <p className="text-gray-600 mb-4">{course.description}</p>
             <div className="space-y-2">
@@ -387,6 +408,25 @@ export default function StudentCourseDetailPage() {
             setCompletedContents(new Set([...completedContents, contentId]));
           }
           setVideoPlayer({ ...videoPlayer, isOpen: false });
+        }}
+      />
+
+      {/* Document Viewer Modal */}
+      <DocumentViewer
+        isOpen={documentViewer.isOpen}
+        onClose={() => setDocumentViewer({ ...documentViewer, isOpen: false })}
+        title={documentViewer.title}
+        fileUrl={documentViewer.fileUrl}
+        fileName={documentViewer.fileName}
+        onComplete={() => {
+          // Mark content as completed when document is viewed
+          const contentId = lessons
+            .flatMap(lesson => lesson.contents)
+            .find(c => c.title === documentViewer.title)?.id;
+          if (contentId) {
+            setCompletedContents(new Set([...completedContents, contentId]));
+          }
+          setDocumentViewer({ ...documentViewer, isOpen: false });
         }}
       />
     </div>

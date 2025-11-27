@@ -7,5 +7,7 @@ export * from './courseCategories';
 export * from './polls';
 export * from './questionBanks';
 export * from './upload';
+export * from './exams';
+export * from './webboard';
 export { default as apiClient } from './client';
 
