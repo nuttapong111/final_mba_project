@@ -1,0 +1,376 @@
+'use client';
+
+import { useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
+import {
+  ArrowLeftIcon,
+  PlusIcon,
+  XMarkIcon,
+  CheckIcon,
+} from '@heroicons/react/24/outline';
+import Swal from 'sweetalert2';
+import {
+  mockCourses,
+  mockQuestionCategories,
+  type Question,
+  type QuestionOption,
+} from '@/lib/mockData';
+
+export default function NewQuestionPage() {
+  const params = useParams();
+  const courseId = params.id as string;
+  const router = useRouter();
+  const course = mockCourses.find(c => c.id === courseId);
+
+  const availableCategories = mockQuestionCategories.filter(
+    cat => cat.courseId === courseId || !cat.courseId
+  );
+
+  const [formData, setFormData] = useState({
+    question: '',
+    type: 'multiple_choice' as 'multiple_choice' | 'true_false' | 'short_answer' | 'essay',
+    category: availableCategories[0]?.id || '',
+    difficulty: 'easy' as 'easy' | 'medium' | 'hard',
+    points: 2,
+    explanation: '',
+  });
+
+  const [options, setOptions] = useState<Array<{ id: string; text: string; isCorrect: boolean }>>([
+    { id: '1', text: '', isCorrect: false },
+    { id: '2', text: '', isCorrect: false },
+    { id: '3', text: '', isCorrect: false },
+    { id: '4', text: '', isCorrect: false },
+  ]);
+
+  const [correctAnswer, setCorrectAnswer] = useState('');
+
+  const handleAddOption = () => {
+    setOptions([...options, { id: Date.now().toString(), text: '', isCorrect: false }]);
+  };
+
+  const handleRemoveOption = (id: string) => {
+    if (options.length > 2) {
+      setOptions(options.filter(opt => opt.id !== id));
+    } else {
+      Swal.fire({
+        icon: 'warning',
+        title: 'ไม่สามารถลบได้',
+        text: 'ต้องมีตัวเลือกอย่างน้อย 2 ตัวเลือก',
+      });
+    }
+  };
+
+  const handleUpdateOption = (id: string, field: 'text' | 'isCorrect', value: any) => {
+    const updated = options.map(opt => {
+      if (opt.id === id) {
+        if (field === 'isCorrect' && value) {
+          // ถ้าเลือกตัวเลือกนี้เป็นคำตอบที่ถูกต้อง ให้ยกเลิกตัวเลือกอื่น
+          return { ...opt, isCorrect: true };
+        }
+        return { ...opt, [field]: value };
+      }
+      // ถ้าเลือกตัวเลือกใหม่เป็นคำตอบที่ถูกต้อง ให้ยกเลิกตัวเลือกอื่น
+      if (field === 'isCorrect' && value) {
+        return { ...opt, isCorrect: false };
+      }
+      return opt;
+    });
+    setOptions(updated);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.question.trim()) {
+      Swal.fire({
+        icon: 'error',
+        title: 'กรุณากรอกคำถาม',
+      });
+      return;
+    }
+
+    if (!formData.category) {
+      Swal.fire({
+        icon: 'error',
+        title: 'กรุณาเลือกหมวดหมู่',
+      });
+      return;
+    }
+
+    if ((formData.type === 'multiple_choice' || formData.type === 'true_false') && !options.some(opt => opt.isCorrect)) {
+      Swal.fire({
+        icon: 'error',
+        title: 'กรุณาเลือกคำตอบที่ถูกต้อง',
+        text: 'ต้องมีตัวเลือกอย่างน้อย 1 ตัวเลือกที่ถูกต้อง',
+      });
+      return;
+    }
+
+    if ((formData.type === 'multiple_choice' || formData.type === 'true_false') && options.some(opt => !opt.text.trim())) {
+      Swal.fire({
+        icon: 'error',
+        title: 'กรุณากรอกตัวเลือกให้ครบ',
+      });
+      return;
+    }
+
+    if ((formData.type === 'short_answer' || formData.type === 'essay') && !correctAnswer.trim()) {
+      Swal.fire({
+        icon: 'error',
+        title: 'กรุณากรอกคำตอบที่ถูกต้อง',
+      });
+      return;
+    }
+
+    await Swal.fire({
+      icon: 'success',
+      title: 'เพิ่มข้อสอบสำเร็จ!',
+      text: 'ข้อสอบถูกเพิ่มเข้าไปในคลังข้อสอบเรียบร้อยแล้ว',
+      timer: 1500,
+      showConfirmButton: false,
+    });
+
+    router.push(`/school/courses/${courseId}/question-bank`);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center space-x-4">
+        <button
+          onClick={() => router.back()}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <ArrowLeftIcon className="h-6 w-6 text-gray-600" />
+        </button>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">เพิ่มข้อสอบใหม่</h2>
+          <p className="text-gray-600 mt-1">{course?.title}</p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Basic Information */}
+            <Card>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">ข้อมูลข้อสอบ</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    คำถาม *
+                  </label>
+                  <textarea
+                    value={formData.question}
+                    onChange={(e) => setFormData({ ...formData, question: e.target.value })}
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    placeholder="กรอกคำถาม..."
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      ประเภทข้อสอบ *
+                    </label>
+                    <select
+                      value={formData.type}
+                      onChange={(e) => {
+                        const newType = e.target.value as Question['type'];
+                        setFormData({ ...formData, type: newType });
+                        if (newType === 'true_false') {
+                          setOptions([
+                            { id: '1', text: 'ถูก', isCorrect: false },
+                            { id: '2', text: 'ผิด', isCorrect: false },
+                          ]);
+                        }
+                      }}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      required
+                    >
+                      <option value="multiple_choice">ตัวเลือก (Multiple Choice)</option>
+                      <option value="true_false">ถูก/ผิด (True/False)</option>
+                      <option value="short_answer">คำตอบสั้น (Short Answer)</option>
+                      <option value="essay">เรียงความ (Essay)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      หมวดหมู่ *
+                    </label>
+                    <select
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      required
+                    >
+                      <option value="">เลือกหมวดหมู่</option>
+                      {availableCategories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      ระดับความยาก *
+                    </label>
+                    <select
+                      value={formData.difficulty}
+                      onChange={(e) => setFormData({ ...formData, difficulty: e.target.value as any })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      required
+                    >
+                      <option value="easy">ง่าย</option>
+                      <option value="medium">ปานกลาง</option>
+                      <option value="hard">ยาก</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      คะแนน *
+                    </label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={formData.points}
+                      onChange={(e) => setFormData({ ...formData, points: parseInt(e.target.value) || 1 })}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Options for Multiple Choice and True/False */}
+            {(formData.type === 'multiple_choice' || formData.type === 'true_false') && (
+              <Card>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-gray-900">ตัวเลือก</h3>
+                  {formData.type === 'multiple_choice' && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddOption}
+                    >
+                      <PlusIcon className="h-4 w-4 mr-1" />
+                      เพิ่มตัวเลือก
+                    </Button>
+                  )}
+                </div>
+                <div className="space-y-3">
+                  {options.map((option, index) => (
+                    <div key={option.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <input
+                        type="radio"
+                        name="correctAnswer"
+                        checked={option.isCorrect}
+                        onChange={() => handleUpdateOption(option.id, 'isCorrect', true)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                      />
+                      <Input
+                        value={option.text}
+                        onChange={(e) => handleUpdateOption(option.id, 'text', e.target.value)}
+                        placeholder={`ตัวเลือก ${index + 1}`}
+                        className="flex-1"
+                        required
+                      />
+                      {formData.type === 'multiple_choice' && options.length > 2 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveOption(option.id)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                        >
+                          <XMarkIcon className="h-5 w-5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-sm text-gray-500 mt-3">
+                  * เลือกตัวเลือกที่ถูกต้องโดยคลิกที่ radio button
+                </p>
+              </Card>
+            )}
+
+            {/* Answer for Short Answer and Essay */}
+            {(formData.type === 'short_answer' || formData.type === 'essay') && (
+              <Card>
+                <h3 className="text-xl font-bold text-gray-900 mb-4">คำตอบที่ถูกต้อง</h3>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    คำตอบ *
+                  </label>
+                  <textarea
+                    value={correctAnswer}
+                    onChange={(e) => setCorrectAnswer(e.target.value)}
+                    rows={formData.type === 'essay' ? 5 : 3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    placeholder="กรอกคำตอบที่ถูกต้อง..."
+                    required
+                  />
+                </div>
+              </Card>
+            )}
+
+            {/* Explanation */}
+            <Card>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">คำอธิบาย (ไม่บังคับ)</h3>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  คำอธิบายคำตอบ
+                </label>
+                <textarea
+                  value={formData.explanation}
+                  onChange={(e) => setFormData({ ...formData, explanation: e.target.value })}
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  placeholder="อธิบายว่าทำไมคำตอบนี้ถูกต้อง..."
+                />
+              </div>
+            </Card>
+          </div>
+
+          <div className="space-y-6">
+            <Card>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">คำแนะนำ</h3>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li>• กรอกคำถามให้ชัดเจนและเข้าใจง่าย</li>
+                <li>• เลือกหมวดหมู่และระดับความยากให้เหมาะสม</li>
+                <li>• สำหรับข้อสอบแบบตัวเลือก ต้องมีคำตอบที่ถูกต้องอย่างน้อย 1 ตัวเลือก</li>
+                <li>• คำอธิบายจะช่วยให้นักเรียนเข้าใจมากขึ้น</li>
+              </ul>
+            </Card>
+
+            <div className="flex space-x-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => router.back()}
+              >
+                ยกเลิก
+              </Button>
+              <Button type="submit" className="flex-1">
+                <CheckIcon className="h-5 w-5 mr-2 inline" />
+                บันทึก
+              </Button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}
+
