@@ -141,6 +141,7 @@ export default function TeacherDashboardPage() {
             ))}
           </div>
         </Card>
+      </div>
         </>
       )}
     </div>
