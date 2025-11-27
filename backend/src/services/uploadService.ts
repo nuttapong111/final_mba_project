@@ -60,8 +60,16 @@ export const uploadFile = async (
   console.log(`[UPLOAD] Upload completed: ${file.name} in ${(duration / 1000).toFixed(2)}s`);
 
   // Generate URL (use full URL if BASE_URL is set, otherwise relative path)
-  const baseUrl = process.env.BASE_URL || '';
+  // Try multiple environment variables for production deployment
+  const baseUrl = process.env.BASE_URL || 
+                  process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` :
+                  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
+                  '';
   const url = baseUrl ? `${baseUrl}/uploads/${fileName}` : `/uploads/${fileName}`;
+  
+  console.log(`[UPLOAD] Generated URL: ${url}`);
+  console.log(`[UPLOAD] BASE_URL: ${process.env.BASE_URL || 'not set'}`);
+  console.log(`[UPLOAD] RAILWAY_PUBLIC_DOMAIN: ${process.env.RAILWAY_PUBLIC_DOMAIN || 'not set'}`);
 
   return {
     url,

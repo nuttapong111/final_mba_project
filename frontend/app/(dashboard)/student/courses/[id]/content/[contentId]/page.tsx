@@ -425,6 +425,9 @@ export default function StudentContentPage() {
                         className="w-full h-full"
                         title={currentContent.title}
                         onLoad={handleContentComplete}
+                        onError={(e) => {
+                          console.error('Error loading document:', e);
+                        }}
                       />
                     </div>
                   </>

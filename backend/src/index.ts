@@ -32,11 +32,27 @@ app.use('/*', cors({
 // Serve static files (uploads)
 const UPLOAD_DIR = process.env.UPLOAD_DIR || join(process.cwd(), 'uploads');
 app.get('/uploads/*', async (c) => {
-  const filePath = c.req.path.replace('/uploads/', '');
+  const requestPath = c.req.path;
+  const filePath = requestPath.replace('/uploads/', '');
   const fullPath = join(UPLOAD_DIR, filePath);
+  
+  console.log(`[STATIC] Requested path: ${requestPath}`);
+  console.log(`[STATIC] File path: ${filePath}`);
+  console.log(`[STATIC] Full path: ${fullPath}`);
+  console.log(`[STATIC] Upload dir: ${UPLOAD_DIR}`);
+  console.log(`[STATIC] File exists: ${existsSync(fullPath)}`);
   
   try {
     if (!existsSync(fullPath)) {
+      console.error(`[STATIC] File not found: ${fullPath}`);
+      // List files in upload directory for debugging
+      try {
+        const { readdirSync } = await import('fs');
+        const files = readdirSync(UPLOAD_DIR);
+        console.log(`[STATIC] Files in upload directory: ${files.join(', ')}`);
+      } catch (e) {
+        console.error(`[STATIC] Cannot read upload directory: ${e}`);
+      }
       return c.json({ success: false, error: 'File not found' }, 404);
     }
     
@@ -53,10 +69,14 @@ app.get('/uploads/*', async (c) => {
     };
     const contentType = mimeTypes[ext || ''] || 'application/octet-stream';
     
+    console.log(`[STATIC] Serving file: ${filePath} (${contentType})`);
+    
     return c.body(file, 200, {
       'Content-Type': contentType,
+      'Content-Disposition': `inline; filename="${filePath}"`,
     });
-  } catch (error) {
+  } catch (error: any) {
+    console.error(`[STATIC] Error serving file: ${error.message}`);
     return c.json({ success: false, error: 'File not found' }, 404);
   }
 });

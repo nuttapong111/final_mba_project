@@ -402,7 +402,7 @@ export default function StudentCourseDetailPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="w-full px-6 py-4">
           <div className="flex items-center space-x-4 mb-4">
             <button
               onClick={() => router.push('/student/courses')}
@@ -466,7 +466,7 @@ export default function StudentCourseDetailPage() {
 
       {/* Tabs */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="w-full px-6">
           <div className="flex space-x-1">
             <button
               onClick={() => setActiveTab('lessons')}
@@ -499,7 +499,7 @@ export default function StudentCourseDetailPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="w-full px-6 py-6">
         {activeTab === 'lessons' ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Side - Lessons List */}
