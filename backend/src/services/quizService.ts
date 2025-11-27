@@ -13,7 +13,7 @@ export const getQuizQuestions = async (
         include: {
           course: {
             include: {
-              questionBank: true,
+              questionBanks: true,
             },
           },
         },
@@ -33,6 +33,11 @@ export const getQuizQuestions = async (
   // Check if content is quiz
   if (content.type !== 'QUIZ' && content.type !== 'PRE_TEST') {
     throw new Error('เนื้อหานี้ไม่ใช่แบบทดสอบ');
+  }
+
+  // Check if lesson exists
+  if (!content.lesson) {
+    throw new Error('ไม่พบบทเรียน');
   }
 
   // Check if user has access to course
@@ -59,12 +64,12 @@ export const getQuizQuestions = async (
     throw new Error('ไม่พบการตั้งค่าแบบทดสอบ');
   }
 
-  // Check if question bank exists
-  if (!course.questionBank) {
+  // Check if question bank exists (get first question bank for the course)
+  if (!course.questionBanks || course.questionBanks.length === 0) {
     throw new Error('ไม่พบคลังข้อสอบสำหรับหลักสูตรนี้');
   }
 
-  const questionBankId = course.questionBank.id;
+  const questionBankId = course.questionBanks[0].id;
   const categorySelections = content.quizSettings.categorySelections || [];
 
   // Collect all questions from selected categories
@@ -113,7 +118,7 @@ export const getQuizQuestions = async (
       type: q.type.toLowerCase(),
       points: q.points,
       explanation: q.explanation,
-      options: q.options.map((opt) => ({
+      options: q.options.map((opt: { id: string; text: string; isCorrect: boolean; order: number }) => ({
         id: opt.id,
         text: opt.text,
         isCorrect: opt.isCorrect,
