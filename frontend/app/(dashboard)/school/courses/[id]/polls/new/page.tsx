@@ -64,6 +64,7 @@ export default function NewPollPage() {
       type,
       question: '',
       required: false,
+      order: poll.questions.length + 1,
       ...(type === 'rating' && { minRating: 1, maxRating: 5 }),
       ...((type === 'multiple_choice' || type === 'checkbox') && { options: [''] }),
     };
