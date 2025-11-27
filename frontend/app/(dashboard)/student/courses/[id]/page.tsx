@@ -175,22 +175,9 @@ export default function StudentCourseDetailPage() {
   const isCompleted = progress >= 100;
 
   const handleContentClick = (content: LessonContent) => {
-    if (content.type === 'video') {
-      // เปิด video player modal
-      setVideoPlayer({
-        isOpen: true,
-        title: content.title,
-        videoUrl: content.url,
-        fileUrl: content.fileUrl,
-      });
-    } else if (content.type === 'document') {
-      // เปิด document viewer modal
-      setDocumentViewer({
-        isOpen: true,
-        title: content.title,
-        fileUrl: content.fileUrl,
-        fileName: content.fileName,
-      });
+    if (content.type === 'video' || content.type === 'document') {
+      // Navigate to content page with sidebar
+      router.push(`/student/courses/${courseId}/content/${content.id}`);
     } else if (content.type === 'poll') {
       // เปิด poll page
       router.push(`/student/courses/${courseId}/poll/${content.poll?.id || content.id}`);
