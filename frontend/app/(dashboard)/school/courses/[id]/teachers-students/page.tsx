@@ -131,7 +131,7 @@ export default function TeachersStudentsPage() {
     (student) => !students.some((s) => s.id === student.id)
   );
 
-  const handleAddTeacher = () => {
+  const handleAddTeacher = async () => {
     if (!selectedTeacher) {
       Swal.fire({
         icon: 'warning',
@@ -150,28 +150,40 @@ export default function TeachersStudentsPage() {
       return;
     }
 
-    const teacher = availableUsers.find((t: any) => t.id === selectedTeacher && (t.role === 'TEACHER' || t.role === 'teacher'));
-    if (teacher) {
-      const newTeacher: any = {
-        id: teacher.id,
-        name: teacher.name,
-        email: teacher.email,
-        avatar: teacher.avatar,
-        roles: { ...teacherRoles },
-        addedAt: new Date().toISOString().split('T')[0],
-      };
+    try {
+      const response = await coursesApi.addTeacher(id, selectedTeacher, teacherRoles);
+      
+      if (response.success && response.data) {
+        // Add teacher to local state
+        const newTeacher: any = {
+          id: response.data.id,
+          name: response.data.name,
+          email: response.data.email,
+          avatar: response.data.avatar,
+          roles: response.data.roles,
+          addedAt: response.data.addedAt,
+        };
 
-      setTeachers([...teachers, newTeacher]);
-      setShowAddTeacherModal(false);
-      setSelectedTeacher('');
-      setTeacherRoles({ liveTeaching: false, grading: false, webboard: false });
+        setTeachers([...teachers, newTeacher]);
+        setShowAddTeacherModal(false);
+        setSelectedTeacher('');
+        setTeacherRoles({ liveTeaching: false, grading: false, webboard: false });
 
+        Swal.fire({
+          icon: 'success',
+          title: 'เพิ่มอาจารย์สำเร็จ!',
+          text: `เพิ่ม ${newTeacher.name} เข้าสู่หลักสูตรแล้ว`,
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      } else {
+        throw new Error(response.error || 'ไม่สามารถเพิ่มอาจารย์ได้');
+      }
+    } catch (error: any) {
       Swal.fire({
-        icon: 'success',
-        title: 'เพิ่มอาจารย์สำเร็จ!',
-        text: `เพิ่ม ${teacher.name} เข้าสู่หลักสูตรแล้ว`,
-        timer: 1500,
-        showConfirmButton: false,
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: error.message || 'ไม่สามารถเพิ่มอาจารย์ได้',
       });
     }
   };
@@ -189,18 +201,32 @@ export default function TeachersStudentsPage() {
     });
 
     if (result.isConfirmed) {
-      setTeachers(teachers.filter((t) => t.id !== teacherId));
-      Swal.fire({
-        icon: 'success',
-        title: 'ลบสำเร็จ!',
-        text: 'ลบอาจารย์ออกจากหลักสูตรแล้ว',
-        timer: 1500,
-        showConfirmButton: false,
-      });
+      try {
+        const response = await coursesApi.removeTeacher(id, teacherId);
+        
+        if (response.success) {
+          setTeachers(teachers.filter((t) => t.id !== teacherId));
+          Swal.fire({
+            icon: 'success',
+            title: 'ลบสำเร็จ!',
+            text: 'ลบอาจารย์ออกจากหลักสูตรแล้ว',
+            timer: 1500,
+            showConfirmButton: false,
+          });
+        } else {
+          throw new Error(response.error || 'ไม่สามารถลบอาจารย์ได้');
+        }
+      } catch (error: any) {
+        Swal.fire({
+          icon: 'error',
+          title: 'เกิดข้อผิดพลาด',
+          text: error.message || 'ไม่สามารถลบอาจารย์ได้',
+        });
+      }
     }
   };
 
-  const handleAddStudent = () => {
+  const handleAddStudent = async () => {
     if (!selectedStudent) {
       Swal.fire({
         icon: 'warning',
@@ -210,27 +236,39 @@ export default function TeachersStudentsPage() {
       return;
     }
 
-    const student = availableUsers.find((s: any) => s.id === selectedStudent && (s.role === 'STUDENT' || s.role === 'student'));
-    if (student) {
-      const newStudent: any = {
-        id: student.id,
-        name: student.name,
-        email: student.email,
-        avatar: student.avatar,
-        enrolledAt: new Date().toISOString().split('T')[0],
-        progress: 0,
-      };
+    try {
+      const response = await coursesApi.addStudent(id, selectedStudent);
+      
+      if (response.success && response.data) {
+        // Add student to local state
+        const newStudent: any = {
+          id: response.data.id,
+          name: response.data.name,
+          email: response.data.email,
+          avatar: response.data.avatar,
+          enrolledAt: response.data.enrolledAt,
+          progress: response.data.progress || 0,
+        };
 
-      setStudents([...students, newStudent]);
-      setShowAddStudentModal(false);
-      setSelectedStudent('');
+        setStudents([...students, newStudent]);
+        setShowAddStudentModal(false);
+        setSelectedStudent('');
 
+        Swal.fire({
+          icon: 'success',
+          title: 'เพิ่มนักเรียนสำเร็จ!',
+          text: `เพิ่ม ${newStudent.name} เข้าสู่หลักสูตรแล้ว`,
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      } else {
+        throw new Error(response.error || 'ไม่สามารถเพิ่มนักเรียนได้');
+      }
+    } catch (error: any) {
       Swal.fire({
-        icon: 'success',
-        title: 'เพิ่มนักเรียนสำเร็จ!',
-        text: `เพิ่ม ${student.name} เข้าสู่หลักสูตรแล้ว`,
-        timer: 1500,
-        showConfirmButton: false,
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: error.message || 'ไม่สามารถเพิ่มนักเรียนได้',
       });
     }
   };
@@ -248,33 +286,65 @@ export default function TeachersStudentsPage() {
     });
 
     if (result.isConfirmed) {
-      setStudents(students.filter((s) => s.id !== studentId));
-      Swal.fire({
-        icon: 'success',
-        title: 'ลบสำเร็จ!',
-        text: 'ลบนักเรียนออกจากหลักสูตรแล้ว',
-        timer: 1500,
-        showConfirmButton: false,
-      });
+      try {
+        const response = await coursesApi.removeStudent(id, studentId);
+        
+        if (response.success) {
+          setStudents(students.filter((s) => s.id !== studentId));
+          Swal.fire({
+            icon: 'success',
+            title: 'ลบสำเร็จ!',
+            text: 'ลบนักเรียนออกจากหลักสูตรแล้ว',
+            timer: 1500,
+            showConfirmButton: false,
+          });
+        } else {
+          throw new Error(response.error || 'ไม่สามารถลบนักเรียนได้');
+        }
+      } catch (error: any) {
+        Swal.fire({
+          icon: 'error',
+          title: 'เกิดข้อผิดพลาด',
+          text: error.message || 'ไม่สามารถลบนักเรียนได้',
+        });
+      }
     }
   };
 
   const handleUpdateTeacherRoles = async (teacherId: string, newRoles: any) => {
-    setTeachers(
-      teachers.map((t) =>
-        t.id === teacherId
-          ? { ...t, roles: newRoles }
-          : t
-      )
-    );
+    try {
+      const response = await coursesApi.updateTeacherRoles(id, teacherId, newRoles);
+      
+      if (response.success && response.data) {
+        // Update teacher in local state
+        setTeachers(
+          teachers.map((t) =>
+            t.id === teacherId
+              ? {
+                  ...t,
+                  roles: response.data.roles,
+                }
+              : t
+          )
+        );
 
-    Swal.fire({
-      icon: 'success',
-      title: 'อัปเดตสำเร็จ!',
-      text: 'อัปเดตบทบาทของอาจารย์แล้ว',
-      timer: 1500,
-      showConfirmButton: false,
-    });
+        Swal.fire({
+          icon: 'success',
+          title: 'อัปเดตสำเร็จ!',
+          text: 'อัปเดตบทบาทของอาจารย์แล้ว',
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      } else {
+        throw new Error(response.error || 'ไม่สามารถอัปเดตบทบาทได้');
+      }
+    } catch (error: any) {
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: error.message || 'ไม่สามารถอัปเดตบทบาทได้',
+      });
+    }
   };
 
   return (
