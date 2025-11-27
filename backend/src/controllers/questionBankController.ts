@@ -5,6 +5,7 @@ import {
   updateQuestionCategory,
   deleteQuestionCategory,
   getQuestionsByQuestionBank,
+  deleteQuestion,
 } from '../services/questionBankService';
 
 export const getQuestionBankController = async (c: Context) => {
@@ -71,6 +72,17 @@ export const getQuestionsController = async (c: Context) => {
       }
     );
     return c.json({ success: true, data: questions });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 400);
+  }
+};
+
+export const deleteQuestionController = async (c: Context) => {
+  try {
+    const user = c.get('user');
+    const questionId = c.req.param('questionId');
+    const result = await deleteQuestion(questionId, user);
+    return c.json({ success: true, data: result });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 400);
   }

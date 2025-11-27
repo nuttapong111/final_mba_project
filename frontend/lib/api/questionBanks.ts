@@ -84,5 +84,14 @@ export const questionBanksApi = {
     const response = await apiClient.get(url);
     return response.data;
   },
+
+  deleteQuestion: async (questionId: string): Promise<{
+    success: boolean;
+    data: { message: string };
+    error?: string;
+  }> => {
+    const response = await apiClient.delete(`/question-banks/questions/${questionId}`);
+    return response.data;
+  },
 };
 

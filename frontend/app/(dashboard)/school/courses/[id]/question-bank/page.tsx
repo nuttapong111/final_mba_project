@@ -150,8 +150,8 @@ export default function CourseQuestionBankPage() {
     });
   };
 
-  const handleDeleteQuestion = (questionId: string) => {
-    Swal.fire({
+  const handleDeleteQuestion = async (questionId: string) => {
+    const result = await Swal.fire({
       title: 'ยืนยันการลบ',
       text: 'คุณต้องการลบข้อสอบนี้หรือไม่?',
       icon: 'warning',
@@ -160,17 +160,39 @@ export default function CourseQuestionBankPage() {
       cancelButtonColor: '#3085d6',
       confirmButtonText: 'ลบ',
       cancelButtonText: 'ยกเลิก',
-    }).then((result) => {
-      if (result.isConfirmed) {
-        Swal.fire({
-          icon: 'success',
-          title: 'ลบสำเร็จ',
-          text: 'ข้อสอบถูกลบเรียบร้อยแล้ว',
-          timer: 1500,
-          showConfirmButton: false,
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const response = await questionBanksApi.deleteQuestion(questionId);
+
+        if (response.success) {
+          // Refresh questions list and question bank data
+          await fetchQuestions();
+          await fetchData();
+          
+          await Swal.fire({
+            icon: 'success',
+            title: 'ลบสำเร็จ',
+            text: 'ข้อสอบถูกลบเรียบร้อยแล้ว',
+            timer: 1500,
+            showConfirmButton: false,
+          });
+        } else {
+          await Swal.fire({
+            icon: 'error',
+            title: 'เกิดข้อผิดพลาด',
+            text: response.error || 'ไม่สามารถลบข้อสอบได้',
+          });
+        }
+      } catch (error: any) {
+        await Swal.fire({
+          icon: 'error',
+          title: 'เกิดข้อผิดพลาด',
+          text: error.response?.data?.error || error.message || 'ไม่สามารถลบข้อสอบได้',
         });
       }
-    });
+    }
   };
 
   return (

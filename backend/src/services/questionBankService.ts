@@ -257,3 +257,29 @@ export const getQuestionsByQuestionBank = async (
   return questions;
 };
 
+export const deleteQuestion = async (questionId: string, user: AuthUser) => {
+  const question = await prisma.question.findUnique({
+    where: { id: questionId },
+    include: {
+      questionBank: {
+        include: { course: true },
+      },
+    },
+  });
+
+  if (!question) {
+    throw new Error('ไม่พบข้อสอบ');
+  }
+
+  // Check permission
+  if (user.role === 'SCHOOL_ADMIN' && question.questionBank?.course?.schoolId !== user.schoolId) {
+    throw new Error('ไม่มีสิทธิ์ลบข้อสอบนี้');
+  }
+
+  await prisma.question.delete({
+    where: { id: questionId },
+  });
+
+  return { message: 'ลบข้อสอบสำเร็จ' };
+};
+
