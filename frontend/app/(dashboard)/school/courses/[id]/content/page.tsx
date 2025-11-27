@@ -682,7 +682,10 @@ export default function CourseContentPage() {
           (window as any).uploadProgressMap = uploadProgress;
         }
         
-        await Swal.fire({
+        let progressInterval: NodeJS.Timeout | null = null;
+        
+        // Show upload dialog
+        const uploadDialog = Swal.fire({
           title: 'กำลังอัพโหลดไฟล์...',
           html: `
             <div class="text-center">
@@ -695,9 +698,10 @@ export default function CourseContentPage() {
             </div>
           `,
           allowOutsideClick: false,
+          showConfirmButton: false,
           didOpen: () => {
             // Update progress periodically
-            const progressInterval = setInterval(() => {
+            progressInterval = setInterval(() => {
               const totalProgress = uploadProgress.size > 0
                 ? Array.from(uploadProgress.values()).reduce((sum, p) => sum + p, 0) / uploadPromises.length
                 : 0;
@@ -708,33 +712,49 @@ export default function CourseContentPage() {
                 progressText.textContent = `${Math.round(totalProgress)}%`;
               }
             }, 100);
-            
-            // Clear interval when done
-            Promise.all(uploadPromises).finally(() => {
-              clearInterval(progressInterval);
-              if (typeof window !== 'undefined') {
-                delete (window as any).uploadProgressMap;
-              }
-            });
           },
         });
 
         try {
           await Promise.all(uploadPromises);
-          await Swal.close(); // ปิด loading dialog
+          
+          // Clear progress interval
+          if (progressInterval) {
+            clearInterval(progressInterval);
+          }
+          if (typeof window !== 'undefined') {
+            delete (window as any).uploadProgressMap;
+          }
+          
+          // Close upload dialog
+          if (Swal.isVisible()) {
+            await Swal.close();
+          }
           
           // รอให้ state อัพเดต (ใช้ setTimeout เพื่อให้ React re-render)
           await new Promise(resolve => setTimeout(resolve, 100));
-          } catch (error: any) {
-            await Swal.close();
-            addDebugLog('error', 'อัพโหลดไฟล์ล้มเหลว', error.message);
-            await Swal.fire({
-              icon: 'error',
-              title: 'เกิดข้อผิดพลาด',
-              text: error.message || 'ไม่สามารถอัพโหลดไฟล์ได้',
-            });
-            return;
+        } catch (error: any) {
+          // Clear progress interval
+          if (progressInterval) {
+            clearInterval(progressInterval);
           }
+          if (typeof window !== 'undefined') {
+            delete (window as any).uploadProgressMap;
+          }
+          
+          // Close upload dialog
+          if (Swal.isVisible()) {
+            await Swal.close();
+          }
+          
+          addDebugLog('error', 'อัพโหลดไฟล์ล้มเหลว', error.message);
+          await Swal.fire({
+            icon: 'error',
+            title: 'เกิดข้อผิดพลาด',
+            text: error.message || 'ไม่สามารถอัพโหลดไฟล์ได้',
+          });
+          return;
+        }
       }
 
       // Debug: Log data before sending
