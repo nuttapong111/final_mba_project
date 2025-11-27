@@ -36,7 +36,7 @@ interface GradingTask {
 
 export default function TeacherGradingPage() {
   const { user } = useAuthStore();
-  const myCourses = filterCoursesByRole(mockCourses, user);
+  const myCourses = filterCoursesByRole(mockCourses, user as any);
   const [selectedCourse, setSelectedCourse] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'pending' | 'graded'>('all');
   const [searchTerm, setSearchTerm] = useState('');

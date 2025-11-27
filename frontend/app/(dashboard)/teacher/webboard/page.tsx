@@ -37,7 +37,7 @@ interface Reply {
 
 export default function TeacherWebboardPage() {
   const { user } = useAuthStore();
-  const myCourses = filterCoursesByRole(mockCourses, user);
+  const myCourses = filterCoursesByRole(mockCourses, user as any);
   const [selectedCourse, setSelectedCourse] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
 

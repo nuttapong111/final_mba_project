@@ -30,7 +30,7 @@ interface LiveSession {
 
 export default function StudentLiveClassPage() {
   const { user } = useAuthStore();
-  const enrolledCourses = filterCoursesByRole(mockCourses, user);
+  const enrolledCourses = filterCoursesByRole(mockCourses, user as any);
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'scheduled' | 'live' | 'completed'>('all');
 
   // Get live sessions from enrolled courses

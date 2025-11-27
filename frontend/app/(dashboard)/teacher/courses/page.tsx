@@ -9,7 +9,7 @@ import { AcademicCapIcon } from '@heroicons/react/24/outline';
 
 export default function TeacherCoursesPage() {
   const { user } = useAuthStore();
-  const myCourses = filterCoursesByRole(mockCourses, user);
+  const myCourses = filterCoursesByRole(mockCourses, user as any);
 
   return (
     <div className="space-y-6">
