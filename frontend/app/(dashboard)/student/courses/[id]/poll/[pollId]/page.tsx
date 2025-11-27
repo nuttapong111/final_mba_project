@@ -71,7 +71,7 @@ export default function TakePollPage() {
     const requiredQuestions = poll.questions.filter(q => q.required);
     for (const question of requiredQuestions) {
       if (!answers[question.id] || 
-          (typeof answers[question.id]?.answer === 'string' && !answers[question.id].answer.trim()) ||
+          (typeof answers[question.id]?.answer === 'string' && !(answers[question.id].answer as string).trim()) ||
           (Array.isArray(answers[question.id]?.answer) && answers[question.id].answer.length === 0)) {
         Swal.fire({
           icon: 'error',
