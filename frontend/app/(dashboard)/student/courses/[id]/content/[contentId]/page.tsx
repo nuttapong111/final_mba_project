@@ -240,24 +240,242 @@ export default function StudentContentPage() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
+    <div className="flex h-screen bg-white">
+      {/* Main Content Area - Full Width */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => router.push(`/student/courses/${courseId}`)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <ChevronRightIcon className="h-5 w-5 text-gray-600 rotate-180" />
+              </button>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">{currentContent.title}</h1>
+                <p className="text-sm text-gray-600 mt-1">
+                  {currentLesson.title} • {getContentTypeLabel(currentContent.type)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Content Display - Full Screen */}
+        <div className="flex-1 overflow-hidden bg-white">
+          {currentContent.type === 'video' && (
+            <div className="w-full h-full bg-black flex items-center justify-center">
+              {(() => {
+                const videoUrl = currentContent.url;
+                let fileUrl = currentContent.fileUrl;
+                
+                // Convert fileUrl to full URL if needed
+                if (fileUrl && fileUrl.startsWith('/uploads/')) {
+                  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+                  const baseUrl = apiBaseUrl.replace('/api', '');
+                  fileUrl = `${baseUrl}${fileUrl}`;
+                }
+                
+                // Check if YouTube or Vimeo
+                if (videoUrl) {
+                  const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+                  const vimeoRegex = /(?:vimeo\.com\/)(\d+)/;
+                  
+                  const youtubeMatch = videoUrl.match(youtubeRegex);
+                  const vimeoMatch = videoUrl.match(vimeoRegex);
+
+                  if (youtubeMatch) {
+                    const videoId = youtubeMatch[1];
+                    return (
+                      <iframe
+                        src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
+                        className="w-full h-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        title={currentContent.title}
+                        onLoad={handleContentComplete}
+                      />
+                    );
+                  } else if (vimeoMatch) {
+                    const videoId = vimeoMatch[1];
+                    return (
+                      <iframe
+                        src={`https://player.vimeo.com/video/${videoId}?autoplay=1`}
+                        className="w-full h-full"
+                        allowFullScreen
+                        title={currentContent.title}
+                        onLoad={handleContentComplete}
+                      />
+                    );
+                  }
+                }
+                
+                // Direct video file
+                if (fileUrl || videoUrl) {
+                  const videoSrc = fileUrl || videoUrl;
+                  return (
+                    <video
+                      src={videoSrc}
+                      controls
+                      className="w-full h-full"
+                      onEnded={handleContentComplete}
+                      autoPlay
+                    >
+                      <source src={videoSrc} type="video/mp4" />
+                      <source src={videoSrc} type="video/webm" />
+                      <source src={videoSrc} type="video/ogg" />
+                      เบราว์เซอร์ของคุณไม่รองรับการเล่นวิดีโอ
+                    </video>
+                  );
+                }
+                
+                return (
+                  <div className="flex items-center justify-center w-full h-full text-white">
+                    <div className="text-center">
+                      <VideoCameraIcon className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                      <p className="text-xl mb-2">ไม่พบวิดีโอ</p>
+                      <p className="text-sm text-gray-400">กรุณาตรวจสอบ URL หรือไฟล์วิดีโอ</p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {currentContent.type === 'document' && (
+            <div className="w-full h-full bg-white flex flex-col">
+              {(() => {
+                let fileUrl = currentContent.fileUrl;
+                
+                // Convert fileUrl to full URL if needed
+                if (fileUrl && fileUrl.startsWith('/uploads/')) {
+                  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+                  const baseUrl = apiBaseUrl.replace('/api', '');
+                  fileUrl = `${baseUrl}${fileUrl}`;
+                }
+                
+                if (fileUrl) {
+                  return (
+                    <>
+                      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white shadow-sm">
+                        <div className="flex items-center space-x-3">
+                          <DocumentTextIcon className="h-6 w-6 text-blue-600" />
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-900">{currentContent.title}</h3>
+                            {currentContent.fileName && (
+                              <p className="text-sm text-gray-500">{currentContent.fileName}</p>
+                            )}
+                          </div>
+                        </div>
+                        <a
+                          href={fileUrl}
+                          download
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 shadow-md"
+                        >
+                          <ArrowDownTrayIcon className="h-5 w-5" />
+                          <span>ดาวน์โหลด</span>
+                        </a>
+                      </div>
+                      <div className="flex-1 overflow-hidden">
+                        <iframe
+                          src={fileUrl}
+                          className="w-full h-full"
+                          title={currentContent.title}
+                          onLoad={handleContentComplete}
+                        />
+                      </div>
+                    </>
+                  );
+                }
+                
+                return (
+                  <div className="flex items-center justify-center w-full h-full text-gray-600">
+                    <div className="text-center">
+                      <DocumentTextIcon className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                      <p className="text-xl mb-2">ไม่พบเอกสาร</p>
+                      <p className="text-sm text-gray-400">กรุณาตรวจสอบไฟล์เอกสาร</p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {(currentContent.type === 'quiz' || currentContent.type === 'pre_test') && (
+            <div className="w-full h-full bg-gradient-to-br from-blue-50 to-white flex items-center justify-center p-8">
+              <div className="text-center max-w-lg bg-white rounded-xl shadow-lg p-8">
+                <ClipboardDocumentCheckIcon className="h-20 w-20 text-blue-600 mx-auto mb-6" />
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">แบบทดสอบ</h3>
+                <p className="text-gray-600 mb-8 text-lg">{currentContent.title}</p>
+                <Button
+                  onClick={() => router.push(`/student/courses/${courseId}/quiz/${currentContent.id}`)}
+                  className="w-full py-3 text-lg"
+                >
+                  เริ่มทำแบบทดสอบ
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {currentContent.type === 'poll' && (
+            <div className="w-full h-full bg-gradient-to-br from-purple-50 to-white flex items-center justify-center p-8">
+              <div className="text-center max-w-lg bg-white rounded-xl shadow-lg p-8">
+                <ClipboardDocumentCheckIcon className="h-20 w-20 text-purple-600 mx-auto mb-6" />
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">แบบประเมิน</h3>
+                <p className="text-gray-600 mb-8 text-lg">{currentContent.title}</p>
+                <Button
+                  onClick={() => router.push(`/student/courses/${courseId}/poll/${currentContent.poll?.id || currentContent.id}`)}
+                  className="w-full py-3 text-lg bg-purple-600 hover:bg-purple-700"
+                >
+                  เริ่มทำแบบประเมิน
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Navigation Buttons */}
+        <div className="px-6 py-4 bg-white border-t border-gray-200 flex justify-between shadow-sm">
+          <Button
+            variant="outline"
+            onClick={handlePrevContent}
+            disabled={!currentLesson || currentLesson.contents.findIndex((c) => c.id === currentContent.id) === 0 && lessons.findIndex((l) => l.id === currentLesson.id) === 0}
+          >
+            ← เนื้อหาก่อนหน้า
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleNextContent}
+            disabled={
+              !currentLesson ||
+              (currentLesson.contents.findIndex((c) => c.id === currentContent.id) === currentLesson.contents.length - 1 &&
+               lessons.findIndex((l) => l.id === currentLesson.id) === lessons.length - 1)
+            }
+          >
+            เนื้อหาถัดไป →
+          </Button>
+        </div>
+      </div>
+
+      {/* Sidebar - Right Side */}
       <div
         className={`${
           sidebarOpen ? 'w-80' : 'w-0'
-        } transition-all duration-300 bg-white border-r border-gray-200 overflow-hidden flex flex-col`}
+        } transition-all duration-300 bg-white border-l border-gray-200 overflow-hidden flex flex-col shadow-lg`}
       >
-        <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700">
+        <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-blue-600">
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-white font-bold text-lg">{course?.title || 'หลักสูตร'}</h2>
-              <p className="text-blue-100 text-sm mt-1">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-white font-bold text-sm truncate">{course?.title || 'หลักสูตร'}</h2>
+              <p className="text-blue-100 text-xs mt-1">
                 {lessons.length} โมดูล
               </p>
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="text-white hover:bg-blue-800 p-1 rounded"
+              className="text-white hover:bg-blue-700 p-1 rounded ml-2 flex-shrink-0"
             >
               <ChevronRightIcon className="h-5 w-5" />
             </button>
@@ -273,7 +491,7 @@ export default function StudentContentPage() {
                 </h3>
               </div>
               <div className="space-y-1 p-2">
-                {lesson.contents.map((content) => {
+                {lesson.contents.map((content, contentIndex) => {
                   const isActive = content.id === currentContent.id;
                   const isCompleted = isContentCompleted(content.id);
 
@@ -281,29 +499,31 @@ export default function StudentContentPage() {
                     <button
                       key={content.id}
                       onClick={() => handleContentClick(content, lesson)}
-                      className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-all ${
+                      className={`w-full flex items-start space-x-3 p-3 rounded-lg transition-all text-left ${
                         isActive
-                          ? 'bg-blue-50 border-l-4 border-blue-600 text-blue-900'
-                          : 'hover:bg-gray-50 text-gray-700'
+                          ? 'bg-blue-50 border-l-4 border-blue-600'
+                          : 'hover:bg-gray-50'
                       }`}
                     >
-                      <div className={`flex-shrink-0 ${
+                      <div className={`flex-shrink-0 mt-0.5 ${
                         isActive ? 'text-blue-600' : 'text-gray-400'
                       }`}>
                         {getContentIcon(content.type)}
                       </div>
-                      <div className="flex-1 text-left min-w-0">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <p className={`text-sm font-medium truncate ${
                             isActive ? 'text-blue-900' : 'text-gray-900'
                           }`}>
                             {content.title}
                           </p>
-                          {isCompleted && (
+                          {isCompleted && !isActive && (
                             <CheckCircleIcon className="h-4 w-4 text-green-600 flex-shrink-0 ml-2" />
                           )}
                         </div>
-                        <p className="text-xs text-gray-500 mt-0.5">
+                        <p className={`text-xs mt-0.5 ${
+                          isActive ? 'text-blue-600' : 'text-gray-500'
+                        }`}>
                           {getContentTypeLabel(content.type)}
                         </p>
                       </div>
