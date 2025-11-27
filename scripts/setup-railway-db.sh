@@ -40,3 +40,4 @@ echo "   - Users: $(npx prisma db execute --stdin <<< "SELECT COUNT(*) FROM \"Us
 echo "   - Schools: $(npx prisma db execute --stdin <<< "SELECT COUNT(*) FROM \"School\";" 2>/dev/null | grep -o '[0-9]*' | head -1 || echo 'N/A')"
 echo "   - Courses: $(npx prisma db execute --stdin <<< "SELECT COUNT(*) FROM \"Course\";" 2>/dev/null | grep -o '[0-9]*' | head -1 || echo 'N/A')"
 
+

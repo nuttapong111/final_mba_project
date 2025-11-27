@@ -123,3 +123,4 @@ railway variables set ROOT_DIR=frontend
 - [Railway Monorepo Guide](https://docs.railway.app/guides/monorepo)
 - [Railway Root Directory](https://docs.railway.app/develop/root-directory)
 
+

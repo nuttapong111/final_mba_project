@@ -72,3 +72,4 @@ echo "   git push -u origin main"
 echo ""
 echo "📚 ดูรายละเอียดเพิ่มเติมใน PREPARE_DEPLOY.md"
 
+

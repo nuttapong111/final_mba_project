@@ -164,3 +164,4 @@ git push -u origin staging
 
 **พร้อมแล้ว!** หลังจาก push ขึ้น GitHub แล้ว ให้ทำตามขั้นตอนใน `RAILWAY_DEPLOY.md` เพื่อ deploy บน Railway
 
+

@@ -11,3 +11,4 @@ upload.post('/files', roleMiddleware('SUPER_ADMIN', 'SCHOOL_ADMIN', 'TEACHER'), 
 
 export default upload;
 
+

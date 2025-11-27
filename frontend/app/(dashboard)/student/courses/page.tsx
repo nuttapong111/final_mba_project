@@ -9,6 +9,15 @@ import { coursesApi } from '@/lib/api';
 import { BookOpenIcon, ClockIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import Swal from 'sweetalert2';
 
+interface EnrolledStudent {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  enrolledAt: string;
+  progress: number;
+}
+
 export default function StudentCoursesPage() {
   const router = useRouter();
   const { user } = useAuthStore();
@@ -44,15 +53,6 @@ export default function StudentCoursesPage() {
 
     fetchCourses();
   }, []);
-
-  interface EnrolledStudent {
-    id: string;
-    name: string;
-    email: string;
-    avatar?: string;
-    enrolledAt: string;
-    progress: number;
-  }
 
   const getCourseProgress = (courseId: string) => {
     const course = enrolledCourses.find((c: any) => c.id === courseId);
