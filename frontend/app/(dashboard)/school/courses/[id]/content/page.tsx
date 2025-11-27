@@ -569,16 +569,37 @@ export default function CourseContentPage() {
       
       lessons.forEach((lesson, lessonIndex) => {
         lesson.contents.forEach((content, contentIndex) => {
+          // ตรวจสอบว่ามีไฟล์ใหม่ที่ต้องอัพโหลด
+          const hasNewFile = (content as any).file && !content.url?.trim();
+          const hasExistingFileUrl = content.fileUrl && !content.url?.trim();
+          
+          console.log(`[DEBUG] Content ${lessonIndex}-${contentIndex} (${content.type}):`, {
+            hasNewFile,
+            hasExistingFileUrl,
+            fileUrl: content.fileUrl,
+            fileName: content.fileName,
+            fileSize: content.fileSize,
+            url: content.url,
+          });
+          
           // ถ้ามีไฟล์ใหม่ (file object) และยังไม่มี URL
-          if ((content as any).file && !content.url?.trim()) {
+          if (hasNewFile) {
             const file = (content as any).file as File;
             const fileType = content.type === 'video' ? 'video' : 'document';
             const contentKey = `${lessonIndex}-${contentIndex}`;
+            
+            console.log(`[DEBUG] Uploading file for ${contentKey}:`, {
+              fileName: file.name,
+              fileSize: file.size,
+              fileType,
+            });
             
             uploadPromises.push(
               uploadApi.uploadFile(file, fileType)
                 .then((response) => {
                   if (response.success && response.data) {
+                    console.log(`[DEBUG] Upload success for ${contentKey}:`, response.data);
+                    
                     // แปลง fileUrl ให้เป็น full URL ถ้าเป็น relative path
                     let fileUrl = response.data.url;
                     if (fileUrl && fileUrl.startsWith('/uploads/')) {
@@ -594,6 +615,8 @@ export default function CourseContentPage() {
                       fileSize: response.data.fileSize,
                     });
                     
+                    console.log(`[DEBUG] Stored in map for ${contentKey}:`, fileUploadResults.get(contentKey));
+                    
                     // อัพเดต state สำหรับแสดงใน UI
                     handleUpdateContent(lessonIndex, contentIndex, 'fileUrl', fileUrl);
                     handleUpdateContent(lessonIndex, contentIndex, 'fileName', response.data.fileName);
@@ -605,6 +628,7 @@ export default function CourseContentPage() {
                   }
                 })
                 .catch((error) => {
+                  console.error(`[DEBUG] Upload error for ${contentKey}:`, error);
                   throw new Error(`ไม่สามารถอัพโหลดไฟล์ "${content.title}": ${error.message}`);
                 })
             );
@@ -663,14 +687,24 @@ export default function CourseContentPage() {
           
           // ตรวจสอบว่ามีไฟล์ที่เพิ่งอัพโหลดใน map หรือไม่
           const uploadedFile = fileUploadResults.get(contentKey);
+          console.log(`[DEBUG] Preparing content ${contentKey}:`, {
+            hasUploadedFile: !!uploadedFile,
+            uploadedFile,
+            contentFileUrl: content.fileUrl,
+            contentFileName: content.fileName,
+            contentFileSize: content.fileSize,
+          });
+          
           if (uploadedFile) {
             // ใช้ข้อมูลจาก upload result (เป็น relative path แล้ว)
+            console.log(`[DEBUG] Using uploaded file data for ${contentKey}`);
             contentData.fileUrl = uploadedFile.fileUrl;
             contentData.fileName = uploadedFile.fileName;
             contentData.fileSize = uploadedFile.fileSize;
           } else if (content.fileUrl) {
             // ถ้า fileUrl เป็น URL จาก backend (http/https หรือ /uploads/) ให้ใช้
             // แต่ต้องแปลงเป็น relative path สำหรับส่งไป backend
+            console.log(`[DEBUG] Using existing fileUrl for ${contentKey}:`, content.fileUrl);
             let fileUrl = content.fileUrl;
             if (fileUrl.startsWith('http')) {
               // แปลง full URL กลับเป็น relative path
@@ -683,6 +717,8 @@ export default function CourseContentPage() {
             contentData.fileUrl = fileUrl;
             if (content.fileName) contentData.fileName = content.fileName;
             if (content.fileSize) contentData.fileSize = content.fileSize;
+          } else {
+            console.log(`[DEBUG] No file data for ${contentKey} (type: ${content.type})`);
           }
           
           if (content.duration) contentData.duration = content.duration;
@@ -1003,9 +1039,71 @@ export default function CourseContentPage() {
                           </label>
                           <input
                             type="file"
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                             accept=".pdf,.doc,.docx"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                // ตรวจสอบขนาดไฟล์ (สูงสุด 100MB)
+                                if (file.size > 100 * 1024 * 1024) {
+                                  Swal.fire({
+                                    icon: 'error',
+                                    title: 'ไฟล์ใหญ่เกินไป',
+                                    text: 'ขนาดไฟล์ไม่ควรเกิน 100MB',
+                                  });
+                                  return;
+                                }
+                                // ตรวจสอบประเภทไฟล์
+                                const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+                                if (!allowedTypes.includes(file.type)) {
+                                  Swal.fire({
+                                    icon: 'error',
+                                    title: 'ประเภทไฟล์ไม่ถูกต้อง',
+                                    text: 'กรุณาเลือกไฟล์ PDF, DOC หรือ DOCX เท่านั้น',
+                                  });
+                                  return;
+                                }
+                                // เก็บไฟล์จริงไว้ใน state สำหรับอัพโหลด
+                                handleUpdateContent(lessonIndex, contentIndex, 'file', file);
+                                // สร้าง URL สำหรับแสดงตัวอย่าง (local preview)
+                                const fileUrl = URL.createObjectURL(file);
+                                handleUpdateContent(lessonIndex, contentIndex, 'fileUrl', fileUrl);
+                                handleUpdateContent(lessonIndex, contentIndex, 'fileName', file.name);
+                                handleUpdateContent(lessonIndex, contentIndex, 'fileSize', file.size);
+                              }
+                            }}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                           />
+                          {content.fileUrl && (
+                            <div className="mt-2 p-2 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-sm text-gray-600">📄</span>
+                                  <div className="flex flex-col">
+                                    <span className="text-sm text-gray-700 font-medium">
+                                      {content.fileName || 'ไฟล์เอกสารที่เลือก'}
+                                    </span>
+                                    {content.fileSize && (
+                                      <span className="text-xs text-gray-500">
+                                        {formatFileSize(content.fileSize)}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    handleUpdateContent(lessonIndex, contentIndex, 'file', undefined);
+                                    handleUpdateContent(lessonIndex, contentIndex, 'fileUrl', undefined);
+                                    handleUpdateContent(lessonIndex, contentIndex, 'fileName', undefined);
+                                    handleUpdateContent(lessonIndex, contentIndex, 'fileSize', undefined);
+                                  }}
+                                  className="text-red-600 hover:text-red-700 text-sm"
+                                >
+                                  ลบ
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
