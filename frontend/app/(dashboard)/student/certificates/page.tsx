@@ -16,7 +16,7 @@ import Swal from 'sweetalert2';
 export default function StudentCertificatesPage() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const enrolledCourses = filterCoursesByRole(mockCourses, user);
+  const enrolledCourses = filterCoursesByRole(mockCourses, user as any);
 
   // Mock: Assume all courses are completed for demo
   const completedCourses = enrolledCourses.filter((course) => {
