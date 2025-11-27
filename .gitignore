@@ -49,3 +49,9 @@ mobile/android/.gradle/
 *.tmp
 .cache/
 
+# Railway
+.railway/
+
+# Docker
+docker-compose.override.yml
+

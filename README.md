@@ -196,8 +196,8 @@ capstone_final_project/
 ### Prerequisites
 - Node.js 18+ 
 - npm หรือ yarn
-- PostgreSQL 14+
-- Redis (optional, for caching)
+- PostgreSQL 14+ (หรือใช้ Docker)
+- Docker & Docker Compose (optional, สำหรับ PostgreSQL)
 
 ### Installation
 
@@ -207,22 +207,74 @@ git clone <repository-url>
 cd capstone_final_project
 ```
 
-#### 2. Backend Setup
+#### 2. Setup Database
+
+**วิธีที่ 1: ใช้ Docker (แนะนำ - ข้อมูลจะไม่หาย)**
+```bash
+# Start PostgreSQL with Docker (ข้อมูลจะถูกเก็บใน volume)
+docker-compose up -d postgres
+
+# หรือใช้ script ที่เตรียมไว้
+./scripts/start.sh
+```
+
+**วิธีที่ 2: ใช้ PostgreSQL แบบ Local**
+```bash
+# ตรวจสอบว่า PostgreSQL service ทำงานอยู่
+# macOS: brew services start postgresql@14
+# Linux: sudo systemctl start postgresql
+```
+
+#### 3. Backend Setup
 ```bash
 cd backend
 npm install
+
+# สร้างไฟล์ .env (ถ้ายังไม่มี)
 cp .env.example .env
-# แก้ไข .env ตามการตั้งค่าของคุณ
+# แก้ไข DATABASE_URL ใน .env ตามการตั้งค่าของคุณ
+
+# Setup database schema และ seed ข้อมูลเริ่มต้น
+npm run db:setup
+
+# Start development server
 npm run dev
 ```
 
-#### 3. Frontend Setup
+**หมายเหตุ:** 
+- `db:setup` จะตรวจสอบว่ามีข้อมูลอยู่แล้วหรือไม่ ถ้ามีจะไม่ seed ซ้ำ (เพื่อรักษาข้อมูลเดิม)
+- ข้อมูลจะถูกเก็บถาวรใน PostgreSQL volume (ถ้าใช้ Docker) หรือใน PostgreSQL database (ถ้าใช้ local)
+
+#### 4. Frontend Setup
 ```bash
 cd frontend
 npm install
 cp .env.example .env.local
 # แก้ไข .env.local ตามการตั้งค่าของคุณ
 npm run dev
+```
+
+#### 5. การจัดการ Database
+
+**ข้อมูลจะไม่หายไปเมื่อปิดเครื่อง** เพราะ:
+- ใช้ Docker volume สำหรับเก็บข้อมูล (ถ้าใช้ Docker)
+- ใช้ PostgreSQL database แบบ persistent (ถ้าใช้ local PostgreSQL)
+
+**คำสั่งที่เกี่ยวข้อง:**
+```bash
+# Setup database (ครั้งแรกหรือเมื่อต้องการ reset)
+cd backend
+npm run db:setup
+
+# Seed ข้อมูลใหม่ (จะไม่ duplicate ถ้ามีอยู่แล้ว)
+npm run db:seed
+
+# ดูข้อมูลใน database
+npm run db:studio
+
+# Reset database (ระวัง: จะลบข้อมูลทั้งหมด)
+docker-compose down -v  # ถ้าใช้ Docker
+# หรือ drop database แล้วรัน db:setup ใหม่
 ```
 
 #### 4. Mobile Setup
@@ -282,6 +334,29 @@ npm test
 # E2E tests
 npm run test:e2e
 ```
+
+## 🚂 Deployment
+
+### Railway (Staging)
+
+สำหรับ deploy ไปยัง Railway staging environment:
+
+```bash
+# ดูคู่มือการ deploy
+cat RAILWAY_DEPLOY.md
+
+# หรือรัน helper script
+./scripts/railway-deploy.sh
+```
+
+**Quick Start:**
+1. สร้าง Railway project และเพิ่ม PostgreSQL database
+2. Deploy Backend service (root: `backend`)
+3. Deploy Frontend service (root: `frontend`)
+4. ตั้งค่า Environment Variables ตาม `RAILWAY_DEPLOY.md`
+5. Seed database: `railway run --service backend npm run db:seed`
+
+ดูรายละเอียดเพิ่มเติมใน [RAILWAY_DEPLOY.md](./RAILWAY_DEPLOY.md)
 
 ## 📝 License
 
