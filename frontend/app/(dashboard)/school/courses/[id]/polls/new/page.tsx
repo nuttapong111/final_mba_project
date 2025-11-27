@@ -43,7 +43,7 @@ export default function NewPollPage() {
       const response = await coursesApi.getById(courseId);
       if (response.success && response.data) {
         setCourse(response.data);
-        setLessons(response.data.lessons || []);
+        setLessons((response.data as any).lessons || []);
       }
     } catch (error) {
       console.error('Error fetching course:', error);
