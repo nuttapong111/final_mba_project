@@ -99,7 +99,7 @@ export const coursesApi = {
   }> => {
     const response = await apiClient.post(`/courses/${courseId}/teachers`, {
       teacherId,
-      ...roles,
+      roles,
     });
     return response.data;
   },
