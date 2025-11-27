@@ -11,7 +11,7 @@ export interface JWTPayload {
 export const generateToken = (payload: JWTPayload): string => {
   const secret = env.JWT_SECRET;
   const options: SignOptions = {
-    expiresIn: env.JWT_EXPIRES_IN,
+    expiresIn: env.JWT_EXPIRES_IN as string | number,
   };
   
   return sign(payload, secret, options);
