@@ -52,8 +52,9 @@ export const uploadFile = async (
   const buffer = Buffer.from(arrayBuffer);
   await writeFile(filePath, buffer);
 
-  // Generate URL (relative path for now, can be changed to full URL with CDN)
-  const url = `/uploads/${fileName}`;
+  // Generate URL (use full URL if BASE_URL is set, otherwise relative path)
+  const baseUrl = process.env.BASE_URL || '';
+  const url = baseUrl ? `${baseUrl}/uploads/${fileName}` : `/uploads/${fileName}`;
 
   return {
     url,
