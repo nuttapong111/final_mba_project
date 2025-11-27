@@ -379,12 +379,17 @@ export const updateCourse = async (
           name: true,
         },
       },
+      _count: {
+        select: {
+          students: true,
+        },
+      },
     },
   });
 
   return {
     ...updatedCourse,
-    students: course.students || 0,
+    students: updatedCourse._count.students,
     enrolledStudents: [],
     teachers: [],
   };

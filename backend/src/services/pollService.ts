@@ -154,6 +154,10 @@ export const updatePoll = async (
     throw new Error('ไม่พบแบบประเมิน');
   }
 
+  if (!poll.course) {
+    throw new Error('ไม่พบหลักสูตรที่เกี่ยวข้อง');
+  }
+
   // Check permission
   if (user.role === 'SCHOOL_ADMIN' && poll.course.schoolId !== user.schoolId) {
     throw new Error('ไม่มีสิทธิ์แก้ไขแบบประเมินนี้');
@@ -206,6 +210,10 @@ export const deletePoll = async (pollId: string, user: AuthUser) => {
     throw new Error('ไม่พบแบบประเมิน');
   }
 
+  if (!poll.course) {
+    throw new Error('ไม่พบหลักสูตรที่เกี่ยวข้อง');
+  }
+
   // Check permission
   if (user.role === 'SCHOOL_ADMIN' && poll.course.schoolId !== user.schoolId) {
     throw new Error('ไม่มีสิทธิ์ลบแบบประเมินนี้');
@@ -214,7 +222,9 @@ export const deletePoll = async (pollId: string, user: AuthUser) => {
   // Check if poll is used in any content
   const contentUsingPoll = await prisma.lessonContent.findFirst({
     where: {
-      pollId: pollId,
+      poll: {
+        id: pollId,
+      },
     },
   });
 

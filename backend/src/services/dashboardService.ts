@@ -50,15 +50,16 @@ export const getSchoolDashboardStats = async (user: AuthUser) => {
     : 0;
 
   // Get completion rate (students who completed at least one course)
-  const completedStudents = await prisma.courseStudent.count({
+  const completedStudentsResult = await prisma.courseStudent.groupBy({
+    by: ['studentId'],
     where: {
       course: {
         schoolId: user.schoolId,
       },
       progress: { gte: 100 },
     },
-    distinct: ['studentId'],
   });
+  const completedStudents = completedStudentsResult.length;
 
   const completionRate = totalStudents > 0
     ? (completedStudents / totalStudents) * 100
