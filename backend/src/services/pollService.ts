@@ -48,8 +48,8 @@ export const getPollsByCourse = async (courseId: string, user: AuthUser) => {
   const pollContentMap = new Map<string, { lessonTitle: string; lessonId: string; contentId: string; contentTitle: string }>();
   lessons.forEach((lesson) => {
     lesson.contents.forEach((content) => {
-      if (content.pollId) {
-        pollContentMap.set(content.pollId, {
+      if (content.poll && content.poll.id) {
+        pollContentMap.set(content.poll.id, {
           lessonTitle: lesson.title,
           lessonId: lesson.id,
           contentId: content.id,
