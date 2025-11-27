@@ -74,19 +74,21 @@ export const saveCourseContent = async (
           description: lessonData.description || null,
           order: lessonData.order,
           contents: {
-            create: lessonData.contents.map((contentData) => {
-              // Debug logging
-              if (contentData.fileUrl || contentData.fileName) {
-                console.log(`[DEBUG] Saving content with file:`, {
-                  title: contentData.title,
-                  type: contentData.type,
-                  fileUrl: contentData.fileUrl,
-                  fileName: contentData.fileName,
-                  fileSize: contentData.fileSize,
-                });
-              }
+            create: lessonData.contents.map((contentData, contentIndex) => {
+              // Debug logging - always log to see what we're saving
+              console.log(`[DEBUG] Saving content ${contentIndex}:`, {
+                title: contentData.title,
+                type: contentData.type,
+                url: contentData.url,
+                fileUrl: contentData.fileUrl,
+                fileName: contentData.fileName,
+                fileSize: contentData.fileSize,
+                hasFileUrl: !!contentData.fileUrl,
+                hasFileName: !!contentData.fileName,
+                hasFileSize: !!contentData.fileSize,
+              });
               
-              return {
+              const contentToSave = {
                 type: contentData.type.toUpperCase() as any,
                 title: contentData.title,
                 url: contentData.url || null,
@@ -134,6 +136,15 @@ export const saveCourseContent = async (
                   }
                 : undefined,
               };
+              
+              console.log(`[DEBUG] Content to save (final):`, {
+                title: contentToSave.title,
+                fileUrl: contentToSave.fileUrl,
+                fileName: contentToSave.fileName,
+                fileSize: contentToSave.fileSize,
+              });
+              
+              return contentToSave;
             }),
           },
         },
