@@ -240,24 +240,25 @@ async function main() {
 
   if (!question1) {
     question1 = await prisma.question.create({
-    data: {
-      questionBankId: questionBank.id,
-      categoryId: category.id,
-      question: 'ถ้า x + 5 = 10 แล้ว x มีค่าเท่าไร?',
-      type: 'MULTIPLE_CHOICE',
-      difficulty: 'EASY',
-      points: 1,
-      explanation: 'x = 10 - 5 = 5',
-      options: {
-        create: [
-          { text: '5', isCorrect: true, order: 1 },
-          { text: '10', isCorrect: false, order: 2 },
-          { text: '15', isCorrect: false, order: 3 },
-          { text: '20', isCorrect: false, order: 4 },
-        ],
+      data: {
+        questionBankId: questionBank.id,
+        categoryId: category.id,
+        question: 'ถ้า x + 5 = 10 แล้ว x มีค่าเท่าไร?',
+        type: 'MULTIPLE_CHOICE',
+        difficulty: 'EASY',
+        points: 1,
+        explanation: 'x = 10 - 5 = 5',
+        options: {
+          create: [
+            { text: '5', isCorrect: true, order: 1 },
+            { text: '10', isCorrect: false, order: 2 },
+            { text: '15', isCorrect: false, order: 3 },
+            { text: '20', isCorrect: false, order: 4 },
+          ],
+        },
       },
-    },
-  });
+    });
+  }
 
   let question2 = await prisma.question.findFirst({
     where: {
