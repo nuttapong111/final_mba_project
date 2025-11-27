@@ -15,6 +15,7 @@ import {
   LockClosedIcon,
   ClockIcon,
   ChevronRightIcon,
+  ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline';
 import Swal from 'sweetalert2';
 
@@ -348,125 +349,174 @@ export default function StudentContentPage() {
         </div>
 
         {/* Content Display */}
-        <div className="flex-1 overflow-y-auto bg-gray-50 p-6">
-          <Card className="max-w-6xl mx-auto shadow-lg">
-            {currentContent.type === 'video' && (
-              <div className="bg-black rounded-lg overflow-hidden">
-                <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-                  <div className="absolute inset-0">
-                    {(() => {
-                      const videoUrl = currentContent.url || contentUrl;
-                      const fileUrl = currentContent.fileUrl;
-                      
-                      // Check if YouTube or Vimeo
-                      if (videoUrl) {
-                        const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-                        const vimeoRegex = /(?:vimeo\.com\/)(\d+)/;
-                        
-                        const youtubeMatch = videoUrl.match(youtubeRegex);
-                        const vimeoMatch = videoUrl.match(vimeoRegex);
+        <div className="flex-1 overflow-hidden bg-gray-50 flex flex-col">
+          {currentContent.type === 'video' && (
+            <div className="flex-1 bg-black flex items-center justify-center">
+              {(() => {
+                const videoUrl = currentContent.url;
+                let fileUrl = currentContent.fileUrl;
+                
+                // Convert fileUrl to full URL if needed
+                if (fileUrl && fileUrl.startsWith('/uploads/')) {
+                  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+                  const baseUrl = apiBaseUrl.replace('/api', '');
+                  fileUrl = `${baseUrl}${fileUrl}`;
+                }
+                
+                // Check if YouTube or Vimeo
+                if (videoUrl) {
+                  const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+                  const vimeoRegex = /(?:vimeo\.com\/)(\d+)/;
+                  
+                  const youtubeMatch = videoUrl.match(youtubeRegex);
+                  const vimeoMatch = videoUrl.match(vimeoRegex);
 
-                        if (youtubeMatch) {
-                          const videoId = youtubeMatch[1];
-                          return (
-                            <iframe
-                              src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
-                              className="w-full h-full"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              allowFullScreen
-                              title={currentContent.title}
-                              onLoad={handleContentComplete}
-                            />
-                          );
-                        } else if (vimeoMatch) {
-                          const videoId = vimeoMatch[1];
-                          return (
-                            <iframe
-                              src={`https://player.vimeo.com/video/${videoId}?autoplay=1`}
-                              className="w-full h-full"
-                              allowFullScreen
-                              title={currentContent.title}
-                              onLoad={handleContentComplete}
-                            />
-                          );
-                        }
-                      }
-                      
-                      // Direct video file
-                      if (fileUrl || videoUrl) {
-                        return (
-                          <video
-                            src={fileUrl || videoUrl}
-                            controls
-                            className="w-full h-full"
-                            onEnded={handleContentComplete}
-                            autoPlay
-                          >
-                            <source src={fileUrl || videoUrl} type="video/mp4" />
-                            <source src={fileUrl || videoUrl} type="video/webm" />
-                            <source src={fileUrl || videoUrl} type="video/ogg" />
-                            เบราว์เซอร์ของคุณไม่รองรับการเล่นวิดีโอ
-                          </video>
-                        );
-                      }
-                      
-                      return (
-                        <div className="flex items-center justify-center w-full h-full text-white">
-                          <p>ไม่พบวิดีโอ</p>
+                  if (youtubeMatch) {
+                    const videoId = youtubeMatch[1];
+                    return (
+                      <iframe
+                        src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
+                        className="w-full h-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        title={currentContent.title}
+                        onLoad={handleContentComplete}
+                      />
+                    );
+                  } else if (vimeoMatch) {
+                    const videoId = vimeoMatch[1];
+                    return (
+                      <iframe
+                        src={`https://player.vimeo.com/video/${videoId}?autoplay=1`}
+                        className="w-full h-full"
+                        allowFullScreen
+                        title={currentContent.title}
+                        onLoad={handleContentComplete}
+                      />
+                    );
+                  }
+                }
+                
+                // Direct video file
+                if (fileUrl || videoUrl) {
+                  const videoSrc = fileUrl || videoUrl;
+                  return (
+                    <video
+                      src={videoSrc}
+                      controls
+                      className="w-full h-full"
+                      onEnded={handleContentComplete}
+                      autoPlay
+                    >
+                      <source src={videoSrc} type="video/mp4" />
+                      <source src={videoSrc} type="video/webm" />
+                      <source src={videoSrc} type="video/ogg" />
+                      เบราว์เซอร์ของคุณไม่รองรับการเล่นวิดีโอ
+                    </video>
+                  );
+                }
+                
+                return (
+                  <div className="flex items-center justify-center w-full h-full text-white">
+                    <div className="text-center">
+                      <p className="text-xl mb-2">ไม่พบวิดีโอ</p>
+                      <p className="text-sm text-gray-400">กรุณาตรวจสอบ URL หรือไฟล์วิดีโอ</p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {currentContent.type === 'document' && (
+            <div className="flex-1 bg-white flex flex-col">
+              {(() => {
+                let fileUrl = currentContent.fileUrl;
+                
+                // Convert fileUrl to full URL if needed
+                if (fileUrl && fileUrl.startsWith('/uploads/')) {
+                  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+                  const baseUrl = apiBaseUrl.replace('/api', '');
+                  fileUrl = `${baseUrl}${fileUrl}`;
+                }
+                
+                if (fileUrl) {
+                  return (
+                    <>
+                      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
+                        <div className="flex items-center space-x-3">
+                          <h3 className="text-lg font-semibold text-gray-900">{currentContent.title}</h3>
+                          {currentContent.fileName && (
+                            <span className="text-sm text-gray-500">({currentContent.fileName})</span>
+                          )}
                         </div>
-                      );
-                    })()}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {currentContent.type === 'document' && (
-              <div className="bg-white rounded-lg overflow-hidden" style={{ height: '600px' }}>
-                {contentUrl ? (
-                  <iframe
-                    src={contentUrl}
-                    className="w-full h-full"
-                    title={currentContent.title}
-                    onLoad={handleContentComplete}
-                  />
-                ) : (
+                        <a
+                          href={fileUrl}
+                          download
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                        >
+                          <ArrowDownTrayIcon className="h-5 w-5" />
+                          <span>ดาวน์โหลด</span>
+                        </a>
+                      </div>
+                      <div className="flex-1 overflow-hidden">
+                        <iframe
+                          src={fileUrl}
+                          className="w-full h-full"
+                          title={currentContent.title}
+                          onLoad={handleContentComplete}
+                        />
+                      </div>
+                    </>
+                  );
+                }
+                
+                return (
                   <div className="flex items-center justify-center w-full h-full text-gray-600">
-                    <p>ไม่พบเอกสาร</p>
+                    <div className="text-center">
+                      <p className="text-xl mb-2">ไม่พบเอกสาร</p>
+                      <p className="text-sm text-gray-400">กรุณาตรวจสอบไฟล์เอกสาร</p>
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
+                );
+              })()}
+            </div>
+          )}
 
-            {(currentContent.type === 'quiz' || currentContent.type === 'pre_test') && (
-              <div className="text-center py-12">
+          {(currentContent.type === 'quiz' || currentContent.type === 'pre_test') && (
+            <div className="flex-1 bg-white flex items-center justify-center">
+              <div className="text-center max-w-md">
                 <ClipboardDocumentCheckIcon className="h-16 w-16 text-blue-600 mx-auto mb-4" />
                 <h3 className="text-xl font-bold text-gray-900 mb-2">แบบทดสอบ</h3>
                 <p className="text-gray-600 mb-6">{currentContent.title}</p>
                 <Button
                   onClick={() => router.push(`/student/courses/${courseId}/quiz/${currentContent.id}`)}
+                  className="w-full"
                 >
                   เริ่มทำแบบทดสอบ
                 </Button>
               </div>
-            )}
+            </div>
+          )}
 
-            {currentContent.type === 'poll' && (
-              <div className="text-center py-12">
+          {currentContent.type === 'poll' && (
+            <div className="flex-1 bg-white flex items-center justify-center">
+              <div className="text-center max-w-md">
                 <ClipboardDocumentCheckIcon className="h-16 w-16 text-purple-600 mx-auto mb-4" />
                 <h3 className="text-xl font-bold text-gray-900 mb-2">แบบประเมิน</h3>
                 <p className="text-gray-600 mb-6">{currentContent.title}</p>
                 <Button
                   onClick={() => router.push(`/student/courses/${courseId}/poll/${currentContent.poll?.id || currentContent.id}`)}
+                  className="w-full"
                 >
                   เริ่มทำแบบประเมิน
                 </Button>
               </div>
-            )}
-          </Card>
+            </div>
+          )}
 
           {/* Navigation Buttons */}
-          <div className="max-w-6xl mx-auto mt-6 flex justify-between">
+          <div className="px-6 py-4 bg-white border-t border-gray-200 flex justify-between">
             <Button
               variant="outline"
               onClick={handlePrevContent}
