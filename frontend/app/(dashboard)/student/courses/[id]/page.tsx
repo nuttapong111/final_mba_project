@@ -82,7 +82,29 @@ export default function StudentCourseDetailPage() {
     );
   }
 
-  const lessons = (course.lessons || []).map((lesson: any) => ({
+  interface LessonContent {
+    id: string;
+    type: string;
+    title: string;
+    url?: string;
+    fileUrl?: string;
+    fileName?: string;
+    fileSize?: number;
+    duration?: number;
+    order: number;
+    quizSettings?: any;
+    poll?: any;
+  }
+
+  interface Lesson {
+    id: string;
+    title: string;
+    description?: string;
+    order: number;
+    contents: LessonContent[];
+  }
+
+  const lessons: Lesson[] = (course.lessons || []).map((lesson: any) => ({
     id: lesson.id,
     title: lesson.title,
     description: lesson.description,
@@ -106,8 +128,8 @@ export default function StudentCourseDetailPage() {
     let totalContents = 0;
     let completedCount = 0;
 
-    lessons.forEach((lesson) => {
-      lesson.contents.forEach((content) => {
+    lessons.forEach((lesson: Lesson) => {
+      lesson.contents.forEach((content: LessonContent) => {
         totalContents++;
         if (completedContents.has(content.id)) {
           completedCount++;
