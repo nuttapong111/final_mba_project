@@ -2,29 +2,34 @@ import { AuthUser } from '../middleware/auth';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
+import { uploadFileToS3, uploadMultipleFilesToS3, UploadResult } from './s3Service';
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || join(process.cwd(), 'uploads');
 const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
 const ALLOWED_DOCUMENT_TYPES = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
 
-// Ensure upload directory exists
+// Check if S3 is configured
+const isS3Configured = () => {
+  return !!(
+    process.env.AWS_ACCESS_KEY_ID &&
+    process.env.AWS_SECRET_ACCESS_KEY &&
+    process.env.AWS_S3_BUCKET_NAME
+  );
+};
+
+// Ensure upload directory exists (fallback for local storage)
 async function ensureUploadDir() {
   if (!existsSync(UPLOAD_DIR)) {
     await mkdir(UPLOAD_DIR, { recursive: true });
   }
 }
 
-export interface UploadResult {
-  url: string;
-  fileName: string;
-  fileSize: number;
-  mimeType: string;
-}
-
-export const uploadFile = async (
+// Local file upload (fallback)
+const uploadFileLocal = async (
   file: File,
-  type: 'video' | 'document',
+  type: 'video' | 'document' | 'image',
   user: AuthUser
 ): Promise<UploadResult> => {
   await ensureUploadDir();
@@ -35,9 +40,13 @@ export const uploadFile = async (
   }
 
   // Validate file type
-  const allowedTypes = type === 'video' ? ALLOWED_VIDEO_TYPES : ALLOWED_DOCUMENT_TYPES;
+  const allowedTypes = 
+    type === 'video' ? ALLOWED_VIDEO_TYPES :
+    type === 'document' ? ALLOWED_DOCUMENT_TYPES :
+    ALLOWED_IMAGE_TYPES;
+    
   if (!allowedTypes.includes(file.type)) {
-    throw new Error(`ประเภทไฟล์ไม่ถูกต้อง สำหรับ${type === 'video' ? 'วิดีโอ' : 'เอกสาร'}`);
+    throw new Error(`ประเภทไฟล์ไม่ถูกต้อง สำหรับ${type === 'video' ? 'วิดีโอ' : type === 'document' ? 'เอกสาร' : 'รูปภาพ'}`);
   }
 
   // Generate unique filename
@@ -48,8 +57,7 @@ export const uploadFile = async (
   const filePath = join(UPLOAD_DIR, fileName);
 
   // Convert File to Buffer and save
-  // Use streaming for large files to avoid memory issues
-  console.log(`[UPLOAD] Starting upload: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+  console.log(`[UPLOAD] Starting local upload: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
   const startTime = Date.now();
   
   const arrayBuffer = await file.arrayBuffer();
@@ -57,10 +65,9 @@ export const uploadFile = async (
   await writeFile(filePath, buffer);
   
   const duration = Date.now() - startTime;
-  console.log(`[UPLOAD] Upload completed: ${file.name} in ${(duration / 1000).toFixed(2)}s`);
+  console.log(`[UPLOAD] Local upload completed: ${file.name} in ${(duration / 1000).toFixed(2)}s`);
 
   // Generate URL (use full URL if BASE_URL is set, otherwise relative path)
-  // Try multiple environment variables for production deployment
   const baseUrl = process.env.BASE_URL || 
                   process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` :
                   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
@@ -68,25 +75,58 @@ export const uploadFile = async (
   const url = baseUrl ? `${baseUrl}/uploads/${fileName}` : `/uploads/${fileName}`;
   
   console.log(`[UPLOAD] Generated URL: ${url}`);
-  console.log(`[UPLOAD] BASE_URL: ${process.env.BASE_URL || 'not set'}`);
-  console.log(`[UPLOAD] RAILWAY_PUBLIC_DOMAIN: ${process.env.RAILWAY_PUBLIC_DOMAIN || 'not set'}`);
 
   return {
     url,
     fileName: file.name,
     fileSize: file.size,
     mimeType: file.type,
+    s3Key: '', // Not applicable for local storage
   };
 };
 
+export interface UploadResult {
+  url: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  s3Key?: string;
+}
+
+/**
+ * Upload file - uses S3 if configured, otherwise falls back to local storage
+ */
+export const uploadFile = async (
+  file: File,
+  type: 'video' | 'document' | 'image',
+  user: AuthUser
+): Promise<UploadResult> => {
+  if (isS3Configured()) {
+    console.log('[UPLOAD] Using S3 for file upload');
+    return await uploadFileToS3(file, type, user);
+  } else {
+    console.log('[UPLOAD] S3 not configured, using local storage');
+    return await uploadFileLocal(file, type, user);
+  }
+};
+
+/**
+ * Upload multiple files - uses S3 if configured, otherwise falls back to local storage
+ */
 export const uploadMultipleFiles = async (
   files: File[],
-  type: 'video' | 'document',
+  type: 'video' | 'document' | 'image',
   user: AuthUser
 ): Promise<UploadResult[]> => {
-  const results = await Promise.all(
-    files.map(file => uploadFile(file, type, user))
-  );
-  return results;
+  if (isS3Configured()) {
+    console.log('[UPLOAD] Using S3 for multiple file upload');
+    return await uploadMultipleFilesToS3(files, type, user);
+  } else {
+    console.log('[UPLOAD] S3 not configured, using local storage');
+    const results = await Promise.all(
+      files.map(file => uploadFileLocal(file, type, user))
+    );
+    return results;
+  }
 };
 

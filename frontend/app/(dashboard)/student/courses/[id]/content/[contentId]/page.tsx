@@ -273,20 +273,21 @@ export default function StudentContentPage() {
   }
 
   // Convert fileUrl to full URL if needed
+  // Supports both S3 URLs and local storage URLs
   const getFullUrl = (url?: string, fileUrl?: string) => {
     if (url) return url;
     if (fileUrl) {
-      // If already a full URL, return as is
+      // If already a full URL (S3 or external), return as is
       if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
         return fileUrl;
       }
-      // If relative path starting with /uploads/
+      // If relative path starting with /uploads/ (local storage)
       if (fileUrl.startsWith('/uploads/')) {
         const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
         const baseUrl = apiBaseUrl.replace('/api', '');
         return `${baseUrl}${fileUrl}`;
       }
-      // If just filename, assume it's in uploads
+      // If just filename, assume it's in uploads (local storage)
       if (!fileUrl.startsWith('/')) {
         const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
         const baseUrl = apiBaseUrl.replace('/api', '');
@@ -299,25 +300,32 @@ export default function StudentContentPage() {
   const contentUrl = getFullUrl(currentContent.url, currentContent.fileUrl);
 
   return (
-    <div className="flex h-full bg-white overflow-hidden w-full">
+    <div className="flex flex-col lg:flex-row h-full bg-white overflow-hidden w-full">
       {/* Main Content Area - Left Side (Full Width) */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm flex-shrink-0">
+        <div className="bg-white border-b border-gray-200 px-3 sm:px-6 py-3 sm:py-4 shadow-sm flex-shrink-0">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4 flex-1 min-w-0">
               <button
                 onClick={() => router.push(`/student/courses/${courseId}`)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
               >
                 <ChevronRightIcon className="h-5 w-5 text-gray-600 rotate-180" />
               </button>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">{currentContent.title}</h1>
-                <p className="text-sm text-gray-600 mt-1">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-base sm:text-xl font-bold text-gray-900 truncate">{currentContent.title}</h1>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1 truncate">
                   {currentLesson.title} • {getContentTypeLabel(currentContent.type)}
                 </p>
               </div>
+              {/* Mobile sidebar toggle */}
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+              >
+                <ChevronRightIcon className={`h-5 w-5 text-gray-600 transition-transform ${sidebarOpen ? 'rotate-180' : ''}`} />
+              </button>
             </div>
           </div>
         </div>
@@ -413,22 +421,22 @@ export default function StudentContentPage() {
                 
                 return (
                   <>
-                    <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white shadow-sm flex-shrink-0">
-                      <div className="flex items-center space-x-3">
-                        <DocumentTextIcon className="h-6 w-6 text-blue-600" />
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900">{currentContent.title}</h3>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-white shadow-sm flex-shrink-0 gap-3">
+                      <div className="flex items-center space-x-3 flex-1 min-w-0">
+                        <DocumentTextIcon className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">{currentContent.title}</h3>
                           {currentContent.fileName && (
-                            <p className="text-sm text-gray-500">{currentContent.fileName}</p>
+                            <p className="text-xs sm:text-sm text-gray-500 truncate">{currentContent.fileName}</p>
                           )}
                         </div>
                       </div>
                       <a
                         href={fullUrl}
                         download
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 shadow-md"
+                        className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 shadow-md text-sm whitespace-nowrap w-full sm:w-auto justify-center"
                       >
-                        <ArrowDownTrayIcon className="h-5 w-5" />
+                        <ArrowDownTrayIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                         <span>ดาวน์โหลด</span>
                       </a>
                     </div>
@@ -483,11 +491,12 @@ export default function StudentContentPage() {
         </div>
 
         {/* Navigation Buttons */}
-        <div className="px-6 py-4 bg-white border-t border-gray-200 flex justify-between shadow-sm flex-shrink-0">
+        <div className="px-3 sm:px-6 py-3 sm:py-4 bg-white border-t border-gray-200 flex justify-between gap-2 shadow-sm flex-shrink-0">
           <Button
             variant="outline"
             onClick={handlePrevContent}
             disabled={!currentLesson || currentLesson.contents.findIndex((c) => c.id === currentContent.id) === 0 && lessons.findIndex((l) => l.id === currentLesson.id) === 0}
+            className="text-xs sm:text-sm px-3 sm:px-4"
           >
             ← เนื้อหาก่อนหน้า
           </Button>
@@ -499,6 +508,7 @@ export default function StudentContentPage() {
               (currentLesson.contents.findIndex((c) => c.id === currentContent.id) === currentLesson.contents.length - 1 &&
                lessons.findIndex((l) => l.id === currentLesson.id) === lessons.length - 1)
             }
+            className="text-xs sm:text-sm px-3 sm:px-4"
           >
             เนื้อหาถัดไป →
           </Button>
@@ -508,8 +518,8 @@ export default function StudentContentPage() {
       {/* Sidebar - Right Side */}
       <div
         className={`${
-          sidebarOpen ? 'w-80' : 'w-0'
-        } transition-all duration-300 bg-white border-l border-gray-200 overflow-hidden flex flex-col shadow-lg flex-shrink-0`}
+          sidebarOpen ? 'w-full lg:w-80' : 'w-0'
+        } transition-all duration-300 bg-white border-l border-gray-200 overflow-hidden flex flex-col shadow-lg flex-shrink-0 fixed lg:relative inset-y-0 right-0 z-50 lg:z-auto`}
       >
         <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-purple-600">
           <div className="flex items-center justify-between">
@@ -607,14 +617,22 @@ export default function StudentContentPage() {
         </div>
       </div>
 
-      {/* Sidebar Toggle Button (when closed) */}
+      {/* Sidebar Toggle Button (when closed) - Desktop only */}
       {!sidebarOpen && (
         <button
           onClick={() => setSidebarOpen(true)}
-          className="fixed right-0 top-1/2 transform -translate-y-1/2 bg-blue-600 text-white p-2 rounded-l-lg shadow-lg hover:bg-blue-700 z-10"
+          className="hidden lg:block fixed right-0 top-1/2 transform -translate-y-1/2 bg-blue-600 text-white p-2 rounded-l-lg shadow-lg hover:bg-blue-700 z-10"
         >
           <ChevronRightIcon className="h-5 w-5" />
         </button>
+      )}
+      
+      {/* Mobile overlay when sidebar is open */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={() => setSidebarOpen(false)}
+        />
       )}
     </div>
   );

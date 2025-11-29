@@ -403,22 +403,22 @@ export default function StudentCourseDetailPage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="w-full px-6 py-4">
-          <div className="flex items-center space-x-4 mb-4">
+          <div className="flex items-center space-x-2 sm:space-x-4 mb-4">
             <button
               onClick={() => router.push('/student/courses')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
             >
               <ArrowLeftIcon className="h-5 w-5 text-gray-600" />
             </button>
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900">{course.title}</h1>
-              <div className="flex items-center space-x-4 mt-2">
-                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                  <UserIcon className="h-4 w-4" />
-                  <span>{course?.instructor?.name || 'อาจารย์'}</span>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">{course.title}</h1>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2">
+                <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-600">
+                  <UserIcon className="h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">{course?.instructor?.name || 'อาจารย์'}</span>
                 </div>
-                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                  <UsersIcon className="h-4 w-4" />
+                <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-600">
+                  <UsersIcon className="h-4 w-4 flex-shrink-0" />
                   <span>{typeof course?.students === 'number' ? course.students : (course?.enrolledStudents?.length || 0)} ผู้เรียน</span>
                 </div>
               </div>
@@ -466,11 +466,11 @@ export default function StudentCourseDetailPage() {
 
       {/* Tabs */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="w-full px-6">
-          <div className="flex space-x-1">
+        <div className="w-full px-3 sm:px-6">
+          <div className="flex space-x-1 overflow-x-auto">
             <button
               onClick={() => setActiveTab('lessons')}
-              className={`px-6 py-4 font-medium text-sm transition-colors relative ${
+              className={`px-4 sm:px-6 py-3 sm:py-4 font-medium text-xs sm:text-sm transition-colors relative whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'lessons'
                   ? 'text-purple-600'
                   : 'text-gray-600 hover:text-gray-900'
@@ -483,7 +483,7 @@ export default function StudentCourseDetailPage() {
             </button>
             <button
               onClick={() => setActiveTab('webboard')}
-              className={`px-6 py-4 font-medium text-sm transition-colors relative ${
+              className={`px-4 sm:px-6 py-3 sm:py-4 font-medium text-xs sm:text-sm transition-colors relative whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'webboard'
                   ? 'text-purple-600'
                   : 'text-gray-600 hover:text-gray-900'
@@ -499,17 +499,17 @@ export default function StudentCourseDetailPage() {
       </div>
 
       {/* Main Content */}
-      <div className="w-full px-6 py-6">
+      <div className="w-full px-3 sm:px-6 py-4 sm:py-6">
         {activeTab === 'lessons' ? (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Left Side - Lessons List */}
             <div className="lg:col-span-2 space-y-4">
               <Card className="shadow-lg border-0">
-                <div className="p-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-2">
+                <div className="p-4 sm:p-6">
+                  <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
                     บทเรียนและหลักสูตรของคุณ
                   </h2>
-                  <p className="text-sm text-gray-600 mb-6">
+                  <p className="text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6">
                     {lessons.length} บทเรียน - ความยาวทั้งหมด {duration.hours} ชั่วโมง {duration.minutes} นาที
                   </p>
 
@@ -604,8 +604,8 @@ export default function StudentCourseDetailPage() {
 
             {/* Right Side - Video Player */}
             <div className="lg:col-span-1">
-              <Card className="shadow-lg border-0 sticky top-6">
-                <div className="p-6">
+              <Card className="shadow-lg border-0 sticky top-4 sm:top-6">
+                <div className="p-4 sm:p-6">
                   {selectedVideo ? (
                     <>
                       <div className="mb-4">

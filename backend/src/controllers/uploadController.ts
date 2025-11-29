@@ -9,7 +9,7 @@ export const uploadFileController = async (c: Context) => {
     console.log('[UPLOAD] Receiving file upload request...');
     const formData = await c.req.formData();
     const file = formData.get('file') as File;
-    const type = formData.get('type') as 'video' | 'document';
+    const type = formData.get('type') as 'video' | 'document' | 'image';
 
     if (!file) {
       return c.json({ success: false, error: 'กรุณาเลือกไฟล์' }, 400);
@@ -38,13 +38,13 @@ export const uploadMultipleFilesController = async (c: Context) => {
     const user = c.get('user');
     const formData = await c.req.formData();
     const files = formData.getAll('files') as File[];
-    const type = formData.get('type') as 'video' | 'document';
+    const type = formData.get('type') as 'video' | 'document' | 'image';
 
     if (!files || files.length === 0) {
       return c.json({ success: false, error: 'กรุณาเลือกไฟล์' }, 400);
     }
 
-    if (!type || !['video', 'document'].includes(type)) {
+    if (!type || !['video', 'document', 'image'].includes(type)) {
       return c.json({ success: false, error: 'ประเภทไฟล์ไม่ถูกต้อง' }, 400);
     }
 

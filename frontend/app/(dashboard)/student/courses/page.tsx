@@ -83,46 +83,46 @@ export default function StudentCoursesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">หลักสูตรของฉัน</h1>
-        <p className="text-gray-600 mt-1">หลักสูตรที่คุณลงทะเบียนเรียน</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">หลักสูตรของฉัน</h1>
+        <p className="text-sm sm:text-base text-gray-600 mt-1">หลักสูตรที่คุณลงทะเบียนเรียน</p>
       </div>
 
       {enrolledCourses.length === 0 ? (
         <Card>
-          <div className="text-center py-12">
-            <BookOpenIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">คุณยังไม่ได้ลงทะเบียนเรียนหลักสูตรใด</p>
+          <div className="text-center py-8 sm:py-12">
+            <BookOpenIcon className="h-12 w-12 sm:h-16 sm:w-16 text-gray-400 mx-auto mb-4" />
+            <p className="text-sm sm:text-base text-gray-600">คุณยังไม่ได้ลงทะเบียนเรียนหลักสูตรใด</p>
           </div>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {enrolledCourses.map((course) => {
           const progress = getCourseProgress(course.id);
           const completed = isCourseCompleted(course.id);
           
           return (
           <Card key={course.id} hover>
-            <div className="flex items-start space-x-4">
+            <div className="flex flex-col sm:flex-row items-start space-y-4 sm:space-y-0 sm:space-x-4">
               <img
                 src={course.thumbnail || 'https://via.placeholder.com/120'}
                 alt={course.title}
-                className="w-32 h-32 rounded-lg object-cover"
+                className="w-full sm:w-32 h-48 sm:h-32 rounded-lg object-cover"
               />
-              <div className="flex-1">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xl font-bold text-gray-900">{course.title}</h3>
+              <div className="flex-1 w-full">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-2">
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 flex-1">{course.title}</h3>
                     {completed && (
-                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium flex items-center">
+                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium flex items-center whitespace-nowrap">
                         <CheckCircleIcon className="h-3 w-3 mr-1" />
                         เรียนจบแล้ว
                       </span>
                     )}
                   </div>
-                <p className="text-gray-600 text-sm mb-4">{course.description}</p>
+                <p className="text-gray-600 text-sm mb-4 line-clamp-2">{course.description}</p>
                   <div className="space-y-2 mb-4">
-                    <div className="flex items-center justify-between text-sm text-gray-600">
+                    <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600">
                   <span className="flex items-center">
                     <ClockIcon className="h-4 w-4 mr-1" />
                         ความคืบหน้า
@@ -138,7 +138,7 @@ export default function StudentCoursesPage() {
                 </div>
                   <Button
                     variant="primary"
-                    className="w-full"
+                    className="w-full text-sm sm:text-base"
                     onClick={() => router.push(`/student/courses/${course.id}`)}
                   >
                     {completed ? 'ดูใบประกาศนียบัตร' : 'เรียนต่อ'}
