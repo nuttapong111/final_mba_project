@@ -102,19 +102,24 @@ export const uploadFile = async (
   type: 'video' | 'document' | 'image',
   user: AuthUser
 ): Promise<UploadResult> => {
-  if (isS3Configured()) {
-    console.log('[UPLOAD] Using S3 for file upload');
-    const result: S3UploadResult = await uploadFileToS3(file, type, user);
-    return {
-      url: result.url,
-      fileName: result.fileName,
-      fileSize: result.fileSize,
-      mimeType: result.mimeType,
-      s3Key: result.s3Key,
-    };
-  } else {
-    console.log('[UPLOAD] S3 not configured, using local storage');
-    return await uploadFileLocal(file, type, user);
+  try {
+    if (isS3Configured()) {
+      console.log('[UPLOAD] Using S3 for file upload');
+      const result: S3UploadResult = await uploadFileToS3(file, type, user);
+      return {
+        url: result.url,
+        fileName: result.fileName,
+        fileSize: result.fileSize,
+        mimeType: result.mimeType,
+        s3Key: result.s3Key,
+      };
+    } else {
+      console.log('[UPLOAD] S3 not configured, using local storage');
+      return await uploadFileLocal(file, type, user);
+    }
+  } catch (error: any) {
+    console.error('[UPLOAD] Upload service error:', error);
+    throw new Error(error.message || 'ไม่สามารถอัพโหลดไฟล์ได้');
   }
 };
 
