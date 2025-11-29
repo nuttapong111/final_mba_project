@@ -1,152 +1,181 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { contentProgressApi, VideoProgressData } from '@/lib/api/contentProgress';
 
 interface VideoPlayerProps {
-  isOpen: boolean;
-  onClose: () => void;
+  src: string;
   title: string;
-  videoUrl?: string;
-  fileUrl?: string;
+  contentId: string;
+  courseId: string;
   onComplete?: () => void;
+  className?: string;
 }
 
 export default function VideoPlayer({
-  isOpen,
-  onClose,
+  src,
   title,
-  videoUrl,
-  fileUrl,
+  contentId,
+  courseId,
   onComplete,
+  className = 'w-full h-full',
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isYouTube, setIsYouTube] = useState(false);
-  const [isVimeo, setIsVimeo] = useState(false);
-  const [embedUrl, setEmbedUrl] = useState('');
-  const [actualVideoUrl, setActualVideoUrl] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [savedPosition, setSavedPosition] = useState<number | null>(null);
+  const progressUpdateInterval = useRef<NodeJS.Timeout | null>(null);
+  const lastUpdateTime = useRef<number>(0);
 
+  // Load saved progress
   useEffect(() => {
-    if (!isOpen) return;
-
-    // ตรวจสอบว่าเป็น YouTube หรือ Vimeo
-    if (videoUrl) {
-      const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-      const vimeoRegex = /(?:vimeo\.com\/)(\d+)/;
-      
-      const youtubeMatch = videoUrl.match(youtubeRegex);
-      const vimeoMatch = videoUrl.match(vimeoRegex);
-
-      if (youtubeMatch) {
-        setIsYouTube(true);
-        setIsVimeo(false);
-        const videoId = youtubeMatch[1];
-        setEmbedUrl(`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`);
-        setActualVideoUrl('');
-      } else if (vimeoMatch) {
-        setIsYouTube(false);
-        setIsVimeo(true);
-        const videoId = vimeoMatch[1];
-        setEmbedUrl(`https://player.vimeo.com/video/${videoId}?autoplay=1`);
-        setActualVideoUrl('');
-      } else {
-        setIsYouTube(false);
-        setIsVimeo(false);
-        setEmbedUrl('');
-        setActualVideoUrl(videoUrl);
+    const loadProgress = async () => {
+      try {
+        const response = await contentProgressApi.getContentProgress(contentId);
+        if (response.success && response.data?.lastPosition) {
+          setSavedPosition(response.data.lastPosition);
+        }
+      } catch (error) {
+        console.error('Error loading video progress:', error);
       }
-    } else if (fileUrl) {
-      // ไฟล์วิดีโอที่อัพโหลด
-      setIsYouTube(false);
-      setIsVimeo(false);
-      setEmbedUrl('');
-      
-      // แปลง fileUrl ให้เป็น full URL ถ้าเป็น relative path
-      let fullUrl = fileUrl;
-      if (fileUrl.startsWith('/uploads/')) {
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-        const baseUrl = apiBaseUrl.replace('/api', '');
-        fullUrl = `${baseUrl}${fileUrl}`;
-      }
-      setActualVideoUrl(fullUrl);
-    }
-  }, [isOpen, videoUrl, fileUrl]);
+    };
 
-  const handleVideoEnd = () => {
-    if (onComplete) {
-      onComplete();
+    loadProgress();
+  }, [contentId]);
+
+  // Set video position when loaded
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleLoadedMetadata = () => {
+      setIsLoading(false);
+      if (savedPosition !== null && savedPosition > 0) {
+        video.currentTime = savedPosition;
+      }
+    };
+
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+
+    return () => {
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+    };
+  }, [savedPosition]);
+
+  // Update progress periodically
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const updateProgress = async () => {
+      const currentTime = video.currentTime;
+      const duration = video.duration;
+
+      if (duration > 0 && currentTime > 0) {
+        // Only update if at least 5 seconds have passed since last update
+        const now = Date.now();
+        if (now - lastUpdateTime.current < 5000) return;
+        lastUpdateTime.current = now;
+
+        try {
+          const progressData: VideoProgressData = {
+            contentId,
+            courseId,
+            currentTime,
+            duration,
+            completed: false,
+          };
+
+          await contentProgressApi.updateVideoProgress(progressData);
+        } catch (error) {
+          console.error('Error updating video progress:', error);
+        }
+      }
+    };
+
+    // Update every 5 seconds
+    progressUpdateInterval.current = setInterval(updateProgress, 5000);
+
+    return () => {
+      if (progressUpdateInterval.current) {
+        clearInterval(progressUpdateInterval.current);
+      }
+    };
+  }, [contentId, courseId]);
+
+  // Handle video end
+  const handleEnded = async () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    try {
+      await contentProgressApi.updateVideoProgress({
+        contentId,
+        courseId,
+        currentTime: video.duration,
+        duration: video.duration,
+        completed: true,
+      });
+
+      if (onComplete) {
+        onComplete();
+      }
+    } catch (error) {
+      console.error('Error marking video as completed:', error);
     }
   };
 
-  const handleClose = () => {
-    if (videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.currentTime = 0;
-    }
-    onClose();
-  };
+  // Update progress on timeupdate (for more frequent updates)
+  const handleTimeUpdate = async () => {
+    const video = videoRef.current;
+    if (!video) return;
 
-  if (!isOpen) return null;
+    const currentTime = video.currentTime;
+    const duration = video.duration;
+
+    // Update every 10 seconds of playback
+    if (duration > 0 && Math.floor(currentTime) % 10 === 0) {
+      const now = Date.now();
+      if (now - lastUpdateTime.current < 10000) return;
+      lastUpdateTime.current = now;
+
+      try {
+        await contentProgressApi.updateVideoProgress({
+          contentId,
+          courseId,
+          currentTime,
+          duration,
+          completed: false,
+        });
+      } catch (error) {
+        console.error('Error updating video progress:', error);
+      }
+    }
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
-      <div className="relative w-full max-w-6xl mx-4 bg-white rounded-lg shadow-xl">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">{title}</h2>
-          <button
-            onClick={handleClose}
-            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            <XMarkIcon className="h-6 w-6" />
-          </button>
-        </div>
-
-        {/* Video Player */}
-        <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-          <div className="absolute inset-0 bg-black">
-            {isYouTube || isVimeo ? (
-              <iframe
-                src={embedUrl}
-                className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                title={title}
-              />
-            ) : actualVideoUrl ? (
-              <video
-                ref={videoRef}
-                src={actualVideoUrl}
-                controls
-                className="w-full h-full"
-                onEnded={handleVideoEnd}
-                autoPlay
-              >
-                <source src={actualVideoUrl} type="video/mp4" />
-                <source src={actualVideoUrl} type="video/webm" />
-                <source src={actualVideoUrl} type="video/ogg" />
-                เบราว์เซอร์ของคุณไม่รองรับการเล่นวิดีโอ
-              </video>
-            ) : (
-              <div className="flex items-center justify-center w-full h-full text-white">
-                <p>ไม่พบวิดีโอ</p>
-              </div>
-            )}
+    <div className={className}>
+      <video
+        ref={videoRef}
+        src={src}
+        controls
+        className="w-full h-full"
+        onEnded={handleEnded}
+        onTimeUpdate={handleTimeUpdate}
+        preload="metadata"
+      >
+        <source src={src} type="video/mp4" />
+        <source src={src} type="video/webm" />
+        <source src={src} type="video/ogg" />
+        เบราว์เซอร์ของคุณไม่รองรับการเล่นวิดีโอ
+      </video>
+      {isLoading && savedPosition !== null && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+            <p className="text-sm">กำลังโหลดวิดีโอ...</p>
           </div>
         </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-gray-200">
-          <button
-            onClick={handleClose}
-            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            ปิด
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
-
-

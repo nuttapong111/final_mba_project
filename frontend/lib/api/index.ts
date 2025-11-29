@@ -9,5 +9,6 @@ export * from './questionBanks';
 export * from './upload';
 export * from './exams';
 export * from './webboard';
+export * from './contentProgress';
 export { default as apiClient } from './client';
 

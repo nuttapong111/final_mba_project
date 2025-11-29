@@ -18,6 +18,7 @@ import questionBankRoutes from './routes/questionBanks';
 import uploadRoutes from './routes/upload';
 import examRoutes from './routes/exams';
 import quizRoutes from './routes/quiz';
+import contentProgressRoutes from './routes/contentProgress';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
@@ -102,6 +103,7 @@ app.route('/api/question-banks', questionBankRoutes);
 app.route('/api/upload', uploadRoutes);
 app.route('/api/exams', examRoutes);
 app.route('/api/quiz', quizRoutes);
+app.route('/api/content-progress', contentProgressRoutes);
 
 // 404
 app.notFound((c) => {

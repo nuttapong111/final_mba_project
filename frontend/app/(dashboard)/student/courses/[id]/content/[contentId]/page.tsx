@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/authStore';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { coursesApi } from '@/lib/api';
+import VideoPlayer from '@/components/VideoPlayer';
 import {
   PlayIcon,
   DocumentTextIcon,
@@ -383,20 +384,16 @@ export default function StudentContentPage() {
                   );
                 }
                 
-                // Direct video file
+                // Direct video file - use VideoPlayer component for progress tracking
                 return (
-                  <video
+                  <VideoPlayer
                     src={fullUrl}
-                    controls
+                    title={currentContent.title}
+                    contentId={currentContent.id}
+                    courseId={courseId}
+                    onComplete={handleContentComplete}
                     className="w-full h-full"
-                    onEnded={handleContentComplete}
-                    autoPlay
-                  >
-                    <source src={fullUrl} type="video/mp4" />
-                    <source src={fullUrl} type="video/webm" />
-                    <source src={fullUrl} type="video/ogg" />
-                    เบราว์เซอร์ของคุณไม่รองรับการเล่นวิดีโอ
-                  </video>
+                  />
                 );
               })()}
             </div>
