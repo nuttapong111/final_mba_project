@@ -135,6 +135,31 @@ export const uploadFileToS3 = async (
   console.log(`[S3] Starting upload: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) to s3://${BUCKET_NAME}/${s3Key}`);
   console.log(`[S3] Using MIME type: ${mimeType}`);
   console.log(`[S3] Region: ${process.env.AWS_REGION || 'ap-southeast-1'}`);
+  
+  // Sanitize filename for S3 metadata (S3 metadata headers must be ASCII only)
+  // Use base64 encoding for non-ASCII characters
+  const sanitizeMetadataValue = (value: string): string => {
+    // Check if value contains non-ASCII characters
+    const hasNonAscii = /[^\x00-\x7F]/.test(value);
+    if (hasNonAscii) {
+      // Encode to base64 for non-ASCII content
+      return Buffer.from(value, 'utf-8').toString('base64');
+    }
+    // Remove or replace invalid characters for HTTP headers
+    return value.replace(/[\r\n\t]/g, ' ').trim();
+  };
+  
+  const sanitizedFileName = sanitizeMetadataValue(file.name);
+  const metadata = {
+    originalName: sanitizedFileName,
+    originalNameEncoded: Buffer.from(file.name, 'utf-8').toString('base64'), // Always store base64 encoded version
+    uploadedBy: user.id,
+    uploadedAt: new Date().toISOString(),
+  };
+  
+  console.log(`[S3] Original filename: ${file.name}`);
+  console.log(`[S3] Sanitized metadata filename: ${sanitizedFileName}`);
+  
   const startTime = Date.now();
 
   try {
@@ -147,11 +172,7 @@ export const uploadFileToS3 = async (
           Key: s3Key,
           Body: buffer,
           ContentType: mimeType,
-          Metadata: {
-            originalName: file.name,
-            uploadedBy: user.id,
-            uploadedAt: new Date().toISOString(),
-          },
+          Metadata: metadata,
         },
         partSize: 5 * 1024 * 1024, // 5MB per part
       });
@@ -164,11 +185,7 @@ export const uploadFileToS3 = async (
         Key: s3Key,
         Body: buffer,
         ContentType: mimeType,
-        Metadata: {
-          originalName: file.name,
-          uploadedBy: user.id,
-          uploadedAt: new Date().toISOString(),
-        },
+        Metadata: metadata,
       });
 
       await s3Client.send(command);
