@@ -134,7 +134,7 @@ export const uploadFileToS3 = async (
 
   console.log(`[S3] Starting upload: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) to s3://${BUCKET_NAME}/${s3Key}`);
   console.log(`[S3] Using MIME type: ${mimeType}`);
-  console.log(`[S3] Region: ${process.env.AWS_REGION || 'ap-southeast-1'}`);
+    console.log(`[S3] Region: ${process.env.AWS_REGION || 'ap-southeast-2'}`);
   
   // Sanitize filename for S3 metadata (S3 metadata headers must be ASCII only)
   // Use base64 encoding for non-ASCII characters
