@@ -194,10 +194,29 @@ export const uploadFileToS3 = async (
     const duration = Date.now() - startTime;
     console.log(`[S3] ✅ Upload completed: ${file.name} in ${(duration / 1000).toFixed(2)}s`);
 
-    // Generate public URL or presigned URL
-    const url = process.env.AWS_S3_PUBLIC_URL 
-      ? `${process.env.AWS_S3_PUBLIC_URL}/${s3Key}`
-      : `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'ap-southeast-1'}.amazonaws.com/${s3Key}`;
+    // Generate public URL or use backend proxy for private buckets
+    // If AWS_S3_PUBLIC_URL is set, use it directly
+    // Otherwise, try direct S3 URL first, fallback to backend proxy for private buckets
+    let url: string;
+    if (process.env.AWS_S3_PUBLIC_URL) {
+      // Public S3 bucket with custom domain
+      url = `${process.env.AWS_S3_PUBLIC_URL}/${s3Key}`;
+    } else {
+      // Try direct S3 URL (works if bucket is public)
+      // If bucket is private, frontend will get 403 and can fallback to proxy
+      const region = process.env.AWS_REGION || 'ap-southeast-2';
+      const directS3Url = `https://${BUCKET_NAME}.s3.${region}.amazonaws.com/${s3Key}`;
+      
+      // Use backend proxy for more reliable access (handles private buckets)
+      const baseUrl = process.env.BASE_URL || 
+                      process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` :
+                      process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
+                      'http://localhost:3001';
+      url = `${baseUrl}/api/files/s3/${s3Key}`;
+      
+      console.log(`[S3] Direct S3 URL: ${directS3Url}`);
+      console.log(`[S3] Proxy URL: ${url}`);
+    }
 
     console.log(`[S3] ✅ Generated URL: ${url}`);
 

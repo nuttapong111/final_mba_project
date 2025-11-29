@@ -276,18 +276,33 @@ export default function StudentContentPage() {
   // Convert fileUrl to full URL if needed
   // Supports both S3 URLs and local storage URLs
   const getFullUrl = (url?: string, fileUrl?: string) => {
-    if (url) return url;
+    if (url) {
+      // If url is already a full URL, return as is
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        return url;
+      }
+    }
+    
     if (fileUrl) {
       // If already a full URL (S3 or external), return as is
       if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
         return fileUrl;
       }
+      
+      // Check if it's an S3 proxy URL (backend endpoint for S3 files)
+      if (fileUrl.startsWith('/api/files/s3/')) {
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+        const baseUrl = apiBaseUrl.replace('/api', '');
+        return `${baseUrl}${fileUrl}`;
+      }
+      
       // If relative path starting with /uploads/ (local storage)
       if (fileUrl.startsWith('/uploads/')) {
         const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
         const baseUrl = apiBaseUrl.replace('/api', '');
         return `${baseUrl}${fileUrl}`;
       }
+      
       // If just filename, assume it's in uploads (local storage)
       if (!fileUrl.startsWith('/')) {
         const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
@@ -295,7 +310,8 @@ export default function StudentContentPage() {
         return `${baseUrl}/uploads/${fileUrl}`;
       }
     }
-    return fileUrl;
+    
+    return url || fileUrl;
   };
 
   const contentUrl = getFullUrl(currentContent.url, currentContent.fileUrl);
