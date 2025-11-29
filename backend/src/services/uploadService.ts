@@ -44,9 +44,34 @@ const uploadFileLocal = async (
     type === 'video' ? ALLOWED_VIDEO_TYPES :
     type === 'document' ? ALLOWED_DOCUMENT_TYPES :
     ALLOWED_IMAGE_TYPES;
+  
+  // Log file type for debugging
+  console.log(`[UPLOAD] File validation - type: ${type}, file.type: ${file.type}, file.name: ${file.name}`);
+  console.log(`[UPLOAD] Allowed types for ${type}:`, allowedTypes);
+  
+  // Determine correct MIME type (handle cases where browser sends wrong/empty MIME type)
+  let mimeType = file.type;
+  if (!mimeType || mimeType === '') {
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    const mimeTypeMap: Record<string, string> = {
+      'pdf': 'application/pdf',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    };
+    if (extension && mimeTypeMap[extension]) {
+      mimeType = mimeTypeMap[extension];
+      console.log(`[UPLOAD] Detected MIME type from extension: ${mimeType}`);
+    }
+  }
     
-  if (!allowedTypes.includes(file.type)) {
-    throw new Error(`ประเภทไฟล์ไม่ถูกต้อง สำหรับ${type === 'video' ? 'วิดีโอ' : type === 'document' ? 'เอกสาร' : 'รูปภาพ'}`);
+  if (!allowedTypes.includes(mimeType)) {
+    // Check if it's a PDF file with wrong MIME type (some browsers send empty or wrong MIME type)
+    if (type === 'document' && file.name.toLowerCase().endsWith('.pdf')) {
+      console.log(`[UPLOAD] PDF file detected but MIME type is "${file.type}", using application/pdf`);
+      mimeType = 'application/pdf';
+    } else {
+      throw new Error(`ประเภทไฟล์ไม่ถูกต้อง สำหรับ${type === 'video' ? 'วิดีโอ' : type === 'document' ? 'เอกสาร' : 'รูปภาพ'}. ไฟล์: ${file.name}, MIME type: ${file.type || 'ไม่ระบุ'}`);
+    }
   }
 
   // Generate unique filename
@@ -80,7 +105,7 @@ const uploadFileLocal = async (
     url,
     fileName: file.name,
     fileSize: file.size,
-    mimeType: file.type,
+    mimeType: mimeType || 'application/pdf', // Use detected MIME type or default to PDF
     s3Key: '', // Not applicable for local storage
   };
 };

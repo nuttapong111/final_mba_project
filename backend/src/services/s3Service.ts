@@ -70,9 +70,49 @@ export const uploadFileToS3 = async (
     type === 'video' ? ALLOWED_VIDEO_TYPES :
     type === 'document' ? ALLOWED_DOCUMENT_TYPES :
     ALLOWED_IMAGE_TYPES;
+  
+  // Log file type for debugging
+  console.log(`[S3] File validation - type: ${type}, file.type: ${file.type}, file.name: ${file.name}`);
+  console.log(`[S3] Allowed types for ${type}:`, allowedTypes);
+  
+  // Determine correct MIME type (handle cases where browser sends wrong/empty MIME type)
+  let mimeType = file.type;
+  if (!mimeType || mimeType === '') {
+    // Try to determine MIME type from file extension
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    const mimeTypeMap: Record<string, string> = {
+      'pdf': 'application/pdf',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'xls': 'application/vnd.ms-excel',
+      'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'ppt': 'application/vnd.ms-powerpoint',
+      'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'mp4': 'video/mp4',
+      'webm': 'video/webm',
+      'ogg': 'video/ogg',
+      'mov': 'video/quicktime',
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'webp': 'image/webp',
+      'svg': 'image/svg+xml',
+    };
+    if (extension && mimeTypeMap[extension]) {
+      mimeType = mimeTypeMap[extension];
+      console.log(`[S3] Detected MIME type from extension: ${mimeType}`);
+    }
+  }
     
-  if (!allowedTypes.includes(file.type)) {
-    throw new Error(`ประเภทไฟล์ไม่ถูกต้อง สำหรับ${type === 'video' ? 'วิดีโอ' : type === 'document' ? 'เอกสาร' : 'รูปภาพ'}`);
+  if (!allowedTypes.includes(mimeType)) {
+    // Check if it's a PDF file with wrong MIME type (some browsers send empty or wrong MIME type)
+    if (type === 'document' && file.name.toLowerCase().endsWith('.pdf')) {
+      console.log(`[S3] PDF file detected but MIME type is "${file.type}", using application/pdf`);
+      mimeType = 'application/pdf';
+    } else {
+      throw new Error(`ประเภทไฟล์ไม่ถูกต้อง สำหรับ${type === 'video' ? 'วิดีโอ' : type === 'document' ? 'เอกสาร' : 'รูปภาพ'}. ไฟล์: ${file.name}, MIME type: ${file.type || 'ไม่ระบุ'}`);
+    }
   }
 
   if (!BUCKET_NAME) {
@@ -84,6 +124,7 @@ export const uploadFileToS3 = async (
   const buffer = Buffer.from(arrayBuffer);
 
   console.log(`[S3] Starting upload: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) to s3://${BUCKET_NAME}/${s3Key}`);
+  console.log(`[S3] Using MIME type: ${mimeType}`);
   const startTime = Date.now();
 
   try {
@@ -95,7 +136,7 @@ export const uploadFileToS3 = async (
           Bucket: BUCKET_NAME,
           Key: s3Key,
           Body: buffer,
-          ContentType: file.type,
+          ContentType: mimeType,
           Metadata: {
             originalName: file.name,
             uploadedBy: user.id,
@@ -137,7 +178,7 @@ export const uploadFileToS3 = async (
       url,
       fileName: file.name,
       fileSize: file.size,
-      mimeType: file.type,
+      mimeType: mimeType,
       s3Key,
     };
   } catch (error: any) {
