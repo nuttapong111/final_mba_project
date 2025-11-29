@@ -275,7 +275,7 @@ export default function StudentContentPage() {
 
   // Convert fileUrl to full URL if needed
   // Supports both S3 URLs and local storage URLs
-  const getFullUrl = (url?: string, fileUrl?: string) => {
+  const getFullUrl = async (url?: string, fileUrl?: string, contentId?: string) => {
     if (url) {
       // If url is already a full URL, return as is
       if (url.startsWith('http://') || url.startsWith('https://')) {
@@ -296,8 +296,31 @@ export default function StudentContentPage() {
         return `${baseUrl}${fileUrl}`;
       }
       
-      // If relative path starting with /uploads/ (local storage)
+      // If relative path starting with /uploads/ (might be in S3)
       if (fileUrl.startsWith('/uploads/')) {
+        // Try to find file in S3 using contentId
+        if (contentId) {
+          try {
+            const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+            const response = await fetch(`${apiBaseUrl}/files/find-by-content/${contentId}`, {
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+              },
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              if (data.success && data.url) {
+                console.log(`[FILES] Found file in S3 via contentId: ${data.url}`);
+                return data.url;
+              }
+            }
+          } catch (error) {
+            console.error('[FILES] Error finding file in S3:', error);
+          }
+        }
+        
+        // Fallback to local storage URL
         const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
         const baseUrl = apiBaseUrl.replace('/api', '');
         return `${baseUrl}${fileUrl}`;
@@ -314,7 +337,17 @@ export default function StudentContentPage() {
     return url || fileUrl;
   };
 
-  const contentUrl = getFullUrl(currentContent.url, currentContent.fileUrl);
+  const [contentUrl, setContentUrl] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const loadContentUrl = async () => {
+      const url = await getFullUrl(currentContent.url, currentContent.fileUrl, currentContent.id);
+      setContentUrl(url);
+    };
+    if (currentContent) {
+      loadContentUrl();
+    }
+  }, [currentContent]);
 
   return (
     <div className="flex flex-col lg:flex-row h-full bg-white overflow-hidden w-full">
@@ -418,7 +451,7 @@ export default function StudentContentPage() {
           {currentContent.type === 'document' && (
             <div className="w-full h-full bg-white flex flex-col">
               {(() => {
-                const fullUrl = getFullUrl(currentContent.url, currentContent.fileUrl);
+                const fullUrl = contentUrl;
                 
                 if (!fullUrl) {
                   return (

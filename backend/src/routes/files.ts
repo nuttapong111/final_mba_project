@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { getPresignedUrl } from '../services/s3Service';
 import { authMiddleware } from '../middleware/auth';
+import prisma from '../config/database';
 
 const files = new Hono();
 
@@ -28,6 +29,81 @@ files.get('/s3/*', authMiddleware, async (c) => {
   } catch (error: any) {
     console.error('[FILES] Error generating presigned URL:', error);
     return c.json({ success: false, error: error.message || 'ไม่สามารถเข้าถึงไฟล์ได้' }, 500);
+  }
+});
+
+// Find file in S3 by contentId (for legacy files with /uploads/ URL)
+files.get('/find-by-content/:contentId', authMiddleware, async (c) => {
+  try {
+    const user = c.get('user');
+    if (!user || !user.id) {
+      return c.json({ success: false, error: 'Unauthorized' }, 401);
+    }
+
+    const contentId = c.req.param('contentId');
+    
+    if (!contentId) {
+      return c.json({ success: false, error: 'Content ID is required' }, 400);
+    }
+
+    console.log(`[FILES] Finding file for content: ${contentId}`);
+    
+    // Find content in database
+    const content = await prisma.lessonContent.findUnique({
+      where: { id: contentId },
+      select: {
+        id: true,
+        fileUrl: true,
+        fileName: true,
+        type: true,
+      },
+    });
+
+    if (!content || !content.fileUrl) {
+      return c.json({ success: false, error: 'Content or file URL not found' }, 404);
+    }
+
+    console.log(`[FILES] Content fileUrl: ${content.fileUrl}`);
+    
+    // If fileUrl is already an S3 URL or proxy URL, return it
+    if (content.fileUrl.startsWith('http://') || content.fileUrl.startsWith('https://')) {
+      return c.json({ success: true, url: content.fileUrl });
+    }
+    
+    // If fileUrl is /uploads/... try to find in S3
+    if (content.fileUrl.startsWith('/uploads/')) {
+      const fileName = content.fileUrl.replace('/uploads/', '');
+      
+      // Try to construct S3 key from filename pattern
+      const fileNameMatch = fileName.match(/^(document|video|image)_(\d+)_(.+)\.(.+)$/);
+      if (fileNameMatch) {
+        const [, type, timestamp] = fileNameMatch;
+        const date = new Date(parseInt(timestamp));
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const folder = type === 'video' ? 'videos' : type === 'document' ? 'documents' : 'images';
+        const likelyS3Key = `uploads/${folder}/${year}/${month}/${fileName}`;
+        
+        console.log(`[FILES] Attempting S3 key: ${likelyS3Key}`);
+        
+        try {
+          const presignedUrl = await getPresignedUrl(likelyS3Key, 3600);
+          console.log(`[FILES] Found file in S3, returning presigned URL`);
+          return c.json({ success: true, url: presignedUrl });
+        } catch (s3Error: any) {
+          console.log(`[FILES] File not found in S3 at ${likelyS3Key}: ${s3Error.message}`);
+          return c.json({ 
+            success: false, 
+            error: 'File not found in S3. Please contact administrator to update the file URL.' 
+          }, 404);
+        }
+      }
+    }
+    
+    return c.json({ success: false, error: 'Unable to determine file location' }, 404);
+  } catch (error: any) {
+    console.error('[FILES] Error finding file:', error);
+    return c.json({ success: false, error: error.message || 'ไม่สามารถค้นหาไฟล์ได้' }, 500);
   }
 });
 
