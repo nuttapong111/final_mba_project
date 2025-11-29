@@ -1,6 +1,5 @@
 import { Hono } from 'hono';
-import { authMiddleware } from '../middleware/auth';
-import { roleMiddleware } from '../middleware/role';
+import { authMiddleware, roleMiddleware } from '../middleware/auth';
 import {
   getContentProgressController,
   updateVideoProgressController,

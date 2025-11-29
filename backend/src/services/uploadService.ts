@@ -2,7 +2,7 @@ import { AuthUser } from '../middleware/auth';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
-import { uploadFileToS3, uploadMultipleFilesToS3, UploadResult } from './s3Service';
+import { uploadFileToS3, uploadMultipleFilesToS3, UploadResult as S3UploadResult } from './s3Service';
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || join(process.cwd(), 'uploads');
 const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB
@@ -85,6 +85,7 @@ const uploadFileLocal = async (
   };
 };
 
+// Export UploadResult interface (compatible with S3 and local storage)
 export interface UploadResult {
   url: string;
   fileName: string;
@@ -103,7 +104,14 @@ export const uploadFile = async (
 ): Promise<UploadResult> => {
   if (isS3Configured()) {
     console.log('[UPLOAD] Using S3 for file upload');
-    return await uploadFileToS3(file, type, user);
+    const result: S3UploadResult = await uploadFileToS3(file, type, user);
+    return {
+      url: result.url,
+      fileName: result.fileName,
+      fileSize: result.fileSize,
+      mimeType: result.mimeType,
+      s3Key: result.s3Key,
+    };
   } else {
     console.log('[UPLOAD] S3 not configured, using local storage');
     return await uploadFileLocal(file, type, user);
@@ -120,7 +128,14 @@ export const uploadMultipleFiles = async (
 ): Promise<UploadResult[]> => {
   if (isS3Configured()) {
     console.log('[UPLOAD] Using S3 for multiple file upload');
-    return await uploadMultipleFilesToS3(files, type, user);
+    const results: S3UploadResult[] = await uploadMultipleFilesToS3(files, type, user);
+    return results.map(result => ({
+      url: result.url,
+      fileName: result.fileName,
+      fileSize: result.fileSize,
+      mimeType: result.mimeType,
+      s3Key: result.s3Key,
+    }));
   } else {
     console.log('[UPLOAD] S3 not configured, using local storage');
     const results = await Promise.all(
