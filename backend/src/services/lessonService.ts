@@ -130,11 +130,7 @@ export const saveCourseContent = async (
                     },
                   }
                 : undefined,
-              poll: contentData.pollId
-                ? {
-                    connect: { id: contentData.pollId },
-                  }
-                : undefined,
+              poll: pollConnection,
               };
               
               console.log(`[DEBUG] Content to save (final):`, {
