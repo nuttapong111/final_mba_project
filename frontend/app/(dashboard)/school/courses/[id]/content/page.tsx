@@ -745,6 +745,8 @@ export default function CourseContentPage() {
           await new Promise(resolve => setTimeout(resolve, 100));
         } catch (error: any) {
           console.error('[DEBUG] Upload error:', error);
+          console.error('[DEBUG] Error response:', error.response?.data);
+          console.error('[DEBUG] Error status:', error.response?.status);
           
           // Clear progress interval
           if (progressInterval) {
@@ -762,11 +764,27 @@ export default function CourseContentPage() {
             console.log('[DEBUG] Upload dialog closed');
           }
           
-          addDebugLog('error', 'อัพโหลดไฟล์ล้มเหลว', error.message);
+          // Extract detailed error message
+          const errorMessage = error.response?.data?.error || error.message || 'ไม่สามารถอัพโหลดไฟล์ได้';
+          const errorDetails = error.response?.data ? JSON.stringify(error.response.data, null, 2) : '';
+          
+          addDebugLog('error', 'อัพโหลดไฟล์ล้มเหลว', {
+            message: errorMessage,
+            status: error.response?.status,
+            details: errorDetails,
+          });
+          
           await Swal.fire({
             icon: 'error',
             title: 'เกิดข้อผิดพลาด',
-            text: error.message || 'ไม่สามารถอัพโหลดไฟล์ได้',
+            html: `
+              <div style="text-align: left;">
+                <p><strong>${errorMessage}</strong></p>
+                ${error.response?.status ? `<p style="color: #666; font-size: 0.9em;">HTTP Status: ${error.response.status}</p>` : ''}
+                ${errorDetails ? `<details style="margin-top: 10px;"><summary style="cursor: pointer; color: #666;">รายละเอียดเพิ่มเติม</summary><pre style="text-align: left; font-size: 0.8em; margin-top: 5px;">${errorDetails}</pre></details>` : ''}
+              </div>
+            `,
+            width: '600px',
           });
           return;
         }

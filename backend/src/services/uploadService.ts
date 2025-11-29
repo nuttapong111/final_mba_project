@@ -12,11 +12,22 @@ const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp
 
 // Check if S3 is configured
 const isS3Configured = () => {
-  return !!(
-    process.env.AWS_ACCESS_KEY_ID &&
-    process.env.AWS_SECRET_ACCESS_KEY &&
-    process.env.AWS_S3_BUCKET_NAME
-  );
+  const hasAccessKey = !!process.env.AWS_ACCESS_KEY_ID;
+  const hasSecretKey = !!process.env.AWS_SECRET_ACCESS_KEY;
+  const hasBucket = !!process.env.AWS_S3_BUCKET_NAME;
+  
+  const configured = hasAccessKey && hasSecretKey && hasBucket;
+  
+  if (!configured) {
+    console.log('[UPLOAD] S3 configuration check:', {
+      hasAccessKey,
+      hasSecretKey,
+      hasBucket,
+      region: process.env.AWS_REGION || 'not set',
+    });
+  }
+  
+  return configured;
 };
 
 // Ensure upload directory exists (fallback for local storage)
