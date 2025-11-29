@@ -49,6 +49,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: () => {
     authApi.logout();
     set({ user: null, isAuthenticated: false });
+    // Redirect to login page
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
   },
   
   setUser: (user: User) => {
