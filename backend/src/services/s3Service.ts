@@ -153,7 +153,7 @@ export const uploadFileToS3 = async (
         Bucket: BUCKET_NAME,
         Key: s3Key,
         Body: buffer,
-        ContentType: file.type,
+        ContentType: mimeType,
         Metadata: {
           originalName: file.name,
           uploadedBy: user.id,
