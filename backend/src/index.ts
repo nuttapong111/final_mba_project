@@ -46,7 +46,46 @@ app.get('/uploads/*', async (c) => {
   
   try {
     if (!existsSync(fullPath)) {
-      console.error(`[STATIC] File not found: ${fullPath}`);
+      console.error(`[STATIC] File not found locally: ${fullPath}`);
+      
+      // Check if S3 is configured and try to find file in S3
+      const isS3Configured = !!(
+        process.env.AWS_ACCESS_KEY_ID &&
+        process.env.AWS_SECRET_ACCESS_KEY &&
+        process.env.AWS_S3_BUCKET_NAME
+      );
+      
+      if (isS3Configured) {
+        console.log(`[STATIC] File not found locally, checking S3...`);
+        
+        // Extract filename from path (e.g., "document_1764231801578_6juu2ga9bfu.pdf")
+        const fileName = filePath.split('/').pop() || filePath;
+        
+        // Try to construct S3 key from filename pattern
+        // Filename format: {type}_{timestamp}_{random}.{ext}
+        const fileNameMatch = fileName.match(/^(document|video|image)_(\d+)_(.+)\.(.+)$/);
+        if (fileNameMatch) {
+          const [, type, timestamp] = fileNameMatch;
+          const date = new Date(parseInt(timestamp));
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const folder = type === 'video' ? 'videos' : type === 'document' ? 'documents' : 'images';
+          const likelyS3Key = `uploads/${folder}/${year}/${month}/${fileName}`;
+          
+          console.log(`[STATIC] Attempting S3 key: ${likelyS3Key}`);
+          
+          try {
+            const { getPresignedUrl } = await import('./services/s3Service');
+            const presignedUrl = await getPresignedUrl(likelyS3Key, 3600);
+            console.log(`[STATIC] Found file in S3, redirecting to presigned URL`);
+            return c.redirect(presignedUrl);
+          } catch (s3Error: any) {
+            console.log(`[STATIC] File not found in S3 at ${likelyS3Key}: ${s3Error.message}`);
+            // Continue to return 404
+          }
+        }
+      }
+      
       // List files in upload directory for debugging
       try {
         const { readdirSync } = await import('fs');
@@ -55,7 +94,11 @@ app.get('/uploads/*', async (c) => {
       } catch (e) {
         console.error(`[STATIC] Cannot read upload directory: ${e}`);
       }
-      return c.json({ success: false, error: 'File not found' }, 404);
+      
+      return c.json({ 
+        success: false, 
+        error: 'File not found. This file might be stored in S3. Please contact administrator.' 
+      }, 404);
     }
     
     const file = readFileSync(fullPath);
