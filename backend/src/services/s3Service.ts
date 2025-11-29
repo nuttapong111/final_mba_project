@@ -116,15 +116,25 @@ export const uploadFileToS3 = async (
   }
 
   if (!BUCKET_NAME) {
-    throw new Error('AWS S3 bucket name is not configured');
+    console.error('[S3] ❌ Bucket name not configured');
+    throw new Error('AWS S3 bucket name is not configured. Please set AWS_S3_BUCKET_NAME environment variable');
+  }
+
+  // Validate S3 client credentials
+  if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+    console.error('[S3] ❌ Missing AWS credentials');
+    throw new Error('AWS credentials not configured. Please set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY');
   }
 
   const s3Key = generateS3Key(file, type, user);
+  console.log(`[S3] Generated S3 key: ${s3Key}`);
+  
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
   console.log(`[S3] Starting upload: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) to s3://${BUCKET_NAME}/${s3Key}`);
   console.log(`[S3] Using MIME type: ${mimeType}`);
+  console.log(`[S3] Region: ${process.env.AWS_REGION || 'ap-southeast-1'}`);
   const startTime = Date.now();
 
   try {
@@ -165,14 +175,14 @@ export const uploadFileToS3 = async (
     }
 
     const duration = Date.now() - startTime;
-    console.log(`[S3] Upload completed: ${file.name} in ${(duration / 1000).toFixed(2)}s`);
+    console.log(`[S3] ✅ Upload completed: ${file.name} in ${(duration / 1000).toFixed(2)}s`);
 
     // Generate public URL or presigned URL
     const url = process.env.AWS_S3_PUBLIC_URL 
       ? `${process.env.AWS_S3_PUBLIC_URL}/${s3Key}`
       : `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'ap-southeast-1'}.amazonaws.com/${s3Key}`;
 
-    console.log(`[S3] Generated URL: ${url}`);
+    console.log(`[S3] ✅ Generated URL: ${url}`);
 
     return {
       url,
@@ -182,8 +192,18 @@ export const uploadFileToS3 = async (
       s3Key,
     };
   } catch (error: any) {
-    console.error(`[S3] Upload failed: ${error.message}`);
-    throw new Error(`ไม่สามารถอัพโหลดไฟล์ได้: ${error.message}`);
+    console.error(`[S3] ❌ Upload failed:`);
+    console.error(`[S3] Error name: ${error.name}`);
+    console.error(`[S3] Error message: ${error.message}`);
+    console.error(`[S3] Error code: ${error.Code || error.code || 'N/A'}`);
+    if (error.$metadata) {
+      console.error(`[S3] Request ID: ${error.$metadata.requestId}`);
+      console.error(`[S3] HTTP Status: ${error.$metadata.httpStatusCode}`);
+    }
+    if (error.stack) {
+      console.error(`[S3] Stack: ${error.stack}`);
+    }
+    throw new Error(`ไม่สามารถอัพโหลดไฟล์ได้: ${error.message || error.Code || 'Unknown error'}`);
   }
 };
 

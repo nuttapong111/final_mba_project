@@ -128,8 +128,19 @@ export const uploadFile = async (
   user: AuthUser
 ): Promise<UploadResult> => {
   try {
-    if (isS3Configured()) {
+    console.log('[UPLOAD] Checking S3 configuration...');
+    const s3Configured = isS3Configured();
+    console.log('[UPLOAD] S3 configured:', s3Configured);
+    
+    if (s3Configured) {
       console.log('[UPLOAD] Using S3 for file upload');
+      console.log('[UPLOAD] S3 Config:', {
+        hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
+        hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
+        bucket: process.env.AWS_S3_BUCKET_NAME,
+        region: process.env.AWS_REGION,
+      });
+      
       const result: S3UploadResult = await uploadFileToS3(file, type, user);
       return {
         url: result.url,
@@ -140,10 +151,19 @@ export const uploadFile = async (
       };
     } else {
       console.log('[UPLOAD] S3 not configured, using local storage');
+      console.log('[UPLOAD] Missing S3 config:', {
+        hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
+        hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
+        hasBucket: !!process.env.AWS_S3_BUCKET_NAME,
+      });
       return await uploadFileLocal(file, type, user);
     }
   } catch (error: any) {
-    console.error('[UPLOAD] Upload service error:', error);
+    console.error('[UPLOAD] ❌ Upload service error:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    });
     throw new Error(error.message || 'ไม่สามารถอัพโหลดไฟล์ได้');
   }
 };
