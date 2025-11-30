@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { getPresignedUrl } from '../services/s3Service';
+import { getPresignedUrl, findFileInS3 } from '../services/s3Service';
 import { authMiddleware } from '../middleware/auth';
 import prisma from '../config/database';
 
@@ -72,31 +72,31 @@ files.get('/find-by-content/:contentId', authMiddleware, async (c) => {
     
     // If fileUrl is /uploads/... try to find in S3
     if (content.fileUrl.startsWith('/uploads/')) {
-      const fileName = content.fileUrl.replace('/uploads/', '');
+      const fileName = content.fileUrl.replace('/uploads/', '').split('/').pop() || content.fileUrl.replace('/uploads/', '');
       
-      // Try to construct S3 key from filename pattern
-      const fileNameMatch = fileName.match(/^(document|video|image)_(\d+)_(.+)\.(.+)$/);
-      if (fileNameMatch) {
-        const [, type, timestamp] = fileNameMatch;
-        const date = new Date(parseInt(timestamp));
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const folder = type === 'video' ? 'videos' : type === 'document' ? 'documents' : 'images';
-        const likelyS3Key = `uploads/${folder}/${year}/${month}/${fileName}`;
-        
-        console.log(`[FILES] Attempting S3 key: ${likelyS3Key}`);
-        
+      console.log(`[FILES] Searching for file in S3: ${fileName}`);
+      
+      // Use findFileInS3 to search for the file
+      const s3Key = await findFileInS3(fileName);
+      
+      if (s3Key) {
         try {
-          const presignedUrl = await getPresignedUrl(likelyS3Key, 3600);
-          console.log(`[FILES] Found file in S3, returning presigned URL`);
+          const presignedUrl = await getPresignedUrl(s3Key, 3600);
+          console.log(`[FILES] ✅ Found file in S3 at ${s3Key}, returning presigned URL`);
           return c.json({ success: true, url: presignedUrl });
         } catch (s3Error: any) {
-          console.log(`[FILES] File not found in S3 at ${likelyS3Key}: ${s3Error.message}`);
+          console.error(`[FILES] ❌ Error generating presigned URL for ${s3Key}: ${s3Error.message}`);
           return c.json({ 
             success: false, 
-            error: 'File not found in S3. Please contact administrator to update the file URL.' 
-          }, 404);
+            error: `ไม่สามารถสร้าง URL สำหรับไฟล์ได้: ${s3Error.message}` 
+          }, 500);
         }
+      } else {
+        console.log(`[FILES] ❌ File not found in S3: ${fileName}`);
+        return c.json({ 
+          success: false, 
+          error: 'File not found in S3. Please contact administrator to update the file URL.' 
+        }, 404);
       }
     }
     

@@ -82,14 +82,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               }
             } else {
               // API returned error - user not found or invalid
-              authApi.logout();
-              set({ user: null, isAuthenticated: false });
+                authApi.logout();
+                set({ user: null, isAuthenticated: false });
             }
           } catch (apiError: any) {
             // Any error from API means authentication failed
             // Clear storage and logout
-            authApi.logout();
-            set({ user: null, isAuthenticated: false });
+                authApi.logout();
+                set({ user: null, isAuthenticated: false });
           }
         } else {
           set({ user: null, isAuthenticated: false });

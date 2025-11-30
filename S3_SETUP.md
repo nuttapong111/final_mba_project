@@ -222,3 +222,4 @@ AWS S3 pricing (ap-southeast-1):
 4. ตั้งค่า lifecycle policies สำหรับไฟล์เก่า
 5. ใช้ CloudFront สำหรับ CDN (optional)
 
+

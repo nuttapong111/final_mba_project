@@ -61,28 +61,22 @@ app.get('/uploads/*', async (c) => {
         // Extract filename from path (e.g., "document_1764231801578_6juu2ga9bfu.pdf")
         const fileName = filePath.split('/').pop() || filePath;
         
-        // Try to construct S3 key from filename pattern
-        // Filename format: {type}_{timestamp}_{random}.{ext}
-        const fileNameMatch = fileName.match(/^(document|video|image)_(\d+)_(.+)\.(.+)$/);
-        if (fileNameMatch) {
-          const [, type, timestamp] = fileNameMatch;
-          const date = new Date(parseInt(timestamp));
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, '0');
-          const folder = type === 'video' ? 'videos' : type === 'document' ? 'documents' : 'images';
-          const likelyS3Key = `uploads/${folder}/${year}/${month}/${fileName}`;
+        console.log(`[STATIC] Searching for file in S3: ${fileName}`);
+        
+        try {
+          const { findFileInS3, getPresignedUrl } = await import('./services/s3Service');
+          const s3Key = await findFileInS3(fileName);
           
-          console.log(`[STATIC] Attempting S3 key: ${likelyS3Key}`);
-          
-          try {
-            const { getPresignedUrl } = await import('./services/s3Service');
-            const presignedUrl = await getPresignedUrl(likelyS3Key, 3600);
-            console.log(`[STATIC] Found file in S3, redirecting to presigned URL`);
+          if (s3Key) {
+            const presignedUrl = await getPresignedUrl(s3Key, 3600);
+            console.log(`[STATIC] ✅ Found file in S3 at ${s3Key}, redirecting to presigned URL`);
             return c.redirect(presignedUrl);
-          } catch (s3Error: any) {
-            console.log(`[STATIC] File not found in S3 at ${likelyS3Key}: ${s3Error.message}`);
-            // Continue to return 404
+          } else {
+            console.log(`[STATIC] ❌ File not found in S3: ${fileName}`);
           }
+        } catch (s3Error: any) {
+          console.error(`[STATIC] Error searching S3: ${s3Error.message}`);
+          // Continue to return 404
         }
       }
       

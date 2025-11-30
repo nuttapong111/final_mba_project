@@ -195,3 +195,4 @@ export const getCourseProgress = async (
   return course;
 };
 
+

@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { AuthUser } from '../middleware/auth';
@@ -276,6 +276,92 @@ export const deleteFileFromS3 = async (s3Key: string): Promise<void> => {
   } catch (error: any) {
     console.error(`[S3] Delete failed: ${error.message}`);
     throw new Error(`ไม่สามารถลบไฟล์ได้: ${error.message}`);
+  }
+};
+
+/**
+ * Find file in S3 by filename (searches in common locations)
+ */
+export const findFileInS3 = async (fileName: string): Promise<string | null> => {
+  if (!BUCKET_NAME) {
+    throw new Error('AWS S3 bucket name is not configured');
+  }
+
+  try {
+    // Try to construct S3 key from filename pattern
+    const fileNameMatch = fileName.match(/^(document|video|image)_(\d+)_(.+)\.(.+)$/);
+    if (!fileNameMatch) {
+      console.log(`[S3] Filename does not match expected pattern: ${fileName}`);
+      return null;
+    }
+
+    const [, type, timestamp] = fileNameMatch;
+    const date = new Date(parseInt(timestamp));
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const folder = type === 'video' ? 'videos' : type === 'document' ? 'documents' : 'images';
+    
+    // Try multiple possible S3 keys
+    const possibleKeys = [
+      `uploads/${folder}/${year}/${month}/${fileName}`, // Standard pattern
+      `uploads/${folder}/${year}/${String(parseInt(month))}/${fileName}`, // Month without leading zero
+      `${folder}/${year}/${month}/${fileName}`, // Without uploads prefix
+      `uploads/${fileName}`, // Direct in uploads
+      fileName, // Direct filename
+    ];
+
+    console.log(`[S3] Searching for file: ${fileName}`);
+    
+    for (const s3Key of possibleKeys) {
+      try {
+        // Try to get the object to verify it exists
+        const command = new GetObjectCommand({
+          Bucket: BUCKET_NAME,
+          Key: s3Key,
+        });
+        
+        // Use headObject would be better, but GetObject with presigned URL is simpler
+        // Instead, we'll try to list objects with prefix
+        const listCommand = new ListObjectsV2Command({
+          Bucket: BUCKET_NAME,
+          Prefix: s3Key,
+          MaxKeys: 1,
+        });
+        
+        const response = await s3Client.send(listCommand);
+        if (response.Contents && response.Contents.length > 0 && response.Contents[0].Key) {
+          const foundKey = response.Contents[0].Key;
+          console.log(`[S3] ✅ Found file at: ${foundKey}`);
+          return foundKey;
+        }
+      } catch (error: any) {
+        // Continue to next possible key
+        continue;
+      }
+    }
+
+    // If exact match not found, try searching by filename only
+    console.log(`[S3] Exact match not found, searching by filename: ${fileName}`);
+    const searchCommand = new ListObjectsV2Command({
+      Bucket: BUCKET_NAME,
+      Prefix: `uploads/`,
+      MaxKeys: 1000,
+    });
+
+    const searchResponse = await s3Client.send(searchCommand);
+    if (searchResponse.Contents) {
+      const found = searchResponse.Contents.find(obj => obj.Key?.endsWith(fileName));
+      if (found?.Key) {
+        console.log(`[S3] ✅ Found file by search at: ${found.Key}`);
+        return found.Key;
+      }
+    }
+
+    console.log(`[S3] ❌ File not found: ${fileName}`);
+    return null;
+  } catch (error: any) {
+    console.error(`[S3] Error searching for file: ${error.message}`);
+    return null;
   }
 };
 
