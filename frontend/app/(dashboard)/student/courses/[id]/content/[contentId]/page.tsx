@@ -58,6 +58,73 @@ export default function StudentContentPage() {
   const [contentUrl, setContentUrl] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
+  // Convert fileUrl to full URL if needed
+  // Supports both S3 URLs and local storage URLs
+  const getFullUrl = useCallback(async (url?: string, fileUrl?: string, contentId?: string) => {
+    if (url) {
+      // If url is already a full URL, return as is
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        return url;
+      }
+    }
+    
+    if (fileUrl) {
+      // If already a full URL (S3 or external), return as is
+      if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
+        return fileUrl;
+      }
+      
+      // Check if it's an S3 proxy URL (backend endpoint for S3 files)
+      if (fileUrl.startsWith('/api/files/s3/')) {
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+        const baseUrl = apiBaseUrl.replace('/api', '');
+        return `${baseUrl}${fileUrl}`;
+      }
+      
+      // If relative path starting with /uploads/ (might be in S3)
+      if (fileUrl.startsWith('/uploads/')) {
+        // Try to find file in S3 using contentId
+        if (contentId && typeof window !== 'undefined') {
+          try {
+            const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+            const token = localStorage.getItem('token');
+            if (token) {
+              const response = await fetch(`${apiBaseUrl}/files/find-by-content/${contentId}`, {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                },
+              });
+              
+              if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.url) {
+                  console.log(`[FILES] Found file in S3 via contentId: ${data.url}`);
+                  return data.url;
+                }
+              }
+            }
+          } catch (error) {
+            console.error('[FILES] Error finding file in S3:', error);
+          }
+        }
+        
+        // Fallback to local storage URL
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+        const baseUrl = apiBaseUrl.replace('/api', '');
+        return `${baseUrl}${fileUrl}`;
+      }
+      
+      // If just filename, assume it's in uploads (local storage)
+      if (!fileUrl.startsWith('/')) {
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+        const baseUrl = apiBaseUrl.replace('/api', '');
+        return `${baseUrl}/uploads/${fileUrl}`;
+      }
+    }
+    
+    return url || fileUrl;
+  }, []);
+
   useEffect(() => {
     const fetchCourse = async () => {
       try {
@@ -260,81 +327,6 @@ export default function StudentContentPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-white">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">กำลังโหลดข้อมูล...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Convert fileUrl to full URL if needed
-  // Supports both S3 URLs and local storage URLs
-  const getFullUrl = useCallback(async (url?: string, fileUrl?: string, contentId?: string) => {
-    if (url) {
-      // If url is already a full URL, return as is
-      if (url.startsWith('http://') || url.startsWith('https://')) {
-        return url;
-      }
-    }
-    
-    if (fileUrl) {
-      // If already a full URL (S3 or external), return as is
-      if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
-        return fileUrl;
-      }
-      
-      // Check if it's an S3 proxy URL (backend endpoint for S3 files)
-      if (fileUrl.startsWith('/api/files/s3/')) {
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-        const baseUrl = apiBaseUrl.replace('/api', '');
-        return `${baseUrl}${fileUrl}`;
-      }
-      
-      // If relative path starting with /uploads/ (might be in S3)
-      if (fileUrl.startsWith('/uploads/')) {
-        // Try to find file in S3 using contentId
-        if (contentId) {
-          try {
-            const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-            const response = await fetch(`${apiBaseUrl}/files/find-by-content/${contentId}`, {
-              headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
-              },
-            });
-            
-            if (response.ok) {
-              const data = await response.json();
-              if (data.success && data.url) {
-                console.log(`[FILES] Found file in S3 via contentId: ${data.url}`);
-                return data.url;
-              }
-            }
-          } catch (error) {
-            console.error('[FILES] Error finding file in S3:', error);
-          }
-        }
-        
-        // Fallback to local storage URL
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-        const baseUrl = apiBaseUrl.replace('/api', '');
-        return `${baseUrl}${fileUrl}`;
-      }
-      
-      // If just filename, assume it's in uploads (local storage)
-      if (!fileUrl.startsWith('/')) {
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-        const baseUrl = apiBaseUrl.replace('/api', '');
-        return `${baseUrl}/uploads/${fileUrl}`;
-      }
-    }
-    
-    return url || fileUrl;
-  }, []);
-
   useEffect(() => {
     const loadContentUrl = async () => {
       if (currentContent) {
@@ -353,6 +345,17 @@ export default function StudentContentPage() {
     };
     loadContentUrl();
   }, [currentContent, getFullUrl]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">กำลังโหลดข้อมูล...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
