@@ -320,42 +320,79 @@ export const findFileInS3 = async (fileName: string): Promise<string | null> => 
       fileName, // Direct filename
     ];
 
+    console.log(`[S3] ========================================`);
     console.log(`[S3] Searching for file: ${fileName}`);
+    console.log(`[S3] File type: ${type}, Folder: ${folder}`);
     console.log(`[S3] Primary path (current date, same as upload): uploads/${folder}/${currentYear}/${currentMonth}/${fileName}`);
     console.log(`[S3] Fallback path (timestamp-based): uploads/${folder}/${yearFromTimestamp}/${monthFromTimestamp}/${fileName}`);
+    console.log(`[S3] ========================================`);
     
     for (const s3Key of possibleKeys) {
       try {
+        console.log(`[S3] 🔍 Trying S3 key: ${s3Key}`);
         // Use ListObjectsV2 to check if file exists
         const listCommand = new ListObjectsV2Command({
           Bucket: BUCKET_NAME,
           Prefix: s3Key,
-          MaxKeys: 1,
+          MaxKeys: 10, // Check for multiple matches
         });
         
         const response = await s3Client.send(listCommand);
-        if (response.Contents && response.Contents.length > 0 && response.Contents[0].Key) {
-          const foundKey = response.Contents[0].Key;
-          // Verify it's an exact match (not just prefix match)
-          if (foundKey === s3Key || foundKey.endsWith(fileName)) {
-            console.log(`[S3] ✅ Found file at: ${foundKey}`);
-            return foundKey;
+        if (response.Contents && response.Contents.length > 0) {
+          console.log(`[S3] Found ${response.Contents.length} object(s) with prefix: ${s3Key}`);
+          
+          // Find exact match
+          const exactMatches = response.Contents.filter((obj: any) => {
+            const key = obj.Key || '';
+            const isExact = key === s3Key || key.endsWith(`/${fileName}`) || key.endsWith(fileName);
+            if (isExact) {
+              console.log(`[S3]   - Match: ${key}`);
+            }
+            return isExact;
+          });
+          
+          if (exactMatches.length === 1) {
+            const foundKey = exactMatches[0].Key;
+            if (foundKey) {
+              console.log(`[S3] ✅ Found exact match (single file): ${foundKey}`);
+              return foundKey;
+            }
+          } else if (exactMatches.length > 1) {
+            const firstMatch = exactMatches[0];
+            if (firstMatch.Key) {
+              console.log(`[S3] ⚠️  Found ${exactMatches.length} matches, using first one: ${firstMatch.Key}`);
+              return firstMatch.Key;
+            }
+          } else {
+            console.log(`[S3] ❌ No exact match found for: ${s3Key}`);
+            // Log all found keys for debugging
+            response.Contents.forEach((obj: any, index: number) => {
+              console.log(`[S3]   - Found key ${index + 1}: ${obj.Key}`);
+            });
           }
+        } else {
+          console.log(`[S3] ❌ No objects found with prefix: ${s3Key}`);
         }
       } catch (error: any) {
+        console.error(`[S3] ❌ Error checking S3 key ${s3Key}: ${error.message}`);
         // Continue to next possible key
         continue;
       }
     }
 
     // If exact match not found, try searching by filename only (broader search with pagination)
+    console.log(`[S3] ========================================`);
     console.log(`[S3] Exact match not found, searching by filename in uploads/${folder}/`);
+    console.log(`[S3] Search prefix: uploads/${folder}/`);
     let continuationToken: string | undefined = undefined;
-    let foundKey: string | null = null;
+    const foundKeys: string[] = [];
+    let pageCount = 0;
     
     // Search in folder with pagination
     do {
       try {
+        pageCount++;
+        console.log(`[S3] 🔍 Searching page ${pageCount} in uploads/${folder}/`);
         const searchCommand = new ListObjectsV2Command({
           Bucket: BUCKET_NAME,
           Prefix: `uploads/${folder}/`,
@@ -365,32 +402,55 @@ export const findFileInS3 = async (fileName: string): Promise<string | null> => 
 
         const searchResponse: ListObjectsV2CommandOutput = await s3Client.send(searchCommand);
         if (searchResponse.Contents) {
-          const found = searchResponse.Contents.find((obj: any) => obj.Key?.endsWith(fileName));
-          if (found?.Key) {
-            foundKey = found.Key;
-            console.log(`[S3] ✅ Found file by search at: ${foundKey}`);
-            break;
+          const matches = searchResponse.Contents.filter((obj: any) => {
+            const key = obj.Key || '';
+            return key.endsWith(fileName) || key.endsWith(`/${fileName}`);
+          });
+          
+          if (matches.length > 0) {
+            matches.forEach((match: any) => {
+              console.log(`[S3]   - Found match: ${match.Key}`);
+              foundKeys.push(match.Key);
+            });
           }
+          
+          console.log(`[S3]   - Scanned ${searchResponse.Contents.length} objects in this page`);
         }
         
         continuationToken = searchResponse.NextContinuationToken;
+        if (continuationToken) {
+          console.log(`[S3]   - More pages available, continuing...`);
+        }
       } catch (error: any) {
-        console.error(`[S3] Error searching in folder: ${error.message}`);
+        console.error(`[S3] ❌ Error searching in folder: ${error.message}`);
         break;
       }
-    } while (continuationToken && !foundKey);
+    } while (continuationToken && foundKeys.length === 0);
     
-    if (foundKey) {
-      return foundKey;
+    if (foundKeys.length === 1) {
+      console.log(`[S3] ✅ Found single file: ${foundKeys[0]}`);
+      return foundKeys[0];
+    } else if (foundKeys.length > 1) {
+      console.log(`[S3] ⚠️  Found ${foundKeys.length} files with same name:`);
+      foundKeys.forEach((key, index) => {
+        console.log(`[S3]   ${index + 1}. ${key}`);
+      });
+      console.log(`[S3] Using first match: ${foundKeys[0]}`);
+      return foundKeys[0];
     }
     
     // Last resort: search entire uploads folder with pagination
+    console.log(`[S3] ========================================`);
     console.log(`[S3] Searching entire uploads folder for: ${fileName}`);
+    console.log(`[S3] Search prefix: uploads/`);
     continuationToken = undefined;
-    foundKey = null;
+    const foundKeys2: string[] = [];
+    pageCount = 0;
     
     do {
       try {
+        pageCount++;
+        console.log(`[S3] 🔍 Searching page ${pageCount} in uploads/`);
         const broadSearchCommand = new ListObjectsV2Command({
           Bucket: BUCKET_NAME,
           Prefix: `uploads/`,
@@ -400,23 +460,41 @@ export const findFileInS3 = async (fileName: string): Promise<string | null> => 
         
         const broadSearchResponse: ListObjectsV2CommandOutput = await s3Client.send(broadSearchCommand);
         if (broadSearchResponse.Contents) {
-          const found = broadSearchResponse.Contents.find((obj: any) => obj.Key?.endsWith(fileName));
-          if (found?.Key) {
-            foundKey = found.Key;
-            console.log(`[S3] ✅ Found file by broad search at: ${foundKey}`);
-            break;
+          const matches = broadSearchResponse.Contents.filter((obj: any) => {
+            const key = obj.Key || '';
+            return key.endsWith(fileName) || key.endsWith(`/${fileName}`);
+          });
+          
+          if (matches.length > 0) {
+            matches.forEach((match: any) => {
+              console.log(`[S3]   - Found match: ${match.Key}`);
+              foundKeys2.push(match.Key);
+            });
           }
+          
+          console.log(`[S3]   - Scanned ${broadSearchResponse.Contents.length} objects in this page`);
         }
         
         continuationToken = broadSearchResponse.NextContinuationToken;
+        if (continuationToken) {
+          console.log(`[S3]   - More pages available, continuing...`);
+        }
       } catch (error: any) {
-        console.error(`[S3] Error in broad search: ${error.message}`);
+        console.error(`[S3] ❌ Error in broad search: ${error.message}`);
         break;
       }
-    } while (continuationToken && !foundKey);
+    } while (continuationToken && foundKeys2.length === 0);
     
-    if (foundKey) {
-      return foundKey;
+    if (foundKeys2.length === 1) {
+      console.log(`[S3] ✅ Found single file: ${foundKeys2[0]}`);
+      return foundKeys2[0];
+    } else if (foundKeys2.length > 1) {
+      console.log(`[S3] ⚠️  Found ${foundKeys2.length} files with same name:`);
+      foundKeys2.forEach((key, index) => {
+        console.log(`[S3]   ${index + 1}. ${key}`);
+      });
+      console.log(`[S3] Using first match: ${foundKeys2[0]}`);
+      return foundKeys2[0];
     }
 
     console.log(`[S3] ❌ File not found: ${fileName}`);
