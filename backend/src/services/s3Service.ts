@@ -301,27 +301,29 @@ export const findFileInS3 = async (fileName: string): Promise<string | null> => 
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const folder = type === 'video' ? 'videos' : type === 'document' ? 'documents' : 'images';
     
-    // Try multiple possible S3 keys
+    // Also try current date (in case file was uploaded with current date but filename has old timestamp)
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
+    
+    // Try multiple possible S3 keys (prioritize timestamp-based, then current date, then others)
     const possibleKeys = [
-      `uploads/${folder}/${year}/${month}/${fileName}`, // Standard pattern
+      `uploads/${folder}/${year}/${month}/${fileName}`, // Standard pattern from timestamp
+      `uploads/${folder}/${currentYear}/${currentMonth}/${fileName}`, // Current date pattern
       `uploads/${folder}/${year}/${String(parseInt(month))}/${fileName}`, // Month without leading zero
+      `uploads/${folder}/${currentYear}/${String(parseInt(currentMonth))}/${fileName}`, // Current month without leading zero
       `${folder}/${year}/${month}/${fileName}`, // Without uploads prefix
       `uploads/${fileName}`, // Direct in uploads
       fileName, // Direct filename
     ];
 
     console.log(`[S3] Searching for file: ${fileName}`);
+    console.log(`[S3] Timestamp-based path: uploads/${folder}/${year}/${month}/${fileName}`);
+    console.log(`[S3] Current date path: uploads/${folder}/${currentYear}/${currentMonth}/${fileName}`);
     
     for (const s3Key of possibleKeys) {
       try {
-        // Try to get the object to verify it exists
-        const command = new GetObjectCommand({
-          Bucket: BUCKET_NAME,
-          Key: s3Key,
-        });
-        
-        // Use headObject would be better, but GetObject with presigned URL is simpler
-        // Instead, we'll try to list objects with prefix
+        // Use ListObjectsV2 to check if file exists
         const listCommand = new ListObjectsV2Command({
           Bucket: BUCKET_NAME,
           Prefix: s3Key,
@@ -331,8 +333,11 @@ export const findFileInS3 = async (fileName: string): Promise<string | null> => 
         const response = await s3Client.send(listCommand);
         if (response.Contents && response.Contents.length > 0 && response.Contents[0].Key) {
           const foundKey = response.Contents[0].Key;
-          console.log(`[S3] ✅ Found file at: ${foundKey}`);
-          return foundKey;
+          // Verify it's an exact match (not just prefix match)
+          if (foundKey === s3Key || foundKey.endsWith(fileName)) {
+            console.log(`[S3] ✅ Found file at: ${foundKey}`);
+            return foundKey;
+          }
         }
       } catch (error: any) {
         // Continue to next possible key
@@ -340,12 +345,12 @@ export const findFileInS3 = async (fileName: string): Promise<string | null> => 
       }
     }
 
-    // If exact match not found, try searching by filename only
+    // If exact match not found, try searching by filename only (broader search)
     console.log(`[S3] Exact match not found, searching by filename: ${fileName}`);
     const searchCommand = new ListObjectsV2Command({
       Bucket: BUCKET_NAME,
-      Prefix: `uploads/`,
-      MaxKeys: 1000,
+      Prefix: `uploads/${folder}/`,
+      MaxKeys: 10000, // Increase limit to search more files
     });
 
     const searchResponse = await s3Client.send(searchCommand);
@@ -353,6 +358,23 @@ export const findFileInS3 = async (fileName: string): Promise<string | null> => 
       const found = searchResponse.Contents.find(obj => obj.Key?.endsWith(fileName));
       if (found?.Key) {
         console.log(`[S3] ✅ Found file by search at: ${found.Key}`);
+        return found.Key;
+      }
+    }
+    
+    // Last resort: search entire uploads folder
+    console.log(`[S3] Searching entire uploads folder for: ${fileName}`);
+    const broadSearchCommand = new ListObjectsV2Command({
+      Bucket: BUCKET_NAME,
+      Prefix: `uploads/`,
+      MaxKeys: 10000,
+    });
+    
+    const broadSearchResponse = await s3Client.send(broadSearchCommand);
+    if (broadSearchResponse.Contents) {
+      const found = broadSearchResponse.Contents.find(obj => obj.Key?.endsWith(fileName));
+      if (found?.Key) {
+        console.log(`[S3] ✅ Found file by broad search at: ${found.Key}`);
         return found.Key;
       }
     }
