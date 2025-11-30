@@ -156,19 +156,16 @@ export default function StudentContentPage() {
             title: String(lesson.title || ''),
             order: typeof lesson.order === 'number' ? lesson.order : 0,
             contents: (lesson.contents || []).map((content: any) => {
-              let fileUrl = content.fileUrl;
-              if (fileUrl && fileUrl.startsWith('/uploads/')) {
-                const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-                const baseUrl = apiBaseUrl.replace('/api', '');
-                fileUrl = `${baseUrl}${fileUrl}`;
-              }
+              // Keep fileUrl as-is (don't convert to full URL here)
+              // getFullUrl will handle S3 lookup and URL conversion
+              const fileUrl = content.fileUrl ? String(content.fileUrl) : undefined;
               
               return {
                 id: String(content.id || ''),
                 title: String(content.title || ''),
                 type: content.type ? String(content.type).toLowerCase() : 'document',
                 url: content.url ? String(content.url) : undefined,
-                fileUrl: fileUrl ? String(fileUrl) : undefined,
+                fileUrl: fileUrl,
                 fileName: content.fileName ? String(content.fileName) : undefined,
                 order: typeof content.order === 'number' ? content.order : 0,
                 poll: content.poll || undefined,
