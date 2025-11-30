@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import Card from '@/components/ui/Card';
@@ -55,6 +55,8 @@ export default function StudentContentPage() {
   const [completedContents, setCompletedContents] = useState<Set<string>>(new Set());
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
+  const [contentUrl, setContentUrl] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -269,13 +271,9 @@ export default function StudentContentPage() {
     );
   }
 
-  if (!currentContent || !currentLesson) {
-    return null;
-  }
-
   // Convert fileUrl to full URL if needed
   // Supports both S3 URLs and local storage URLs
-  const getFullUrl = async (url?: string, fileUrl?: string, contentId?: string) => {
+  const getFullUrl = useCallback(async (url?: string, fileUrl?: string, contentId?: string) => {
     if (url) {
       // If url is already a full URL, return as is
       if (url.startsWith('http://') || url.startsWith('https://')) {
@@ -335,11 +333,8 @@ export default function StudentContentPage() {
     }
     
     return url || fileUrl;
-  };
+  }, []);
 
-  const [contentUrl, setContentUrl] = useState<string | null>(null);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  
   useEffect(() => {
     const loadContentUrl = async () => {
       if (currentContent) {
@@ -350,10 +345,29 @@ export default function StudentContentPage() {
           const url = await getFullUrl(currentContent.url, currentContent.fileUrl, currentContent.id);
           setContentUrl(url);
         }
+      } else {
+        // Reset URLs when content changes
+        setContentUrl(null);
+        setVideoUrl(null);
       }
     };
     loadContentUrl();
-  }, [currentContent]);
+  }, [currentContent, getFullUrl]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">กำลังโหลดข้อมูล...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentContent || !currentLesson) {
+    return null;
+  }
 
   return (
     <div className="flex flex-col lg:flex-row h-full bg-white overflow-hidden w-full">
