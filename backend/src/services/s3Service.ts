@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command, ListObjectsV2CommandOutput } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { AuthUser } from '../middleware/auth';
@@ -348,38 +348,75 @@ export const findFileInS3 = async (fileName: string): Promise<string | null> => 
       }
     }
 
-    // If exact match not found, try searching by filename only (broader search)
-    console.log(`[S3] Exact match not found, searching by filename: ${fileName}`);
-    const searchCommand = new ListObjectsV2Command({
-      Bucket: BUCKET_NAME,
-      Prefix: `uploads/${folder}/`,
-      MaxKeys: 10000, // Increase limit to search more files
-    });
+    // If exact match not found, try searching by filename only (broader search with pagination)
+    console.log(`[S3] Exact match not found, searching by filename in uploads/${folder}/`);
+    let continuationToken: string | undefined = undefined;
+    let foundKey: string | null = null;
+    
+    // Search in folder with pagination
+    do {
+      try {
+        const searchCommand = new ListObjectsV2Command({
+          Bucket: BUCKET_NAME,
+          Prefix: `uploads/${folder}/`,
+          MaxKeys: 1000,
+          ContinuationToken: continuationToken,
+        });
 
-    const searchResponse = await s3Client.send(searchCommand);
-    if (searchResponse.Contents) {
-      const found = searchResponse.Contents.find(obj => obj.Key?.endsWith(fileName));
-      if (found?.Key) {
-        console.log(`[S3] ✅ Found file by search at: ${found.Key}`);
-        return found.Key;
+        const searchResponse: ListObjectsV2CommandOutput = await s3Client.send(searchCommand);
+        if (searchResponse.Contents) {
+          const found = searchResponse.Contents.find((obj: any) => obj.Key?.endsWith(fileName));
+          if (found?.Key) {
+            foundKey = found.Key;
+            console.log(`[S3] ✅ Found file by search at: ${foundKey}`);
+            break;
+          }
+        }
+        
+        continuationToken = searchResponse.NextContinuationToken;
+      } catch (error: any) {
+        console.error(`[S3] Error searching in folder: ${error.message}`);
+        break;
       }
+    } while (continuationToken && !foundKey);
+    
+    if (foundKey) {
+      return foundKey;
     }
     
-    // Last resort: search entire uploads folder
+    // Last resort: search entire uploads folder with pagination
     console.log(`[S3] Searching entire uploads folder for: ${fileName}`);
-    const broadSearchCommand = new ListObjectsV2Command({
-      Bucket: BUCKET_NAME,
-      Prefix: `uploads/`,
-      MaxKeys: 10000,
-    });
+    continuationToken = undefined;
+    foundKey = null;
     
-    const broadSearchResponse = await s3Client.send(broadSearchCommand);
-    if (broadSearchResponse.Contents) {
-      const found = broadSearchResponse.Contents.find(obj => obj.Key?.endsWith(fileName));
-      if (found?.Key) {
-        console.log(`[S3] ✅ Found file by broad search at: ${found.Key}`);
-        return found.Key;
+    do {
+      try {
+        const broadSearchCommand = new ListObjectsV2Command({
+          Bucket: BUCKET_NAME,
+          Prefix: `uploads/`,
+          MaxKeys: 1000,
+          ContinuationToken: continuationToken,
+        });
+        
+        const broadSearchResponse: ListObjectsV2CommandOutput = await s3Client.send(broadSearchCommand);
+        if (broadSearchResponse.Contents) {
+          const found = broadSearchResponse.Contents.find((obj: any) => obj.Key?.endsWith(fileName));
+          if (found?.Key) {
+            foundKey = found.Key;
+            console.log(`[S3] ✅ Found file by broad search at: ${foundKey}`);
+            break;
+          }
+        }
+        
+        continuationToken = broadSearchResponse.NextContinuationToken;
+      } catch (error: any) {
+        console.error(`[S3] Error in broad search: ${error.message}`);
+        break;
       }
+    } while (continuationToken && !foundKey);
+    
+    if (foundKey) {
+      return foundKey;
     }
 
     console.log(`[S3] ❌ File not found: ${fileName}`);
