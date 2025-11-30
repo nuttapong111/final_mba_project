@@ -402,6 +402,15 @@ export const findFileInS3 = async (fileName: string): Promise<string | null> => 
 
         const searchResponse: ListObjectsV2CommandOutput = await s3Client.send(searchCommand);
         if (searchResponse.Contents) {
+          // Log all objects found in this page for debugging
+          console.log(`[S3]   - Scanned ${searchResponse.Contents.length} objects in this page`);
+          if (searchResponse.Contents.length > 0) {
+            console.log(`[S3]   - Objects found in uploads/${folder}/:`);
+            searchResponse.Contents.forEach((obj: any, idx: number) => {
+              console.log(`[S3]     ${idx + 1}. ${obj.Key}`);
+            });
+          }
+          
           const matches = searchResponse.Contents.filter((obj: any) => {
             const key = obj.Key || '';
             return key.endsWith(fileName) || key.endsWith(`/${fileName}`);
@@ -413,8 +422,6 @@ export const findFileInS3 = async (fileName: string): Promise<string | null> => 
               foundKeys.push(match.Key);
             });
           }
-          
-          console.log(`[S3]   - Scanned ${searchResponse.Contents.length} objects in this page`);
         }
         
         continuationToken = searchResponse.NextContinuationToken;
@@ -460,6 +467,15 @@ export const findFileInS3 = async (fileName: string): Promise<string | null> => 
         
         const broadSearchResponse: ListObjectsV2CommandOutput = await s3Client.send(broadSearchCommand);
         if (broadSearchResponse.Contents) {
+          // Log all objects found in this page for debugging
+          console.log(`[S3]   - Scanned ${broadSearchResponse.Contents.length} objects in this page`);
+          if (broadSearchResponse.Contents.length > 0) {
+            console.log(`[S3]   - Objects found in uploads/:`);
+            broadSearchResponse.Contents.forEach((obj: any, idx: number) => {
+              console.log(`[S3]     ${idx + 1}. ${obj.Key}`);
+            });
+          }
+          
           const matches = broadSearchResponse.Contents.filter((obj: any) => {
             const key = obj.Key || '';
             return key.endsWith(fileName) || key.endsWith(`/${fileName}`);
@@ -471,8 +487,6 @@ export const findFileInS3 = async (fileName: string): Promise<string | null> => 
               foundKeys2.push(match.Key);
             });
           }
-          
-          console.log(`[S3]   - Scanned ${broadSearchResponse.Contents.length} objects in this page`);
         }
         
         continuationToken = broadSearchResponse.NextContinuationToken;
