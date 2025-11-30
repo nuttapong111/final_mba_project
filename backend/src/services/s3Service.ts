@@ -296,30 +296,33 @@ export const findFileInS3 = async (fileName: string): Promise<string | null> => 
     }
 
     const [, type, timestamp] = fileNameMatch;
-    const date = new Date(parseInt(timestamp));
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
     const folder = type === 'video' ? 'videos' : type === 'document' ? 'documents' : 'images';
     
-    // Also try current date (in case file was uploaded with current date but filename has old timestamp)
+    // Use current date as primary (same as upload logic)
+    // Upload uses: new Date() to get year/month, not timestamp from filename
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
     const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
     
-    // Try multiple possible S3 keys (prioritize timestamp-based, then current date, then others)
+    // Also try timestamp-based date as fallback
+    const dateFromTimestamp = new Date(parseInt(timestamp));
+    const yearFromTimestamp = dateFromTimestamp.getFullYear();
+    const monthFromTimestamp = String(dateFromTimestamp.getMonth() + 1).padStart(2, '0');
+    
+    // Try multiple possible S3 keys (prioritize current date like upload, then timestamp, then others)
     const possibleKeys = [
-      `uploads/${folder}/${year}/${month}/${fileName}`, // Standard pattern from timestamp
-      `uploads/${folder}/${currentYear}/${currentMonth}/${fileName}`, // Current date pattern
-      `uploads/${folder}/${year}/${String(parseInt(month))}/${fileName}`, // Month without leading zero
+      `uploads/${folder}/${currentYear}/${currentMonth}/${fileName}`, // Primary: Current date pattern (same as upload)
+      `uploads/${folder}/${yearFromTimestamp}/${monthFromTimestamp}/${fileName}`, // Fallback: Timestamp-based pattern
       `uploads/${folder}/${currentYear}/${String(parseInt(currentMonth))}/${fileName}`, // Current month without leading zero
-      `${folder}/${year}/${month}/${fileName}`, // Without uploads prefix
+      `uploads/${folder}/${yearFromTimestamp}/${String(parseInt(monthFromTimestamp))}/${fileName}`, // Timestamp month without leading zero
+      `${folder}/${currentYear}/${currentMonth}/${fileName}`, // Without uploads prefix (current date)
       `uploads/${fileName}`, // Direct in uploads
       fileName, // Direct filename
     ];
 
     console.log(`[S3] Searching for file: ${fileName}`);
-    console.log(`[S3] Timestamp-based path: uploads/${folder}/${year}/${month}/${fileName}`);
-    console.log(`[S3] Current date path: uploads/${folder}/${currentYear}/${currentMonth}/${fileName}`);
+    console.log(`[S3] Primary path (current date, same as upload): uploads/${folder}/${currentYear}/${currentMonth}/${fileName}`);
+    console.log(`[S3] Fallback path (timestamp-based): uploads/${folder}/${yearFromTimestamp}/${monthFromTimestamp}/${fileName}`);
     
     for (const s3Key of possibleKeys) {
       try {
