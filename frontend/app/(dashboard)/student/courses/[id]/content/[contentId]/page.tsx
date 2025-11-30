@@ -338,15 +338,21 @@ export default function StudentContentPage() {
   };
 
   const [contentUrl, setContentUrl] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
   
   useEffect(() => {
     const loadContentUrl = async () => {
-      const url = await getFullUrl(currentContent.url, currentContent.fileUrl, currentContent.id);
-      setContentUrl(url);
+      if (currentContent) {
+        if (currentContent.type === 'video') {
+          const url = await getFullUrl(currentContent.url, currentContent.fileUrl, currentContent.id);
+          setVideoUrl(url);
+        } else {
+          const url = await getFullUrl(currentContent.url, currentContent.fileUrl, currentContent.id);
+          setContentUrl(url);
+        }
+      }
     };
-    if (currentContent) {
-      loadContentUrl();
-    }
+    loadContentUrl();
   }, [currentContent]);
 
   return (
@@ -385,17 +391,15 @@ export default function StudentContentPage() {
           {currentContent.type === 'video' && (
             <div className="w-full h-full bg-black">
               {(() => {
-                const videoUrl = currentContent.url;
-                const fileUrl = currentContent.fileUrl;
-                const fullUrl = getFullUrl(videoUrl, fileUrl);
+                const fullUrl = videoUrl;
                 
                 if (!fullUrl) {
                   return (
                     <div className="flex items-center justify-center w-full h-full text-white">
                       <div className="text-center">
-                        <VideoCameraIcon className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-                        <p className="text-xl mb-2">ไม่พบวิดีโอ</p>
-                        <p className="text-sm text-gray-400">กรุณาตรวจสอบ URL หรือไฟล์วิดีโอ</p>
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                        <p className="text-xl mb-2">กำลังโหลดวิดีโอ...</p>
+                        <p className="text-sm text-gray-400">กรุณารอสักครู่</p>
                       </div>
                     </div>
                   );
