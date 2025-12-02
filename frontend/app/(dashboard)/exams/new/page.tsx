@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -19,13 +19,16 @@ import {
   getQuestionsByCategory,
   type ExamQuestionSelection,
 } from '@/lib/mockData';
+import { examsApi, coursesApi } from '@/lib/api';
 
 export default function NewExamPage() {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [courses, setCourses] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     title: '',
     courseId: '',
-    type: 'quiz' as 'quiz' | 'midterm' | 'final',
+    type: 'QUIZ' as 'QUIZ' | 'MIDTERM' | 'FINAL',
     duration: '',
     totalScore: '',
     passingScore: '',
@@ -37,6 +40,21 @@ export default function NewExamPage() {
 
   const [useRandomQuestions, setUseRandomQuestions] = useState(true);
   const [questionSelections, setQuestionSelections] = useState<ExamQuestionSelection[]>([]);
+
+  // Load courses on mount
+  useEffect(() => {
+    const loadCourses = async () => {
+      try {
+        const response = await coursesApi.getAll();
+        if (response.success && response.data) {
+          setCourses(response.data);
+        }
+      } catch (error) {
+        console.error('Error loading courses:', error);
+      }
+    };
+    loadCourses();
+  }, []);
 
   const handleAddQuestionSelection = () => {
     if (!formData.courseId) {
@@ -156,18 +174,53 @@ export default function NewExamPage() {
       }
     }
 
-    const startDateTime = `${formData.startDate}T${formData.startTime}:00`;
-    const endDateTime = `${formData.endDate}T${formData.endTime}:00`;
+    try {
+      setLoading(true);
 
-    await Swal.fire({
-      icon: 'success',
-      title: 'สร้างข้อสอบสำเร็จ!',
-      text: 'ข้อสอบถูกสร้างเรียบร้อยแล้ว',
-      timer: 1500,
-      showConfirmButton: false,
-    });
+      const startDateTime = `${formData.startDate}T${formData.startTime}:00`;
+      const endDateTime = `${formData.endDate}T${formData.endTime}:00`;
 
-    router.push('/exams');
+      const response = await examsApi.create({
+        courseId: formData.courseId,
+        title: formData.title,
+        type: formData.type,
+        duration: parseInt(formData.duration),
+        totalQuestions: getTotalQuestions(),
+        totalScore: parseInt(formData.totalScore),
+        passingScore: parseInt(formData.passingScore),
+        startDate: startDateTime,
+        endDate: endDateTime,
+        useRandomQuestions,
+        questionSelections: useRandomQuestions ? questionSelections.map(s => ({
+          categoryId: s.categoryId,
+          categoryName: s.categoryName,
+          questionCount: s.questionCount,
+          difficulty: s.difficulty ? s.difficulty.toUpperCase() as 'EASY' | 'MEDIUM' | 'HARD' : undefined,
+        })) : undefined,
+      });
+
+      if (response.success) {
+        await Swal.fire({
+          icon: 'success',
+          title: 'สร้างข้อสอบสำเร็จ!',
+          text: 'ข้อสอบถูกสร้างเรียบร้อยแล้ว',
+          timer: 1500,
+          showConfirmButton: false,
+        });
+
+        router.push('/exams');
+      } else {
+        throw new Error(response.error || 'ไม่สามารถสร้างข้อสอบได้');
+      }
+    } catch (error: any) {
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: error.message || 'ไม่สามารถสร้างข้อสอบได้',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -210,7 +263,7 @@ export default function NewExamPage() {
                     required
                   >
                     <option value="">เลือกหลักสูตร</option>
-                    {mockCourses.map((course) => (
+                    {courses.map((course) => (
                       <option key={course.id} value={course.id}>
                         {course.title}
                       </option>
@@ -223,12 +276,13 @@ export default function NewExamPage() {
                   </label>
                   <select
                     value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
+                    onChange={(e) => setFormData({ ...formData, type: e.target.value as 'QUIZ' | 'MIDTERM' | 'FINAL' })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    required
                   >
-                    <option value="quiz">แบบทดสอบ</option>
-                    <option value="midterm">สอบกลางภาค</option>
-                    <option value="final">สอบปลายภาค</option>
+                    <option value="QUIZ">แบบทดสอบ (Quiz)</option>
+                    <option value="MIDTERM">สอบกลางภาค (Midterm)</option>
+                    <option value="FINAL">สอบปลายภาค (Final)</option>
                   </select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -490,9 +544,18 @@ export default function NewExamPage() {
               >
                 ยกเลิก
               </Button>
-              <Button type="submit" className="flex-1">
-                <CheckIcon className="h-5 w-5 mr-2 inline" />
-                สร้างข้อสอบ
+              <Button type="submit" className="flex-1" disabled={loading}>
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2 inline-block"></div>
+                    กำลังสร้าง...
+                  </>
+                ) : (
+                  <>
+                    <CheckIcon className="h-5 w-5 mr-2 inline" />
+                    สร้างข้อสอบ
+                  </>
+                )}
               </Button>
             </div>
           </div>
