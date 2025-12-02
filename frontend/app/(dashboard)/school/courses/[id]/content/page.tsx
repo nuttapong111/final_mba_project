@@ -8,7 +8,7 @@ import Input from '@/components/ui/Input';
 import { PlusIcon, XMarkIcon, ChevronUpIcon, ChevronDownIcon, Bars3Icon } from '@heroicons/react/24/outline';
 import Swal from 'sweetalert2';
 import { type Lesson, type LessonContent, type Poll, type QuestionCategory, type ExamQuestionSelection, type QuizSettings } from '@/lib/mockData';
-import { coursesApi, pollsApi, uploadApi, questionBanksApi } from '@/lib/api';
+import { coursesApi, pollsApi, uploadApi, questionBanksApi, assignmentsApi } from '@/lib/api';
 
 // Component สำหรับการตั้งค่าข้อสอบ
 function QuizSettingsForm({
@@ -553,6 +553,7 @@ export default function CourseContentPage() {
   };
 
   const [availablePolls, setAvailablePolls] = useState<Array<{ id: string; title: string; poll: Poll }>>([]);
+  const [availableAssignments, setAvailableAssignments] = useState<Array<{ id: string; title: string; assignment: any }>>([]);
 
   // ดึง polls ทั้งหมดที่สร้างไว้แล้วจาก API
   useEffect(() => {
@@ -576,6 +577,28 @@ export default function CourseContentPage() {
     fetchPolls();
   }, [courseId]);
 
+  // ดึง assignments ทั้งหมดที่สร้างไว้แล้วจาก API
+  useEffect(() => {
+    const fetchAssignments = async () => {
+      try {
+        const response = await assignmentsApi.getByCourse(courseId);
+        if (response.success && response.data) {
+          // แปลงข้อมูลจาก API เป็นรูปแบบที่ใช้ในหน้า content
+          const assignments = response.data.map((assignment: any) => ({
+            id: assignment.id,
+            title: assignment.title,
+            assignment: assignment,
+          }));
+          setAvailableAssignments(assignments);
+        }
+      } catch (error) {
+        console.error('Error fetching assignments:', error);
+      }
+    };
+
+    fetchAssignments();
+  }, [courseId]);
+
   const handleSelectPoll = (lessonIndex: number, contentIndex: number, pollId: string) => {
     const selectedPoll = availablePolls.find(p => p.poll.id === pollId);
     if (selectedPoll) {
@@ -584,6 +607,19 @@ export default function CourseContentPage() {
         ...updated[lessonIndex].contents[contentIndex],
         poll: selectedPoll.poll,
         title: selectedPoll.title || selectedPoll.poll.title,
+      };
+      setLessons(updated);
+    }
+  };
+
+  const handleSelectAssignment = (lessonIndex: number, contentIndex: number, assignmentId: string) => {
+    const selectedAssignment = availableAssignments.find(a => a.assignment.id === assignmentId);
+    if (selectedAssignment) {
+      const updated = [...lessons];
+      updated[lessonIndex].contents[contentIndex] = {
+        ...updated[lessonIndex].contents[contentIndex],
+        assignment: selectedAssignment.assignment,
+        title: selectedAssignment.title || selectedAssignment.assignment.title,
       };
       setLessons(updated);
     }
