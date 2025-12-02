@@ -26,6 +26,8 @@ function QuizSettingsForm({
 }) {
   const [categories, setCategories] = useState<QuestionCategory[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
+  const [questionBankId, setQuestionBankId] = useState<string | null>(null);
+  const [difficultyCounts, setDifficultyCounts] = useState<Record<string, Record<string, number>>>({}); // { categoryId: { easy: 5, medium: 3, hard: 2 } }
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -33,6 +35,7 @@ function QuizSettingsForm({
         setLoadingCategories(true);
         const response = await questionBanksApi.getByCourse(courseId);
         if (response.success && response.data) {
+          setQuestionBankId(response.data.id);
           const categoriesFromApi = response.data.categories.map((cat: any) => ({
             id: cat.id,
             name: cat.name,
@@ -42,6 +45,29 @@ function QuizSettingsForm({
             createdAt: cat.createdAt || new Date().toISOString(),
           }));
           setCategories(categoriesFromApi);
+          
+          // Fetch question counts by difficulty for each category
+          if (response.data.id) {
+            const counts: Record<string, Record<string, number>> = {};
+            for (const cat of categoriesFromApi) {
+              try {
+                const [easyRes, mediumRes, hardRes] = await Promise.all([
+                  questionBanksApi.getQuestions(response.data.id, { categoryId: cat.id, difficulty: 'easy' }),
+                  questionBanksApi.getQuestions(response.data.id, { categoryId: cat.id, difficulty: 'medium' }),
+                  questionBanksApi.getQuestions(response.data.id, { categoryId: cat.id, difficulty: 'hard' }),
+                ]);
+                counts[cat.id] = {
+                  easy: easyRes.success ? easyRes.data.length : 0,
+                  medium: mediumRes.success ? mediumRes.data.length : 0,
+                  hard: hardRes.success ? hardRes.data.length : 0,
+                };
+              } catch (error) {
+                console.error(`Error fetching difficulty counts for category ${cat.id}:`, error);
+                counts[cat.id] = { easy: 0, medium: 0, hard: 0 };
+              }
+            }
+            setDifficultyCounts(counts);
+          }
         }
       } catch (error) {
         console.error('Error fetching categories:', error);
@@ -318,6 +344,33 @@ function QuizSettingsForm({
                     </div>
                     <div className="flex-1">
                       <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                        ระดับความยาก
+                      </label>
+                      <select
+                        value={selection.difficulty || ''}
+                        onChange={(e) => {
+                          const newDifficulty = e.target.value || undefined;
+                          handleUpdateCategorySelection(index, 'difficulty', newDifficulty);
+                          
+                          // Reset question count if difficulty changes and current count exceeds available
+                          if (newDifficulty && category) {
+                            // This will be validated when fetching question count by difficulty
+                            // For now, just update the difficulty
+                          }
+                        }}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      >
+                        <option value="">ทั้งหมด</option>
+                        <option value="easy">ง่าย</option>
+                        <option value="medium">ปานกลาง</option>
+                        <option value="hard">ยาก</option>
+                      </select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        เลือกระดับความยาก (ถ้าไม่เลือกจะสุ่มทั้งหมด)
+                      </p>
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs font-medium text-gray-700 mb-1.5">
                         จำนวนข้อ
                       </label>
                       <input
@@ -335,29 +388,15 @@ function QuizSettingsForm({
                       />
                       {category && (
                         <p className="text-xs text-gray-500 mt-1">
-                          สูงสุด {category.questionCount} ข้อ
+                          {selection.difficulty ? (
+                            <span className="text-orange-600 font-medium">
+                              สูงสุด {category.questionCount} ข้อ (กรุณาตรวจสอบจำนวนข้อในระดับความยากที่เลือก)
+                            </span>
+                          ) : (
+                            <span>สูงสุด {category.questionCount} ข้อ</span>
+                          )}
                         </p>
                       )}
-                    </div>
-                    <div className="flex-1">
-                      <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                        ระดับความยาก
-                      </label>
-                      <select
-                        value={selection.difficulty || ''}
-                        onChange={(e) => {
-                          handleUpdateCategorySelection(index, 'difficulty', e.target.value || undefined);
-                        }}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                      >
-                        <option value="">ทั้งหมด</option>
-                        <option value="easy">ง่าย</option>
-                        <option value="medium">ปานกลาง</option>
-                        <option value="hard">ยาก</option>
-                      </select>
-                      <p className="text-xs text-gray-500 mt-1">
-                        เลือกระดับความยาก (ถ้าไม่เลือกจะสุ่มทั้งหมด)
-                      </p>
                     </div>
                     <div className="flex items-end">
                       <button
