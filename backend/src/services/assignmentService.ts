@@ -89,9 +89,27 @@ export const getAssignmentsByCourse = async (courseId: string, user: AuthUser) =
         try {
           const { getPresignedUrl } = await import('./s3Service');
           fileUrl = await getPresignedUrl(assignment.s3Key, 3600); // 1 hour expiry
+          console.log(`[ASSIGNMENT] Generated presigned URL for assignment ${assignment.id}: ${fileUrl.substring(0, 50)}...`);
         } catch (error) {
           console.error(`[ASSIGNMENT] Failed to generate presigned URL for ${assignment.s3Key}:`, error);
-          // Fallback to original fileUrl
+          // Fallback to original fileUrl or try to construct URL from s3Key
+          if (!fileUrl && assignment.s3Key) {
+            // Try to use file API endpoint as fallback
+            const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:3001';
+            fileUrl = `${apiBaseUrl}/api/files/s3/${assignment.s3Key}`;
+          }
+        }
+      } else if (!fileUrl && assignment.fileName) {
+        // If no s3Key and no fileUrl, try to find file in S3 by fileName
+        try {
+          const { findFileInS3, getPresignedUrl } = await import('./s3Service');
+          const foundS3Key = await findFileInS3(assignment.fileName);
+          if (foundS3Key) {
+            fileUrl = await getPresignedUrl(foundS3Key, 3600);
+            console.log(`[ASSIGNMENT] Found file in S3 by fileName for assignment ${assignment.id}`);
+          }
+        } catch (error) {
+          console.error(`[ASSIGNMENT] Failed to find file in S3 by fileName:`, error);
         }
       }
 

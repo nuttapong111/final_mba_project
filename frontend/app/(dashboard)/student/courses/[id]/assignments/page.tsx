@@ -233,30 +233,52 @@ export default function StudentAssignmentsPage() {
                           <span className="font-medium">คะแนนเต็ม: {assignment.maxScore} คะแนน</span>
                         </div>
                       </div>
-                      {assignment.fileName && assignment.fileUrl && (
+                      {assignment.fileName && assignment.fileUrl ? (
                         <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                          <div className="flex items-center space-x-2">
-                            <DocumentArrowUpIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                          <div className="flex items-start space-x-3">
+                            <DocumentArrowUpIcon className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 mb-1">ไฟล์การบ้าน</p>
+                              <p className="text-sm font-medium text-gray-900 mb-2">ไฟล์การบ้าน</p>
                               <a
                                 href={assignment.fileUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-700 underline text-sm break-words"
-                                download
+                                className="inline-flex items-center text-blue-600 hover:text-blue-700 underline text-sm font-medium break-words"
+                                download={assignment.fileName}
+                                onClick={(e) => {
+                                  // Log for debugging
+                                  console.log('[ASSIGNMENT] Downloading file:', {
+                                    fileName: assignment.fileName,
+                                    fileUrl: assignment.fileUrl,
+                                    fileSize: assignment.fileSize,
+                                  });
+                                }}
                               >
-                                {assignment.fileName}
+                                <DocumentArrowUpIcon className="h-4 w-4 mr-1.5 flex-shrink-0" />
+                                <span className="break-words">{assignment.fileName}</span>
                               </a>
                               {assignment.fileSize && (
-                                <p className="text-xs text-gray-500 mt-1">
+                                <p className="text-xs text-gray-500 mt-2">
                                   ขนาด: {formatFileSize(assignment.fileSize)}
                                 </p>
                               )}
                             </div>
                           </div>
                         </div>
-                      )}
+                      ) : assignment.fileName && !assignment.fileUrl ? (
+                        <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                          <div className="flex items-start space-x-2">
+                            <DocumentArrowUpIcon className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-yellow-900 mb-1">ไฟล์การบ้าน</p>
+                              <p className="text-sm text-yellow-800">{assignment.fileName}</p>
+                              <p className="text-xs text-yellow-600 mt-1">
+                                กำลังโหลดไฟล์... กรุณารอสักครู่
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
 
                     {submission && (
@@ -269,27 +291,50 @@ export default function StudentAssignmentsPage() {
                             </span>
                           )}
                         </div>
-                        {submission.fileName && submission.fileUrl && (
+                        {submission.fileName && submission.fileUrl ? (
                           <div className="p-3 bg-white rounded-lg border border-gray-200 mb-3">
-                            <div className="flex items-center space-x-2">
-                              <DocumentArrowUpIcon className="h-5 w-5 text-blue-600" />
-                              <div className="flex-1">
+                            <div className="flex items-start space-x-3">
+                              <DocumentArrowUpIcon className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                              <div className="flex-1 min-w-0">
                                 <a
                                   href={submission.fileUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-blue-600 hover:text-blue-700 underline text-sm font-medium"
-                                  download
+                                  className="inline-flex items-center text-blue-600 hover:text-blue-700 underline text-sm font-medium break-words"
+                                  download={submission.fileName}
+                                  onClick={(e) => {
+                                    console.log('[ASSIGNMENT] Downloading submission file:', {
+                                      fileName: submission.fileName,
+                                      fileUrl: submission.fileUrl,
+                                      fileSize: submission.fileSize,
+                                    });
+                                  }}
                                 >
-                                  {submission.fileName}
+                                  <DocumentArrowUpIcon className="h-4 w-4 mr-1.5 flex-shrink-0" />
+                                  <span className="break-words">{submission.fileName}</span>
                                 </a>
-                                <p className="text-xs text-gray-500 mt-1">
-                                  ขนาด: {formatFileSize(submission.fileSize)}
+                                {submission.fileSize && (
+                                  <p className="text-xs text-gray-500 mt-2">
+                                    ขนาด: {formatFileSize(submission.fileSize)}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ) : submission.fileName && !submission.fileUrl ? (
+                          <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200 mb-3">
+                            <div className="flex items-start space-x-2">
+                              <DocumentArrowUpIcon className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-yellow-900 mb-1">ไฟล์ที่ส่ง</p>
+                                <p className="text-sm text-yellow-800">{submission.fileName}</p>
+                                <p className="text-xs text-yellow-600 mt-1">
+                                  กำลังโหลดไฟล์... กรุณารอสักครู่
                                 </p>
                               </div>
                             </div>
                           </div>
-                        )}
+                        ) : null}
                         {submission.score !== null && submission.score !== undefined && (
                           <div className="pt-3 border-t border-gray-200">
                             <div className="flex items-center justify-between mb-2">
