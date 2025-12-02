@@ -7,6 +7,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { coursesApi } from '@/lib/api';
 import VideoPlayer from '@/components/VideoPlayer';
+import YouTubePlayer from '@/components/YouTubePlayer';
 import {
   PlayIcon,
   DocumentTextIcon,
@@ -429,13 +430,13 @@ export default function StudentContentPage() {
                 if (youtubeMatch) {
                   const videoId = youtubeMatch[1];
                   return (
-                    <iframe
-                      src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
-                      className="w-full h-full"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
+                    <YouTubePlayer
+                      videoId={videoId}
                       title={currentContent.title}
-                      onLoad={handleContentComplete}
+                      contentId={currentContent.id}
+                      courseId={courseId}
+                      onComplete={handleContentComplete}
+                      className="w-full h-full"
                     />
                   );
                 } else if (vimeoMatch) {

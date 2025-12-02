@@ -7,6 +7,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { coursesApi, webboardApi } from '@/lib/api';
 import dynamic from 'next/dynamic';
+import YouTubePlayer from '@/components/YouTubePlayer';
 
 const StudentAssignmentsPage = dynamic(
   () => import('./assignments/page'),
