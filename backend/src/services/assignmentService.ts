@@ -455,10 +455,13 @@ const updateAssignmentContentProgress = async (
 ) => {
   try {
     // Find LessonContent that is linked to this assignment
+    // LessonContent doesn't have courseId directly, need to use lesson relation
     const content = await prisma.lessonContent.findFirst({
       where: {
         assignmentId: assignmentId,
-        courseId: courseId,
+        lesson: {
+          courseId: courseId,
+        },
       },
       select: {
         id: true,
