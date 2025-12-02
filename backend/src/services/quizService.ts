@@ -212,6 +212,10 @@ export const submitQuiz = async (
     const examType = quizSettings?.examType || 'QUIZ';
 
     // Create exam from quiz content
+    // Set dates to allow immediate submission (startDate = now, endDate = far future)
+    const now = new Date();
+    const farFuture = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000); // 1 year from now
+    
     const exam = await prisma.exam.create({
       data: {
         courseId: courseId,
@@ -220,8 +224,8 @@ export const submitQuiz = async (
         duration: content.quizSettings?.duration || 60,
         totalQuestions: data.answers.length,
         totalScore: totalScore,
-        startDate: content.quizSettings?.startDate || new Date(),
-        endDate: content.quizSettings?.endDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
+        startDate: now, // Always allow immediate submission
+        endDate: farFuture, // Allow submission for 1 year
         passingScore: content.quizSettings?.passingPercentage || 70,
       },
     });
@@ -248,10 +252,27 @@ export const submitQuiz = async (
     }
   }
 
+  // Ensure examId exists
+  if (!examId) {
+    throw new Error('ไม่พบข้อสอบ');
+  }
+
+  // Check if already submitted (before submitting)
+  const existingSubmission = await prisma.examSubmission.findFirst({
+    where: {
+      examId: examId,
+      studentId: user.id,
+    },
+  });
+
+  if (existingSubmission) {
+    throw new Error('คุณได้ส่งข้อสอบนี้แล้ว');
+  }
+
   // Submit exam
   const submission = await submitExam(
     {
-      examId,
+      examId: examId,
       answers: data.answers,
       timeSpent: data.timeSpent,
     },

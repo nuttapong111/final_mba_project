@@ -18,6 +18,13 @@ export const submitQuizController = async (c: Context) => {
     const contentId = c.req.param('contentId');
     const data = await c.req.json();
 
+    console.log('[submitQuizController] Received data:', {
+      contentId,
+      answersCount: data.answers?.length || 0,
+      timeSpent: data.timeSpent,
+      userId: user.id,
+    });
+
     const submission = await submitQuiz(contentId, data, user);
 
     return c.json({
@@ -26,6 +33,7 @@ export const submitQuizController = async (c: Context) => {
       message: 'ส่งข้อสอบสำเร็จ',
     });
   } catch (error: any) {
+    console.error('[submitQuizController] Error:', error);
     return c.json({ success: false, error: error.message }, 400);
   }
 };
