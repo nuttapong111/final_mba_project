@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { coursesApi } from '@/lib/api';
+import { coursesApi, contentProgressApi } from '@/lib/api';
 import VideoPlayer from '@/components/VideoPlayer';
 import YouTubePlayer from '@/components/YouTubePlayer';
 import {
@@ -62,6 +62,7 @@ export default function StudentContentPage() {
   const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
   const [contentUrl, setContentUrl] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const documentMarkedRef = useRef<Set<string>>(new Set()); // Track which documents have been marked as completed
 
   // Convert fileUrl to full URL if needed
   // Supports both S3 URLs and local storage URLs
@@ -292,9 +293,20 @@ export default function StudentContentPage() {
     return completedContents.has(contentId);
   };
 
-  const handleContentComplete = () => {
+  const handleContentComplete = async () => {
     if (currentContent) {
       setCompletedContents(new Set([...completedContents, currentContent.id]));
+      
+      // Mark document as completed when viewed (only once per document)
+      if (currentContent.type === 'document' && !documentMarkedRef.current.has(currentContent.id)) {
+        try {
+          await contentProgressApi.markContentCompleted(currentContent.id, courseId);
+          documentMarkedRef.current.add(currentContent.id);
+          console.log(`[ContentProgress] Marked document ${currentContent.id} as completed`);
+        } catch (error) {
+          console.error('Error marking document as completed:', error);
+        }
+      }
     }
   };
 
