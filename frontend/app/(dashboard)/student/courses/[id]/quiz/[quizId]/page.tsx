@@ -113,50 +113,13 @@ export default function StudentQuizPage() {
     fetchQuiz();
   }, [quizId, router]);
 
-  // Timer countdown
-  useEffect(() => {
-    if (timeRemaining === null || timeRemaining <= 0 || isSubmitted) return;
-
-    const timer = setInterval(() => {
-      setTimeRemaining((prev) => {
-        if (prev === null || prev <= 1) {
-          clearInterval(timer);
-          // Auto submit when time runs out
-          handleSubmit();
-          return 0;
-        }
-        
-        // Update elapsed time
-        setElapsedTime((prevElapsed) => {
-          const newElapsed = prevElapsed + 1;
-          
-          // Save to localStorage every 5 seconds
-          if (newElapsed % 5 === 0 && startTime) {
-            const storageKey = `quiz_timer_${quizId}`;
-            localStorage.setItem(storageKey, JSON.stringify({
-              startTime: startTime,
-              elapsedTime: newElapsed,
-              totalDuration: (quizSettings?.duration || 60) * 60,
-            }));
-          }
-          
-          return newElapsed;
-        });
-        
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [timeRemaining, isSubmitted, startTime, quizId, quizSettings, handleSubmit]);
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (isSubmitted || submitting) return;
 
     setSubmitting(true);
@@ -241,10 +204,47 @@ export default function StudentQuizPage() {
         text: error.message || 'ไม่สามารถส่งข้อสอบได้',
       });
     }
-  };
+  }, [isSubmitted, submitting, elapsedTime, startTime, quizId, questions, answers, quizSettings, courseId, router]);
+
+  // Timer countdown
+  useEffect(() => {
+    if (timeRemaining === null || timeRemaining <= 0 || isSubmitted) return;
+
+    const timer = setInterval(() => {
+      setTimeRemaining((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(timer);
+          // Auto submit when time runs out
+          handleSubmit();
+          return 0;
+        }
+        
+        // Update elapsed time
+        setElapsedTime((prevElapsed) => {
+          const newElapsed = prevElapsed + 1;
+          
+          // Save to localStorage every 5 seconds
+          if (newElapsed % 5 === 0 && startTime) {
+            const storageKey = `quiz_timer_${quizId}`;
+            localStorage.setItem(storageKey, JSON.stringify({
+              startTime: startTime,
+              elapsedTime: newElapsed,
+              totalDuration: (quizSettings?.duration || 60) * 60,
+            }));
+          }
+          
+          return newElapsed;
+        });
+        
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeRemaining, isSubmitted, startTime, quizId, quizSettings, handleSubmit]);
 
   if (loading) {
-  return (
+    return (
       <Card>
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
