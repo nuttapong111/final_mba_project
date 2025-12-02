@@ -52,7 +52,7 @@ export interface QuizSettings {
 
 export interface LessonContent {
   id: string;
-  type: 'video' | 'document' | 'live_link' | 'quiz' | 'pre_test' | 'poll' | 'assignment' | 'exam';
+  type: 'video' | 'document' | 'live_link' | 'quiz' | 'pre_test' | 'poll' | 'assignment';
   title: string;
   url?: string;
   fileUrl?: string;
@@ -62,7 +62,6 @@ export interface LessonContent {
   order: number;
   poll?: Poll; // For poll type
   assignment?: any; // For assignment type
-  exam?: any; // For exam type
   quizSettings?: QuizSettings; // For quiz type
 }
 
