@@ -117,8 +117,7 @@ export default function YouTubePlayer({
             }
 
             // Set up progress tracking
-            const intervalId = setupProgressTracking(event.target);
-            progressIntervalRef.current = intervalId;
+            setupProgressTracking(event.target);
           },
           onStateChange: (event: any) => {
             // YouTube player states: -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (cued)
@@ -139,8 +138,13 @@ export default function YouTubePlayer({
   };
 
   const setupProgressTracking = (player: any) => {
+    // Clear existing interval if any
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+    }
+
     // Track progress every second
-    const progressInterval = setInterval(async () => {
+    progressIntervalRef.current = setInterval(async () => {
       if (!player || !player.getCurrentTime || !player.getDuration) {
         return;
       }
@@ -175,9 +179,6 @@ export default function YouTubePlayer({
         console.error('[YouTubePlayer] Error tracking progress:', error);
       }
     }, 1000); // Check every second
-
-    // Store interval ID for cleanup
-    return progressInterval;
   };
 
   const handleVideoEnd = async () => {
