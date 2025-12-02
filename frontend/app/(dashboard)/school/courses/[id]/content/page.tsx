@@ -1453,6 +1453,65 @@ export default function CourseContentPage() {
                       )}
                     </div>
                   )}
+
+                  {/* Assignment Selector */}
+                  {content.type === 'assignment' && (
+                    <div className="ml-8 mt-4 space-y-4 p-4 bg-white rounded-lg border border-blue-200">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          เลือกการบ้าน *
+                        </label>
+                        {availableAssignments.length === 0 ? (
+                          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <p className="text-sm text-yellow-800">
+                              ยังไม่มีข้อมูลการบ้านที่สร้างไว้ กรุณาไปที่แท็บ "การบ้าน" เพื่อสร้างการบ้านก่อน
+                            </p>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="mt-2"
+                              onClick={() => router.push(`/school/courses/${courseId}/assignments`)}
+                            >
+                              ไปที่แท็บการบ้าน
+                            </Button>
+                          </div>
+                        ) : (
+                          <select
+                            value={content.assignment?.id || ''}
+                            onChange={(e) => handleSelectAssignment(lessonIndex, contentIndex, e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                            required
+                          >
+                            <option value="">-- เลือกการบ้าน --</option>
+                            {availableAssignments.map((assignment) => (
+                              <option key={assignment.assignment.id} value={assignment.assignment.id}>
+                                {assignment.title}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                      {content.assignment && (
+                        <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                          <h4 className="font-medium text-gray-900 mb-2">{content.assignment.title}</h4>
+                          {content.assignment.description && (
+                            <p className="text-sm text-gray-600 mb-3">{content.assignment.description}</p>
+                          )}
+                          <div className="flex items-center space-x-4 text-xs text-gray-500">
+                            {content.assignment.dueDate && (
+                              <span>
+                                กำหนดส่ง: {new Date(content.assignment.dueDate).toLocaleDateString('th-TH')}
+                              </span>
+                            )}
+                            <span>
+                              คะแนนเต็ม: {content.assignment.maxScore} คะแนน
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
 
