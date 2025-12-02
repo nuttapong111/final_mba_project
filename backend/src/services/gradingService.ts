@@ -81,6 +81,11 @@ export const getGradingSystem = async (courseId: string, user: AuthUser) => {
           minScore: 'desc',
         },
       },
+      quizRequirements: {
+        orderBy: {
+          createdAt: 'asc',
+        },
+      },
     },
   });
 
