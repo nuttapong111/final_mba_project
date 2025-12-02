@@ -339,6 +339,26 @@ function QuizSettingsForm({
                         </p>
                       )}
                     </div>
+                    <div className="flex-1">
+                      <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                        ระดับความยาก
+                      </label>
+                      <select
+                        value={selection.difficulty || ''}
+                        onChange={(e) => {
+                          handleUpdateCategorySelection(index, 'difficulty', e.target.value || undefined);
+                        }}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      >
+                        <option value="">ทั้งหมด</option>
+                        <option value="easy">ง่าย</option>
+                        <option value="medium">ปานกลาง</option>
+                        <option value="hard">ยาก</option>
+                      </select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        เลือกระดับความยาก (ถ้าไม่เลือกจะสุ่มทั้งหมด)
+                      </p>
+                    </div>
                     <div className="flex items-end">
                       <button
                         type="button"

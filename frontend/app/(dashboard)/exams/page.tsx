@@ -33,10 +33,11 @@ export default function ExamsPage() {
           <h1 className="text-3xl font-bold text-gray-900">จัดการข้อสอบ</h1>
           <p className="text-gray-600 mt-1">สร้างและจัดการข้อสอบทั้งหมด</p>
         </div>
-        <Button onClick={handleCreateExam}>
+        {/* ปุ่มสร้างข้อสอบถูกย้ายไปที่หน้าจัดการเนื้อหาหลักสูตรแล้ว */}
+        {/* <Button onClick={handleCreateExam}>
           <PlusIcon className="h-5 w-5 mr-2 inline" />
           สร้างข้อสอบใหม่
-        </Button>
+        </Button> */}
       </div>
 
       {/* Exams List */}
@@ -108,10 +109,8 @@ export default function ExamsPage() {
         <Card>
           <div className="text-center py-12">
             <DocumentTextIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">ยังไม่มีข้อสอบ</p>
-            <Button onClick={handleCreateExam} className="mt-4">
-              สร้างข้อสอบแรกของคุณ
-            </Button>
+            <p className="text-gray-600 mb-2">การสร้างข้อสอบถูกย้ายไปที่หน้าจัดการเนื้อหาหลักสูตรแล้ว</p>
+            <p className="text-sm text-gray-500">กรุณาไปที่หลักสูตรที่ต้องการ และเพิ่มแบบทดสอบในแท็บ "เนื้อหา"</p>
           </div>
         </Card>
       )}

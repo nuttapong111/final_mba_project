@@ -146,13 +146,14 @@ export default function DashboardPage() {
             <AcademicCapIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
             <p className="font-medium text-gray-900">สร้างหลักสูตรใหม่</p>
           </a>
-          <a
+          {/* การสร้างข้อสอบถูกย้ายไปที่หน้าจัดการเนื้อหาหลักสูตรแล้ว */}
+          {/* <a
             href="/exams/new"
             className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors text-center"
           >
             <DocumentTextIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
             <p className="font-medium text-gray-900">สร้างข้อสอบใหม่</p>
-          </a>
+          </a> */}
           <a
             href="/live-class/new"
             className="p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors text-center"

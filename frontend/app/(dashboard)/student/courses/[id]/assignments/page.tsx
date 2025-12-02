@@ -236,18 +236,23 @@ export default function StudentAssignmentsPage() {
                       {assignment.fileName && assignment.fileUrl && (
                         <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
                           <div className="flex items-center space-x-2">
-                            <DocumentArrowUpIcon className="h-5 w-5 text-blue-600" />
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-gray-900">ไฟล์การบ้าน</p>
+                            <DocumentArrowUpIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 mb-1">ไฟล์การบ้าน</p>
                               <a
                                 href={assignment.fileUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-700 underline text-sm"
+                                className="text-blue-600 hover:text-blue-700 underline text-sm break-words"
                                 download
                               >
-                                {assignment.fileName} ({formatFileSize(assignment.fileSize)})
+                                {assignment.fileName}
                               </a>
+                              {assignment.fileSize && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  ขนาด: {formatFileSize(assignment.fileSize)}
+                                </p>
+                              )}
                             </div>
                           </div>
                         </div>
