@@ -272,18 +272,29 @@ export default function NewExamPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    ประเภทข้อสอบ
+                    ประเภทข้อสอบ *
                   </label>
                   <select
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value as 'QUIZ' | 'MIDTERM' | 'FINAL' })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none cursor-pointer"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                      backgroundPosition: 'right 0.5rem center',
+                      backgroundRepeat: 'no-repeat',
+                      backgroundSize: '1.5em 1.5em',
+                      paddingRight: '2.5rem',
+                    }}
                     required
                   >
+                    <option value="">-- เลือกประเภทข้อสอบ --</option>
                     <option value="QUIZ">แบบทดสอบ (Quiz)</option>
                     <option value="MIDTERM">สอบกลางภาค (Midterm)</option>
                     <option value="FINAL">สอบปลายภาค (Final)</option>
                   </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    เลือกประเภทข้อสอบที่ต้องการสร้าง
+                  </p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <Input
