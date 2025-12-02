@@ -330,13 +330,21 @@ model CourseCompletionRequirements {
 // Quiz Passing Requirements
 model QuizPassingRequirement {
   id                String   @id @default(uuid())
-  requirementsId    String
+  requirementsId    String?
+  gradingSystemId   String?
   quizId            String
   quizTitle         String
-  passingPercentage Int
+  passingPercentage Float
   required          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  requirements      CourseCompletionRequirements @relation(fields: [requirementsId], references: [id], onDelete: Cascade)
+  requirements      CourseCompletionRequirements? @relation(fields: [requirementsId], references: [id], onDelete: Cascade)
+  gradingSystem     GradingSystem? @relation(fields: [gradingSystemId], references: [id], onDelete: Cascade)
+
+  @@index([requirementsId])
+  @@index([gradingSystemId])
+  @@index([quizId])
 }
 
 // Live Sessions
@@ -735,11 +743,22 @@ model GradingSystem {
   courseId      String   @unique
   systemType    GradingSystemType @default(PASS_FAIL)
   passingScore  Float?   // For PASS_FAIL system
+  
+  // Completion requirements (for both systems)
+  requireProgress Boolean @default(true)
+  minProgressPercentage Float? // Percentage required for completion
+  requireAllQuizzes Boolean @default(false)
+  minQuizPassingPercentage Float? // Minimum quiz passing percentage
+  
+  // Certificate requirements (for GRADE system)
+  certificateMinGrade String? // Minimum grade required for certificate (e.g., "B")
+  
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   criteria      GradeCriteria[]
+  quizRequirements QuizPassingRequirement[]
 }
 
 // Grade Criteria (for GRADE system)

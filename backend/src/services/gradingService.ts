@@ -6,11 +6,21 @@ export interface CreateGradingSystemData {
   courseId: string;
   systemType: 'PASS_FAIL' | 'GRADE';
   passingScore?: number;
+  requireProgress?: boolean;
+  minProgressPercentage?: number;
+  requireAllQuizzes?: boolean;
+  minQuizPassingPercentage?: number;
+  certificateMinGrade?: string | null;
 }
 
 export interface UpdateGradingSystemData {
   systemType?: 'PASS_FAIL' | 'GRADE';
   passingScore?: number;
+  requireProgress?: boolean;
+  minProgressPercentage?: number;
+  requireAllQuizzes?: boolean;
+  minQuizPassingPercentage?: number;
+  certificateMinGrade?: string | null;
 }
 
 export interface CreateGradeCriteriaData {
@@ -124,6 +134,11 @@ export const createGradingSystem = async (data: CreateGradingSystemData, user: A
       courseId: data.courseId,
       systemType: data.systemType as GradingSystemType,
       passingScore: data.passingScore || null,
+      requireProgress: data.requireProgress ?? true,
+      minProgressPercentage: data.minProgressPercentage || null,
+      requireAllQuizzes: data.requireAllQuizzes ?? false,
+      minQuizPassingPercentage: data.minQuizPassingPercentage || null,
+      certificateMinGrade: data.certificateMinGrade || null,
     },
   });
 
@@ -158,6 +173,11 @@ export const updateGradingSystem = async (courseId: string, data: UpdateGradingS
     data: {
       systemType: data.systemType as GradingSystemType | undefined,
       passingScore: data.passingScore,
+      requireProgress: data.requireProgress,
+      minProgressPercentage: data.minProgressPercentage,
+      requireAllQuizzes: data.requireAllQuizzes,
+      minQuizPassingPercentage: data.minQuizPassingPercentage,
+      certificateMinGrade: data.certificateMinGrade,
     },
   });
 
