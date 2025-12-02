@@ -22,9 +22,7 @@ export default function ExamsPage() {
     return mockCourses.find(c => c.id === courseId)?.title || 'ไม่พบหลักสูตร';
   };
 
-  const handleCreateExam = () => {
-    router.push('/exams/new');
-  };
+  // การสร้างข้อสอบถูกย้ายไปที่หน้าจัดการเนื้อหาหลักสูตรแล้ว
 
   return (
     <div className="space-y-6">

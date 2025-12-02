@@ -12,25 +12,6 @@ export interface SubmitExamData {
   timeSpent?: number; // in minutes
 }
 
-export interface CreateExamData {
-  courseId: string;
-  title: string;
-  type: 'QUIZ' | 'MIDTERM' | 'FINAL';
-  duration: number; // in minutes
-  totalQuestions: number;
-  totalScore: number;
-  passingScore: number;
-  startDate: Date;
-  endDate: Date;
-  useRandomQuestions: boolean;
-  questionSelections?: Array<{
-    categoryId: string;
-    categoryName: string;
-    questionCount: number;
-    difficulty?: 'EASY' | 'MEDIUM' | 'HARD';
-  }>;
-}
-
 export const getExamsByCourse = async (courseId: string, user: AuthUser) => {
   // Check if course exists
   const course = await prisma.course.findUnique({
@@ -66,58 +47,6 @@ export const getExamsByCourse = async (courseId: string, user: AuthUser) => {
   });
 
   return exams;
-};
-
-export const createExam = async (data: CreateExamData, user: AuthUser) => {
-  // Check if course exists
-  const course = await prisma.course.findUnique({
-    where: { id: data.courseId },
-    include: {
-      teachers: {
-        where: { teacherId: user.id },
-      },
-    },
-  });
-
-  if (!course) {
-    throw new Error('ไม่พบหลักสูตร');
-  }
-
-  // Check permission
-  const isTeacher = course.instructorId === user.id;
-  const isAdmin = user.role === 'SUPER_ADMIN' || (user.role === 'SCHOOL_ADMIN' && course.schoolId === user.schoolId);
-  const isCourseTeacher = course.teachers.length > 0;
-
-  if (!isTeacher && !isAdmin && !isCourseTeacher) {
-    throw new Error('ไม่มีสิทธิ์สร้างข้อสอบ');
-  }
-
-  // Validate dates
-  if (data.startDate >= data.endDate) {
-    throw new Error('วันที่สิ้นสุดต้องมากกว่าวันที่เริ่มสอบ');
-  }
-
-  // Create exam
-  const exam = await prisma.exam.create({
-    data: {
-      courseId: data.courseId,
-      title: data.title,
-      type: data.type as ExamType,
-      duration: data.duration,
-      totalQuestions: data.totalQuestions,
-      totalScore: data.totalScore,
-      passingScore: data.passingScore,
-      startDate: data.startDate,
-      endDate: data.endDate,
-      useRandomQuestions: data.useRandomQuestions,
-      status: 'DRAFT',
-    },
-  });
-
-  // If using random questions, we'll need to handle question selection later
-  // For now, just create the exam
-
-  return exam;
 };
 
 export const submitExam = async (

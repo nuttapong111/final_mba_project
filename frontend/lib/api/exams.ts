@@ -49,35 +49,7 @@ export interface QuizData {
   questions: QuizQuestion[];
 }
 
-export interface CreateExamData {
-  courseId: string;
-  title: string;
-  type: 'QUIZ' | 'MIDTERM' | 'FINAL';
-  duration: number;
-  totalQuestions: number;
-  totalScore: number;
-  passingScore: number;
-  startDate: string;
-  endDate: string;
-  useRandomQuestions: boolean;
-  questionSelections?: Array<{
-    categoryId: string;
-    categoryName: string;
-    questionCount: number;
-    difficulty?: 'EASY' | 'MEDIUM' | 'HARD';
-  }>;
-}
-
 export const examsApi = {
-  create: async (data: CreateExamData): Promise<{
-    success: boolean;
-    data?: any;
-    error?: string;
-  }> => {
-    const response = await apiClient.post('/exams', data);
-    return response.data;
-  },
-
   getByCourse: async (courseId: string): Promise<{
     success: boolean;
     data?: any[];
