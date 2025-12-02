@@ -92,6 +92,18 @@ export const examsApi = {
     const response = await apiClient.post(`/exams/${examId}/submit`, data);
     return response.data;
   },
+
+  submitQuiz: async (contentId: string, data: SubmitExamData): Promise<{
+    success: boolean;
+    data?: any;
+    error?: string;
+  }> => {
+    const response = await apiClient.post(`/quiz/content/${contentId}/submit`, {
+      answers: data.answers,
+      timeSpent: data.timeSpent,
+    });
+    return response.data;
+  },
 };
 
 

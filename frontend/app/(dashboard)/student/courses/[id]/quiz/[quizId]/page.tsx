@@ -21,7 +21,9 @@ export default function StudentQuizPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [score, setScore] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  const [startTime, setStartTime] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchQuiz = async () => {
@@ -36,6 +38,9 @@ export default function StudentQuizPage() {
           if (response.data.quizSettings.duration) {
             setTimeRemaining(response.data.quizSettings.duration * 60); // Convert minutes to seconds
           }
+          
+          // Record start time
+          setStartTime(Date.now());
         } else {
           Swal.fire({
             icon: 'error',
@@ -85,58 +90,85 @@ export default function StudentQuizPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleSubmit = () => {
-    if (isSubmitted) return;
+  const handleSubmit = async () => {
+    if (isSubmitted || submitting) return;
 
+    setSubmitting(true);
     setIsSubmitted(true);
 
-    // Calculate score
-    let totalPoints = 0;
-    let maxPoints = 0;
-    let correctCount = 0;
+    try {
+      // Calculate time spent
+      const timeSpent = startTime ? Math.round((Date.now() - startTime) / 1000 / 60) : undefined;
 
-    questions.forEach((q) => {
-      maxPoints += q.points;
-      const userAnswer = answers[q.id];
-      
-      if (q.type === 'multiple_choice' || q.type === 'true_false') {
-        const correctOption = q.options.find((opt) => opt.isCorrect);
-        if (correctOption && userAnswer === correctOption.text) {
-          totalPoints += q.points;
-          correctCount++;
+      // Prepare answers
+      const submitAnswers = questions.map((q) => ({
+        questionId: q.id,
+        answer: answers[q.id] || '',
+      }));
+
+      // Submit quiz via API
+      const response = await examsApi.submitQuiz(quizId, {
+        answers: submitAnswers,
+        timeSpent,
+      });
+
+      if (response.success && response.data) {
+        const submission = response.data;
+        
+        // Check if there are essay questions from API response
+        const hasEssayQuestions = submission.hasEssayQuestions || false;
+        
+        // Get score and percentage
+        const finalScore = submission.score || 0;
+        const percentage = submission.percentage || 0;
+        const passed = submission.passed;
+        const passingPercentage = quizSettings?.passingPercentage || 70;
+        const totalScore = submission.totalScore || questions.reduce((sum, q) => sum + q.points, 0);
+
+        setScore(percentage);
+
+        // Show result with AI feedback info if essay questions exist
+        let resultHtml = `
+          <div class="text-center">
+            <p class="text-3xl font-bold mb-2">${percentage.toFixed(1)}%</p>
+            <p>คุณได้ ${finalScore} จาก ${totalScore} คะแนน</p>
+        `;
+
+        if (hasEssayQuestions) {
+          resultHtml += `
+            <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p class="text-sm text-yellow-800 font-semibold mb-1">⚠️ มีข้อสอบอัตนัยที่รอการตรวจสอบ</p>
+              <p class="text-xs text-yellow-700">AI ได้ให้คำแนะนำเบื้องต้นแล้ว อาจารย์จะตรวจสอบและให้คะแนนสุดท้ายในภายหลัง</p>
+            </div>
+          `;
         }
-      } else if (q.type === 'short_answer') {
-        // For short answer, check if answer matches (case insensitive)
-        const correctOption = q.options.find((opt) => opt.isCorrect);
-        if (correctOption && userAnswer?.toLowerCase().trim() === correctOption.text.toLowerCase().trim()) {
-          totalPoints += q.points;
-          correctCount++;
-        }
+
+        resultHtml += `
+            ${!passed && percentage < passingPercentage ? `<p class="mt-2 text-sm text-red-600">คะแนนขั้นต่ำ: ${passingPercentage}%</p>` : ''}
+          </div>
+        `;
+
+        Swal.fire({
+          icon: passed ? 'success' : (hasEssayQuestions ? 'info' : 'warning'),
+          title: passed ? 'สอบผ่าน!' : (hasEssayQuestions ? 'ส่งข้อสอบสำเร็จ' : 'สอบไม่ผ่าน'),
+          html: resultHtml,
+          confirmButtonText: 'ตกลง',
+        }).then(() => {
+          router.push(`/student/courses/${courseId}`);
+        });
+      } else {
+        throw new Error(response.error || 'ไม่สามารถส่งข้อสอบได้');
       }
-      // Essay questions are not auto-graded
-    });
-
-    const finalScore = maxPoints > 0 ? Math.round((totalPoints / maxPoints) * 100) : 0;
-    const passingPercentage = quizSettings?.passingPercentage || 70;
-    const passed = finalScore >= passingPercentage;
-
-    setScore(finalScore);
-
-    Swal.fire({
-      icon: passed ? 'success' : 'warning',
-      title: passed ? 'สอบผ่าน!' : 'สอบไม่ผ่าน',
-      html: `
-        <div class="text-center">
-          <p class="text-3xl font-bold mb-2">${finalScore}%</p>
-          <p>คุณได้ ${totalPoints} จาก ${maxPoints} คะแนน</p>
-          <p class="text-sm text-gray-600 mt-2">ตอบถูก ${correctCount} จาก ${questions.length} ข้อ</p>
-          ${!passed ? `<p class="mt-2 text-sm text-red-600">คะแนนขั้นต่ำ: ${passingPercentage}%</p>` : ''}
-        </div>
-      `,
-      confirmButtonText: 'ตกลง',
-    }).then(() => {
-      router.push(`/student/courses/${courseId}`);
-    });
+    } catch (error: any) {
+      console.error('Error submitting quiz:', error);
+      setIsSubmitted(false);
+      setSubmitting(false);
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: error.message || 'ไม่สามารถส่งข้อสอบได้',
+      });
+    }
   };
 
   if (loading) {

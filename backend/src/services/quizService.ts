@@ -1,5 +1,6 @@
 import prisma from '../config/database';
 import { AuthUser } from '../middleware/auth';
+import { submitExam, SubmitExamData } from './examService';
 
 export const getQuizQuestions = async (
   contentId: string,
@@ -125,6 +126,152 @@ export const getQuizQuestions = async (
         order: opt.order,
       })),
     })),
+  };
+};
+
+export interface SubmitQuizData {
+  answers: Array<{
+    questionId: string;
+    answer: string;
+  }>;
+  timeSpent?: number; // in minutes
+}
+
+export const submitQuiz = async (
+  contentId: string,
+  data: SubmitQuizData,
+  user: AuthUser
+) => {
+  // Get lesson content with quiz settings
+  const content = await prisma.lessonContent.findUnique({
+    where: { id: contentId },
+    include: {
+      lesson: {
+        include: {
+          course: true,
+        },
+      },
+      quizSettings: true,
+      exam: true,
+    },
+  });
+
+  if (!content) {
+    throw new Error('ไม่พบเนื้อหา');
+  }
+
+  // Check if content is quiz
+  if (content.type !== 'QUIZ' && content.type !== 'PRE_TEST') {
+    throw new Error('เนื้อหานี้ไม่ใช่แบบทดสอบ');
+  }
+
+  // Check if user is student
+  if (user.role !== 'STUDENT') {
+    throw new Error('เฉพาะนักเรียนเท่านั้นที่สามารถส่งข้อสอบได้');
+  }
+
+  // Check if student is enrolled
+  const enrollment = await prisma.courseStudent.findUnique({
+    where: {
+      courseId_studentId: {
+        courseId: content.lesson.courseId,
+        studentId: user.id,
+      },
+    },
+  });
+
+  if (!enrollment) {
+    throw new Error('คุณไม่ได้ลงทะเบียนในหลักสูตรนี้');
+  }
+
+  // Check if exam exists, if not create one
+  let examId = content.examId;
+  
+  if (!examId) {
+    // Get question points from database
+    const questionIds = data.answers.map(a => a.questionId);
+    const questions = await prisma.question.findMany({
+      where: { id: { in: questionIds } },
+      select: { id: true, points: true },
+    });
+
+    const totalScore = questions.reduce((sum, q) => sum + q.points, 0);
+
+    // Create exam from quiz content
+    const exam = await prisma.exam.create({
+      data: {
+        courseId: content.lesson.courseId,
+        title: content.title,
+        type: content.quizSettings?.examType || 'QUIZ',
+        duration: content.quizSettings?.duration || 60,
+        totalQuestions: data.answers.length,
+        totalScore: totalScore,
+        startDate: content.quizSettings?.startDate || new Date(),
+        endDate: content.quizSettings?.endDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
+        passingScore: content.quizSettings?.passingPercentage || 70,
+      },
+    });
+
+    examId = exam.id;
+
+    // Link exam to content
+    await prisma.lessonContent.update({
+      where: { id: contentId },
+      data: { examId: exam.id },
+    });
+
+    // Add questions to exam
+    for (let i = 0; i < data.answers.length; i++) {
+      const answer = data.answers[i];
+      await prisma.examQuestion.create({
+        data: {
+          examId: exam.id,
+          questionId: answer.questionId,
+          order: i + 1,
+        },
+      });
+    }
+  }
+
+  // Submit exam
+  const submission = await submitExam(
+    {
+      examId,
+      answers: data.answers,
+      timeSpent: data.timeSpent,
+    },
+    user
+  );
+
+  // Get submission with grading tasks to check if there are essay questions
+  const submissionWithTasks = await prisma.examSubmission.findUnique({
+    where: { id: submission.id },
+    include: {
+      exam: {
+        include: {
+          examQuestions: {
+            include: {
+              question: true,
+            },
+          },
+        },
+      },
+      gradingTasks: true,
+      answers: true,
+    },
+  });
+
+  // Mark content as completed
+  const { markContentCompleted } = await import('./contentProgressService');
+  await markContentCompleted(contentId, content.lesson.courseId, user.id);
+
+  // Return submission with additional info
+  return {
+    ...submission,
+    totalScore: submissionWithTasks?.exam.totalScore || 0,
+    percentage: submission.percentage || 0,
+    hasEssayQuestions: (submissionWithTasks?.gradingTasks?.length || 0) > 0,
+    gradingTasks: submissionWithTasks?.gradingTasks || [],
   };
 };
 
