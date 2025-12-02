@@ -191,9 +191,11 @@ export const submitQuiz = async (
   }
 
   // Get examId from content if exists (check via raw query since examId might not be in schema)
-  const contentWithExam = await prisma.$queryRaw<Array<{ examId: string | null }>>`
-    SELECT "examId" FROM "LessonContent" WHERE id = ${contentId}::uuid
-  `;
+  // Use proper UUID casting in PostgreSQL
+  const contentWithExam = await prisma.$queryRawUnsafe<Array<{ examId: string | null }>>(
+    `SELECT "examId" FROM "LessonContent" WHERE id = $1::uuid`,
+    contentId
+  );
   
   let examId = contentWithExam[0]?.examId || null;
   
@@ -233,11 +235,11 @@ export const submitQuiz = async (
     examId = exam.id;
 
     // Link exam to content (using raw query since examId might not be in schema)
-    await prisma.$executeRaw`
-      UPDATE "LessonContent" 
-      SET "examId" = ${exam.id}::uuid 
-      WHERE id = ${contentId}::uuid
-    `;
+    await prisma.$executeRawUnsafe(
+      `UPDATE "LessonContent" SET "examId" = $1::uuid WHERE id = $2::uuid`,
+      exam.id,
+      contentId
+    );
 
     // Add questions to exam
     for (let i = 0; i < data.answers.length; i++) {

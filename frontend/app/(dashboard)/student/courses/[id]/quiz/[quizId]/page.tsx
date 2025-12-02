@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -24,6 +24,7 @@ export default function StudentQuizPage() {
   const [submitting, setSubmitting] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [startTime, setStartTime] = useState<number | null>(null);
+  const [elapsedTime, setElapsedTime] = useState<number>(0); // Track elapsed time
 
   useEffect(() => {
     const fetchQuiz = async () => {
@@ -36,11 +37,58 @@ export default function StudentQuizPage() {
           
           // Set timer if duration is specified
           if (response.data.quizSettings.duration) {
-            setTimeRemaining(response.data.quizSettings.duration * 60); // Convert minutes to seconds
+            const totalDuration = response.data.quizSettings.duration * 60; // Convert minutes to seconds
+            
+            // Check if there's saved time from localStorage
+            const storageKey = `quiz_timer_${quizId}`;
+            const savedData = localStorage.getItem(storageKey);
+            
+            if (savedData) {
+              try {
+                const parsed = JSON.parse(savedData);
+                const savedStartTime = parsed.startTime;
+                const savedElapsed = parsed.elapsedTime || 0;
+                const now = Date.now();
+                
+                // Calculate elapsed time since last save
+                const additionalElapsed = Math.floor((now - savedStartTime) / 1000);
+                const totalElapsed = savedElapsed + additionalElapsed;
+                
+                // Calculate remaining time
+                const remaining = Math.max(0, totalDuration - totalElapsed);
+                
+                setTimeRemaining(remaining);
+                setElapsedTime(totalElapsed);
+                setStartTime(savedStartTime);
+                
+                // If time is up, mark as submitted (will be handled by timer useEffect)
+                if (remaining <= 0) {
+                  setIsSubmitted(true);
+                }
+              } catch (error) {
+                console.error('Error parsing saved timer data:', error);
+                // Fallback to fresh start
+                setTimeRemaining(totalDuration);
+                setStartTime(Date.now());
+                setElapsedTime(0);
+              }
+            } else {
+              // Fresh start
+              setTimeRemaining(totalDuration);
+              setStartTime(Date.now());
+              setElapsedTime(0);
+              
+              // Save to localStorage
+              const storageKey = `quiz_timer_${quizId}`;
+              localStorage.setItem(storageKey, JSON.stringify({
+                startTime: Date.now(),
+                elapsedTime: 0,
+                totalDuration: totalDuration,
+              }));
+            }
+          } else {
+            setStartTime(Date.now());
           }
-          
-          // Record start time
-          setStartTime(Date.now());
         } else {
           Swal.fire({
             icon: 'error',
@@ -77,12 +125,30 @@ export default function StudentQuizPage() {
           handleSubmit();
           return 0;
         }
+        
+        // Update elapsed time
+        setElapsedTime((prevElapsed) => {
+          const newElapsed = prevElapsed + 1;
+          
+          // Save to localStorage every 5 seconds
+          if (newElapsed % 5 === 0 && startTime) {
+            const storageKey = `quiz_timer_${quizId}`;
+            localStorage.setItem(storageKey, JSON.stringify({
+              startTime: startTime,
+              elapsedTime: newElapsed,
+              totalDuration: (quizSettings?.duration || 60) * 60,
+            }));
+          }
+          
+          return newElapsed;
+        });
+        
         return prev - 1;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeRemaining, isSubmitted]);
+  }, [timeRemaining, isSubmitted, startTime, quizId, quizSettings, handleSubmit]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -97,8 +163,14 @@ export default function StudentQuizPage() {
     setIsSubmitted(true);
 
     try {
-      // Calculate time spent
-      const timeSpent = startTime ? Math.round((Date.now() - startTime) / 1000 / 60) : undefined;
+      // Calculate time spent (use elapsedTime if available, otherwise calculate from startTime)
+      const timeSpent = elapsedTime > 0 
+        ? Math.round(elapsedTime / 60) 
+        : (startTime ? Math.round((Date.now() - startTime) / 1000 / 60) : undefined);
+      
+      // Clear timer from localStorage
+      const storageKey = `quiz_timer_${quizId}`;
+      localStorage.removeItem(storageKey);
 
       // Prepare answers
       const submitAnswers = questions.map((q) => ({
@@ -129,7 +201,7 @@ export default function StudentQuizPage() {
 
         // Show result with AI feedback info if essay questions exist
         let resultHtml = `
-          <div class="text-center">
+        <div class="text-center">
             <p class="text-3xl font-bold mb-2">${percentage.toFixed(1)}%</p>
             <p>คุณได้ ${finalScore} จาก ${totalScore} คะแนน</p>
         `;
@@ -145,17 +217,17 @@ export default function StudentQuizPage() {
 
         resultHtml += `
             ${!passed && percentage < passingPercentage ? `<p class="mt-2 text-sm text-red-600">คะแนนขั้นต่ำ: ${passingPercentage}%</p>` : ''}
-          </div>
+        </div>
         `;
 
         Swal.fire({
           icon: passed ? 'success' : (hasEssayQuestions ? 'info' : 'warning'),
           title: passed ? 'สอบผ่าน!' : (hasEssayQuestions ? 'ส่งข้อสอบสำเร็จ' : 'สอบไม่ผ่าน'),
           html: resultHtml,
-          confirmButtonText: 'ตกลง',
-        }).then(() => {
-          router.push(`/student/courses/${courseId}`);
-        });
+      confirmButtonText: 'ตกลง',
+    }).then(() => {
+      router.push(`/student/courses/${courseId}`);
+    });
       } else {
         throw new Error(response.error || 'ไม่สามารถส่งข้อสอบได้');
       }
@@ -172,12 +244,12 @@ export default function StudentQuizPage() {
   };
 
   if (loading) {
-    return (
+  return (
       <Card>
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">กำลังโหลดข้อสอบ...</p>
-        </div>
+          </div>
       </Card>
     );
   }
@@ -264,7 +336,7 @@ export default function StudentQuizPage() {
                       </div>
                       <h3 className="text-lg font-semibold text-white flex-1">
                         {q.question}
-                      </h3>
+              </h3>
                     </div>
                     <span className="flex-shrink-0 ml-4 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-white text-sm font-semibold">
                       {q.points} คะแนน
@@ -275,7 +347,7 @@ export default function StudentQuizPage() {
                   <div className="space-y-3">
                     {q.type === 'multiple_choice' || q.type === 'true_false' ? (
                       q.options.map((option) => (
-                        <label
+                  <label
                           key={option.id}
                           className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
                             answers[q.id] === option.text
@@ -286,28 +358,28 @@ export default function StudentQuizPage() {
                                 : 'border-blue-500 bg-blue-50 shadow-md scale-[1.02]'
                               : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                           } ${isSubmitted ? 'cursor-not-allowed' : ''}`}
-                        >
-                          <input
-                            type="radio"
-                            name={q.id}
+                  >
+                    <input
+                      type="radio"
+                      name={q.id}
                             value={option.text}
                             checked={answers[q.id] === option.text}
-                            onChange={(e) =>
-                              setAnswers({ ...answers, [q.id]: e.target.value })
-                            }
-                            disabled={isSubmitted}
+                      onChange={(e) =>
+                        setAnswers({ ...answers, [q.id]: e.target.value })
+                      }
+                      disabled={isSubmitted}
                             className="mr-4 h-5 w-5 text-blue-600 focus:ring-2 focus:ring-blue-500"
                           />
                           <span className="flex-1 text-gray-800 font-medium">{option.text}</span>
                           {isSubmitted && option.isCorrect && (
                             <CheckCircleIcon className="h-6 w-6 text-green-600 ml-auto animate-pulse" />
-                          )}
-                          {isSubmitted &&
+                    )}
+                    {isSubmitted &&
                             answers[q.id] === option.text &&
                             !option.isCorrect && (
                               <XCircleIcon className="h-6 w-6 text-red-600 ml-auto animate-pulse" />
-                            )}
-                        </label>
+                      )}
+                  </label>
                       ))
                     ) : q.type === 'short_answer' ? (
                       <textarea
@@ -338,9 +410,9 @@ export default function StudentQuizPage() {
                       <p className="text-sm text-gray-800">
                         <strong className="text-blue-600">💡 คำอธิบาย:</strong> {q.explanation}
                       </p>
-                    </div>
+              </div>
                   )}
-                </div>
+            </div>
               </Card>
             );
           })}
@@ -359,14 +431,14 @@ export default function StudentQuizPage() {
                   </span>
                 )}
               </div>
-              <Button
-                onClick={handleSubmit}
-                disabled={Object.keys(answers).length !== questions.length}
+            <Button
+              onClick={handleSubmit}
+              disabled={Object.keys(answers).length !== questions.length}
                 className="px-8 py-3 text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+            >
                 <CheckCircleIcon className="h-5 w-5 mr-2 inline" />
-                ส่งคำตอบ
-              </Button>
+              ส่งคำตอบ
+            </Button>
             </div>
           </div>
         )}
