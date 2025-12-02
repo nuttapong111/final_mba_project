@@ -40,6 +40,7 @@ export interface ContentData {
     }>;
   };
   pollId?: string;
+  assignmentId?: string;
 }
 
 export const saveCourseContent = async (
@@ -132,6 +133,20 @@ export const saveCourseContent = async (
               console.warn(`[WARN] Poll ${contentData.pollId} not found, skipping connection for content: ${contentData.title}`);
             }
           }
+
+          // Check if assignment exists before connecting
+          let assignmentConnection = undefined;
+          if (contentData.assignmentId) {
+            const assignmentExists = await tx.assignment.findUnique({
+              where: { id: contentData.assignmentId },
+            });
+            if (assignmentExists) {
+              assignmentConnection = contentData.assignmentId;
+              console.log(`[DEBUG] Assignment ${contentData.assignmentId} found, will connect`);
+            } else {
+              console.warn(`[WARN] Assignment ${contentData.assignmentId} not found, skipping connection for content: ${contentData.title}`);
+            }
+          }
           
           const contentToSave = {
             type: contentData.type.toUpperCase() as any,
@@ -177,6 +192,7 @@ export const saveCourseContent = async (
                 }
               : undefined,
             poll: pollConnection,
+            assignmentId: assignmentConnection || null,
           };
           
           console.log(`[DEBUG] Content to save (final):`, {

@@ -51,7 +51,7 @@ export interface QuizSettings {
 
 export interface LessonContent {
   id: string;
-  type: 'video' | 'document' | 'live_link' | 'quiz' | 'pre_test' | 'poll';
+  type: 'video' | 'document' | 'live_link' | 'quiz' | 'pre_test' | 'poll' | 'assignment';
   title: string;
   url?: string;
   fileUrl?: string;
@@ -60,6 +60,7 @@ export interface LessonContent {
   duration?: number; // in minutes
   order: number;
   poll?: Poll; // For poll type
+  assignment?: any; // For assignment type
   quizSettings?: QuizSettings; // For quiz type
 }
 

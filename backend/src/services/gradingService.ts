@@ -573,13 +573,13 @@ export const getGradingTasks = async (user: AuthUser) => {
           exam: {
             include: {
               course: true,
-            },
-          },
-          student: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
+        },
+      },
+      student: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
             },
           },
         },
@@ -624,7 +624,7 @@ export const updateGradingTask = async (
   const isCourseTeacher = await prisma.courseTeacher.findFirst({
     where: {
       courseId: task.submission.exam.courseId,
-      teacherId: user.id,
+        teacherId: user.id,
       grading: true,
     },
   });

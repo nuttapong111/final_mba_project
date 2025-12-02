@@ -424,6 +424,13 @@ export default function CourseContentPage() {
                 description: content.poll.description,
                 questions: content.poll.questions || [],
               } : undefined,
+              assignment: content.assignment ? {
+                id: content.assignment.id,
+                title: content.assignment.title,
+                description: content.assignment.description,
+                dueDate: content.assignment.dueDate,
+                maxScore: content.assignment.maxScore,
+              } : undefined,
             };
           }),
         }));
@@ -487,7 +494,9 @@ export default function CourseContentPage() {
     const newContent: LessonContent = {
       id: `${Date.now()}-${Math.random()}`,
       type,
-      title: type === 'pre_test' ? 'แบบทดสอบก่อนเรียน' : type === 'quiz' ? 'แบบทดสอบ' : '',
+      title: type === 'pre_test' ? 'แบบทดสอบก่อนเรียน' : 
+            type === 'quiz' ? 'แบบทดสอบ' : 
+            type === 'assignment' ? 'การบ้าน' : '',
       order: updated[lessonIndex].contents.length + 1,
     };
     updated[lessonIndex].contents.push(newContent);
@@ -857,7 +866,14 @@ export default function CourseContentPage() {
           }
           
           if (content.duration) contentData.duration = content.duration;
-          if (content.poll?.id) contentData.pollId = content.poll.id;
+          if (content.poll?.id) {
+            contentData.pollId = content.poll.id;
+            console.log(`[DEBUG] Saving pollId: ${content.poll.id} for content: ${content.title}`);
+          }
+          if (content.assignment?.id) {
+            contentData.assignmentId = content.assignment.id;
+            console.log(`[DEBUG] Saving assignmentId: ${content.assignment.id} for content: ${content.title}`);
+          }
 
           // Add quiz settings if exists
           if (content.quizSettings) {
@@ -930,6 +946,7 @@ export default function CourseContentPage() {
       case 'quiz': return '📋';
       case 'pre_test': return '📝';
       case 'poll': return '📊';
+      case 'assignment': return '📝';
       default: return '📎';
     }
   };
@@ -941,6 +958,7 @@ export default function CourseContentPage() {
       case 'quiz': return 'ข้อสอบ';
       case 'pre_test': return 'ทดสอบก่อนเรียน';
       case 'poll': return 'แบบประเมิน';
+      case 'assignment': return 'การบ้าน';
       default: return type;
     }
   };

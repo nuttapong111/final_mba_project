@@ -162,6 +162,7 @@ export const getCourseById = async (courseId: string, user: AuthUser) => {
                   questions: true,
                 },
               },
+              assignment: true,
             },
             orderBy: { order: 'asc' },
           },

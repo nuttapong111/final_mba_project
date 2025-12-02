@@ -79,39 +79,39 @@ export default function CourseCompletionSettingsPage() {
           const existingQuizIds = existingReqs.quizRequirements?.map((q: QuizPassingRequirement) => q.quizId) || [];
           const currentQuizIds = allQuizzes.map((q: { id: string; title: string; lessonTitle: string }) => q.id);
           
-          const newQuizReqs = allQuizzes
+      const newQuizReqs = allQuizzes
             .filter((q: { id: string; title: string; lessonTitle: string }) => !existingQuizIds.includes(q.id))
             .map((quiz: { id: string; title: string; lessonTitle: string }) => ({
-              quizId: quiz.id,
-              quizTitle: quiz.title,
-              passingPercentage: existingReqs.minQuizPassingPercentage || 70,
-              required: true,
-            }));
-          
-          const updatedQuizReqs = [
+          quizId: quiz.id,
+          quizTitle: quiz.title,
+          passingPercentage: existingReqs.minQuizPassingPercentage || 70,
+          required: true,
+        }));
+      
+      const updatedQuizReqs = [
             ...(existingReqs.quizRequirements || []).filter((q: QuizPassingRequirement) => currentQuizIds.includes(q.quizId)),
-            ...newQuizReqs,
-          ];
-          
-          setRequirements({
-            ...existingReqs,
-            quizRequirements: updatedQuizReqs,
-          });
-        } else {
+        ...newQuizReqs,
+      ];
+      
+      setRequirements({
+        ...existingReqs,
+        quizRequirements: updatedQuizReqs,
+      });
+    } else {
           const allQuizzes = getAllQuizzes(courseResponse.data);
-          setRequirements({
-            requireProgress: true,
-            minProgressPercentage: 100,
-            requireAllQuizzes: false,
-            minQuizPassingPercentage: 70,
+      setRequirements({
+        requireProgress: true,
+        minProgressPercentage: 100,
+        requireAllQuizzes: false,
+        minQuizPassingPercentage: 70,
             quizRequirements: allQuizzes.map((quiz: { id: string; title: string; lessonTitle: string }) => ({
-              quizId: quiz.id,
-              quizTitle: quiz.title,
-              passingPercentage: 70,
-              required: true,
-            })),
-          });
-        }
+          quizId: quiz.id,
+          quizTitle: quiz.title,
+          passingPercentage: 70,
+          required: true,
+        })),
+      });
+    }
       }
 
       if (gradingResponse.success) {
@@ -541,7 +541,7 @@ export default function CourseCompletionSettingsPage() {
 
       {/* Completion Requirements Section */}
       {activeSection === 'completion' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             {/* Progress/Attendance Requirement */}
             <Card>
@@ -775,7 +775,7 @@ export default function CourseCompletionSettingsPage() {
                     <span className="font-semibold">{gradingSystem.passingScore}%</span>
                   </div>
                 )}
-              </div>
+                </div>
             ) : (
               <p className="text-gray-500">ยังไม่ได้ตั้งค่าระบบเกรด</p>
             )}
@@ -954,13 +954,13 @@ export default function CourseCompletionSettingsPage() {
 
               <div className="flex justify-end space-x-3 pt-4">
                 <Button variant="outline" onClick={() => setShowSystemModal(false)}>
-                  ยกเลิก
-                </Button>
+                ยกเลิก
+              </Button>
                 <Button onClick={handleSubmitSystem}>
-                  บันทึก
-                </Button>
-              </div>
+                บันทึก
+              </Button>
             </div>
+          </div>
           </Card>
         </div>
       )}
@@ -1093,6 +1093,6 @@ export default function CourseCompletionSettingsPage() {
           </Card>
         </div>
       )}
-    </div>
+      </div>
   );
 }
