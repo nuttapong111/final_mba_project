@@ -304,7 +304,14 @@ export default function AssignmentsPage() {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center space-x-2 ml-4">
+                  <div className="flex items-center space-x-2 ml-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push(`/school/courses/${courseId}/assignments/${assignment.id}/grading`)}
+                  >
+                    ให้คะแนน ({assignment._count?.submissions || 0})
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"

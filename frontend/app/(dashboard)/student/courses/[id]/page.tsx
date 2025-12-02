@@ -53,7 +53,7 @@ export default function StudentCourseDetailPage() {
   const [course, setCourse] = useState<any>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'lessons' | 'webboard'>('lessons');
+  const [activeTab, setActiveTab] = useState<'lessons' | 'webboard' | 'assignments'>('lessons');
   const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
   const [selectedVideo, setSelectedVideo] = useState<LessonContent | null>(null);
   const [completedContents, setCompletedContents] = useState<Set<string>>(new Set());
@@ -482,6 +482,19 @@ export default function StudentCourseDetailPage() {
               )}
             </button>
             <button
+              onClick={() => setActiveTab('assignments')}
+              className={`px-4 sm:px-6 py-3 sm:py-4 font-medium text-xs sm:text-sm transition-colors relative whitespace-nowrap flex-shrink-0 ${
+                activeTab === 'assignments'
+                  ? 'text-purple-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              การบ้าน
+              {activeTab === 'assignments' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600 rounded-t-full" />
+              )}
+            </button>
+            <button
               onClick={() => setActiveTab('webboard')}
               className={`px-4 sm:px-6 py-3 sm:py-4 font-medium text-xs sm:text-sm transition-colors relative whitespace-nowrap flex-shrink-0 ${
                 activeTab === 'webboard'
@@ -500,7 +513,15 @@ export default function StudentCourseDetailPage() {
 
       {/* Main Content */}
       <div className="w-full px-3 sm:px-6 py-4 sm:py-6">
-        {activeTab === 'lessons' ? (
+        {activeTab === 'assignments' ? (
+          <div>
+            <iframe
+              src={`/student/courses/${courseId}/assignments`}
+              className="w-full h-[calc(100vh-300px)] border-0"
+              title="Assignments"
+            />
+          </div>
+        ) : activeTab === 'lessons' ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Left Side - Lessons List */}
             <div className="lg:col-span-2 space-y-4">
