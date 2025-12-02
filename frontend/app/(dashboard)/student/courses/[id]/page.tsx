@@ -651,12 +651,12 @@ export default function StudentCourseDetailPage() {
                             if (youtubeMatch) {
                               const videoId = youtubeMatch[1];
                               return (
-                                <iframe
-                                  src={`https://www.youtube.com/embed/${videoId}?rel=0`}
-                                  className="w-full h-full"
-                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                  allowFullScreen
+                                <YouTubePlayer
+                                  videoId={videoId}
                                   title={selectedVideo.title}
+                                  contentId={selectedVideo.id}
+                                  courseId={courseId}
+                                  className="w-full h-full"
                                 />
                               );
                             } else if (vimeoMatch) {
