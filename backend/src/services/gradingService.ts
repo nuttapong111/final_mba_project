@@ -557,7 +557,7 @@ export const calculateStudentGrade = async (courseId: string, studentId: string)
         },
         type: 'QUIZ',
         quizSettings: {
-          examType: 'QUIZ',
+          isNot: null,
         },
       },
       completed: true,

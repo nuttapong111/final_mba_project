@@ -163,7 +163,6 @@ export const getCourseById = async (courseId: string, user: AuthUser) => {
                 },
               },
               assignment: true,
-              exam: true,
             },
             orderBy: { order: 'asc' },
           },
@@ -187,7 +186,7 @@ export const getCourseById = async (courseId: string, user: AuthUser) => {
 
   return {
     ...course,
-    enrolledStudents: course.students.map((cs) => ({
+    enrolledStudents: (course.students || []).map((cs: any) => ({
       id: cs.student.id,
       name: cs.student.name,
       email: cs.student.email,
@@ -195,7 +194,7 @@ export const getCourseById = async (courseId: string, user: AuthUser) => {
       enrolledAt: cs.enrolledAt.toISOString(),
       progress: cs.progress,
     })),
-    teachers: course.teachers.map((ct) => ({
+    teachers: (course.teachers || []).map((ct: any) => ({
       id: ct.teacher.id,
       name: ct.teacher.name,
       email: ct.teacher.email,

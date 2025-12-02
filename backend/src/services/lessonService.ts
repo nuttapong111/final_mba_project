@@ -32,6 +32,7 @@ export interface ContentData {
     endDate?: string;
     endTime?: string;
     passingPercentage?: number;
+    examType?: string;
     categorySelections?: Array<{
       categoryId: string;
       categoryName: string;
