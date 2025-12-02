@@ -253,7 +253,11 @@ export default function StudentQuizPage() {
     return () => clearInterval(timer);
   }, [timeRemaining, isSubmitted, submitting, startTime, quizId, quizSettings, handleSubmit]);
 
-  // Reset timer function (for admin/special cases)
+  // TODO: Remove reset timer function when system is complete
+  // This is only for testing purposes - remove in production
+  const ENABLE_RESET_TIMER = true; // Set to false to disable reset timer button
+  
+  // Reset timer function (for testing only - to be removed in production)
   const resetTimer = () => {
     if (!quizSettings?.duration) return;
     
@@ -359,7 +363,8 @@ export default function StudentQuizPage() {
                     <ClockIcon className="h-5 w-5" />
                     <span className="font-bold text-lg">{formatTime(timeRemaining)}</span>
                   </div>
-                  {timeRemaining <= 0 && !isSubmitted && (
+                  {/* TODO: Remove reset timer button when system is complete - for testing only */}
+                  {ENABLE_RESET_TIMER && timeRemaining <= 0 && !isSubmitted && (
                     <Button 
                       variant="outline" 
                       onClick={resetTimer}
