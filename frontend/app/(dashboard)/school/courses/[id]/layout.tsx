@@ -17,6 +17,7 @@ import {
   AcademicCapIcon,
   TagIcon,
   UserGroupIcon,
+  DocumentArrowUpIcon,
 } from '@heroicons/react/24/outline';
 import Swal from 'sweetalert2';
 import { cn } from '@/lib/utils';
@@ -133,6 +134,18 @@ export default function CourseLayout({
       href: `/school/courses/${id}/polls`,
     },
     {
+      id: 'assignments',
+      name: 'การบ้าน',
+      icon: DocumentArrowUpIcon,
+      href: `/school/courses/${id}/assignments`,
+    },
+    {
+      id: 'grading',
+      name: 'ระบบเกรด',
+      icon: AcademicCapIcon,
+      href: `/school/courses/${id}/grading`,
+    },
+    {
       id: 'certificate',
       name: 'ใบประกาศนียบัตร',
       icon: AcademicCapIcon,
@@ -153,6 +166,8 @@ export default function CourseLayout({
     if (pathname?.includes('/completion-settings')) return 'completion';
     if (pathname?.includes('/question-bank')) return 'question-bank';
     if (pathname?.includes('/polls')) return 'polls';
+    if (pathname?.includes('/assignments')) return 'assignments';
+    if (pathname?.includes('/grading')) return 'grading';
     if (pathname?.includes('/certificate')) return 'certificate';
     if (pathname?.includes('/teachers-students')) return 'teachers-students';
     return 'content';

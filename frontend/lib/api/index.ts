@@ -10,5 +10,7 @@ export * from './upload';
 export * from './exams';
 export * from './webboard';
 export * from './contentProgress';
+export * from './assignments';
+export * from './grading';
 export { default as apiClient } from './client';
 
