@@ -23,6 +23,7 @@ export interface SubmitExamData {
     questionId: string;
     answer: string;
   }>;
+  timeSpent?: number; // in minutes
 }
 
 export interface QuizQuestion {

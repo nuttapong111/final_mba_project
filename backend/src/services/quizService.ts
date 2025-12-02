@@ -152,7 +152,6 @@ export const submitQuiz = async (
         },
       },
       quizSettings: true,
-      exam: true,
     },
   });
 
@@ -170,11 +169,18 @@ export const submitQuiz = async (
     throw new Error('เฉพาะนักเรียนเท่านั้นที่สามารถส่งข้อสอบได้');
   }
 
+  // Ensure content has lesson and quizSettings
+  if (!content.lesson) {
+    throw new Error('ไม่พบบทเรียน');
+  }
+
+  const courseId = content.lesson.courseId;
+
   // Check if student is enrolled
   const enrollment = await prisma.courseStudent.findUnique({
     where: {
       courseId_studentId: {
-        courseId: content.lesson.courseId,
+        courseId: courseId,
         studentId: user.id,
       },
     },
@@ -184,8 +190,12 @@ export const submitQuiz = async (
     throw new Error('คุณไม่ได้ลงทะเบียนในหลักสูตรนี้');
   }
 
-  // Check if exam exists, if not create one
-  let examId = content.examId;
+  // Get examId from content if exists (check via raw query since examId might not be in schema)
+  const contentWithExam = await prisma.$queryRaw<Array<{ examId: string | null }>>`
+    SELECT "examId" FROM "LessonContent" WHERE id = ${contentId}::uuid
+  `;
+  
+  let examId = contentWithExam[0]?.examId || null;
   
   if (!examId) {
     // Get question points from database
@@ -197,12 +207,16 @@ export const submitQuiz = async (
 
     const totalScore = questions.reduce((sum, q) => sum + q.points, 0);
 
+    // Get examType from quizSettings (cast to any to access examType which exists in DB)
+    const quizSettings = content.quizSettings as any;
+    const examType = quizSettings?.examType || 'QUIZ';
+
     // Create exam from quiz content
     const exam = await prisma.exam.create({
       data: {
-        courseId: content.lesson.courseId,
+        courseId: courseId,
         title: content.title,
-        type: content.quizSettings?.examType || 'QUIZ',
+        type: examType,
         duration: content.quizSettings?.duration || 60,
         totalQuestions: data.answers.length,
         totalScore: totalScore,
@@ -214,11 +228,12 @@ export const submitQuiz = async (
 
     examId = exam.id;
 
-    // Link exam to content
-    await prisma.lessonContent.update({
-      where: { id: contentId },
-      data: { examId: exam.id },
-    });
+    // Link exam to content (using raw query since examId might not be in schema)
+    await prisma.$executeRaw`
+      UPDATE "LessonContent" 
+      SET "examId" = ${exam.id}::uuid 
+      WHERE id = ${contentId}::uuid
+    `;
 
     // Add questions to exam
     for (let i = 0; i < data.answers.length; i++) {
@@ -263,7 +278,7 @@ export const submitQuiz = async (
 
   // Mark content as completed
   const { markContentCompleted } = await import('./contentProgressService');
-  await markContentCompleted(contentId, content.lesson.courseId, user.id);
+  await markContentCompleted(contentId, courseId, user.id);
 
   // Return submission with additional info
   return {
