@@ -260,9 +260,10 @@ export default function StudentQuizPage() {
     return () => clearInterval(timer);
   }, [timeRemaining, isSubmitted, submitting, startTime, quizId, quizSettings, handleSubmit]);
 
-  // TODO: Remove reset timer function when system is complete
+  // TODO: Remove reset timer and delete submission functions when system is complete
   // This is only for testing purposes - remove in production
   const ENABLE_RESET_TIMER = true; // Set to false to disable reset timer button
+  const ENABLE_DELETE_SUBMISSION = true; // Set to false to disable delete submission button
   
   // Reset timer function (for testing only - to be removed in production)
   const resetTimer = () => {
@@ -299,6 +300,67 @@ export default function StudentQuizPage() {
           timer: 2000,
           showConfirmButton: false,
         });
+      }
+    });
+  };
+
+  // Delete submission function (for testing only - to be removed in production)
+  const handleDeleteSubmission = async () => {
+    Swal.fire({
+      title: 'ลบการส่งข้อสอบ?',
+      text: 'คุณต้องการลบการส่งข้อสอบนี้หรือไม่? คุณจะสามารถทำข้อสอบใหม่ได้',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'ลบ',
+      cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const response = await examsApi.deleteQuizSubmission(quizId);
+          
+          if (response.success) {
+            // Reset states
+            setIsSubmitted(false);
+            setSubmitting(false);
+            setScore(null);
+            setAnswers({});
+            isSubmittingRef.current = false;
+            
+            // Reset timer
+            if (quizSettings?.duration) {
+              const totalDuration = quizSettings.duration * 60;
+              setTimeRemaining(totalDuration);
+              setElapsedTime(0);
+              setStartTime(Date.now());
+              
+              // Update localStorage
+              const storageKey = `quiz_timer_${quizId}`;
+              localStorage.setItem(storageKey, JSON.stringify({
+                startTime: Date.now(),
+                elapsedTime: 0,
+                totalDuration: totalDuration,
+              }));
+            }
+            
+            Swal.fire({
+              icon: 'success',
+              title: 'ลบการส่งข้อสอบสำเร็จ',
+              text: 'คุณสามารถทำข้อสอบใหม่ได้',
+              timer: 2000,
+              showConfirmButton: false,
+            });
+          } else {
+            throw new Error(response.error || 'ไม่สามารถลบการส่งข้อสอบได้');
+          }
+        } catch (error: any) {
+          Swal.fire({
+            icon: 'error',
+            title: 'เกิดข้อผิดพลาด',
+            text: error.message || 'ไม่สามารถลบการส่งข้อสอบได้',
+          });
+        }
       }
     });
   };

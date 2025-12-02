@@ -283,26 +283,38 @@ export const submitQuiz = async (
   if (existingSubmissions.length > 0) {
     const latestSubmission = existingSubmissions[0];
     
-    // Get grading tasks with question info
+    // Get grading tasks and check question types
     const gradingTasks = await prisma.gradingTask.findMany({
       where: {
         submissionId: latestSubmission.id,
       },
-      include: {
-        question: {
-          select: {
-            id: true,
-            type: true,
-          },
-        },
+      select: {
+        questionId: true,
+        teacherScore: true,
       },
     });
+    
+    // Get question types for grading tasks
+    const questionIds = gradingTasks.map(t => t.questionId);
+    const questions = await prisma.question.findMany({
+      where: {
+        id: { in: questionIds },
+      },
+      select: {
+        id: true,
+        type: true,
+      },
+    });
+    
+    // Create a map of questionId to question type
+    const questionTypeMap = new Map(questions.map(q => [q.id, q.type]));
     
     // Check if there are essay questions that haven't been graded yet
     const pendingEssayGrading = gradingTasks.some(
       (task) => {
+        const questionType = questionTypeMap.get(task.questionId);
         // Check if it's an essay question and hasn't been graded
-        return task.question?.type === 'ESSAY' && 
+        return questionType === 'ESSAY' && 
                (task.teacherScore === null || task.teacherScore === undefined);
       }
     );
