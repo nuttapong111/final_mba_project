@@ -79,7 +79,52 @@ export const getAssignmentsByCourse = async (courseId: string, user: AuthUser) =
     },
   });
 
-  return assignments;
+  // Generate presigned URLs for S3 files
+  const assignmentsWithUrls = await Promise.all(
+    assignments.map(async (assignment) => {
+      let fileUrl = assignment.fileUrl;
+      
+      // If assignment has S3 key, generate presigned URL
+      if (assignment.s3Key) {
+        try {
+          const { getPresignedUrl } = await import('./s3Service');
+          fileUrl = await getPresignedUrl(assignment.s3Key, 3600); // 1 hour expiry
+        } catch (error) {
+          console.error(`[ASSIGNMENT] Failed to generate presigned URL for ${assignment.s3Key}:`, error);
+          // Fallback to original fileUrl
+        }
+      }
+
+      // Generate presigned URLs for submission files
+      const submissionsWithUrls = await Promise.all(
+        (assignment.submissions || []).map(async (submission) => {
+          let submissionFileUrl = submission.fileUrl;
+          
+          if (submission.s3Key) {
+            try {
+              const { getPresignedUrl } = await import('./s3Service');
+              submissionFileUrl = await getPresignedUrl(submission.s3Key, 3600);
+            } catch (error) {
+              console.error(`[ASSIGNMENT] Failed to generate presigned URL for submission ${submission.s3Key}:`, error);
+            }
+          }
+
+          return {
+            ...submission,
+            fileUrl: submissionFileUrl,
+          };
+        })
+      );
+
+      return {
+        ...assignment,
+        fileUrl,
+        submissions: submissionsWithUrls,
+      };
+    })
+  );
+
+  return assignmentsWithUrls;
 };
 
 export const getAssignmentById = async (assignmentId: string, user: AuthUser) => {

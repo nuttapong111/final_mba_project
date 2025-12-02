@@ -218,25 +218,38 @@ export default function StudentAssignmentsPage() {
                     {assignment.description && (
                       <p className="text-gray-600 mb-4">{assignment.description}</p>
                     )}
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-4">
-                      {assignment.dueDate && (
+                    <div className="space-y-2 mb-4">
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                        {assignment.dueDate && (
+                          <div className="flex items-center space-x-1">
+                            <ClockIcon className="h-4 w-4" />
+                            <span className={isOverdue(assignment.dueDate) ? 'text-red-600 font-medium' : ''}>
+                              กำหนดส่ง: {formatDate(assignment.dueDate)}
+                              {isOverdue(assignment.dueDate) && ' (หมดเวลาแล้ว)'}
+                            </span>
+                          </div>
+                        )}
                         <div className="flex items-center space-x-1">
-                          <ClockIcon className="h-4 w-4" />
-                          <span>กำหนดส่ง: {formatDate(assignment.dueDate)}</span>
+                          <span className="font-medium">คะแนนเต็ม: {assignment.maxScore} คะแนน</span>
                         </div>
-                      )}
-                      <span>คะแนนเต็ม: {assignment.maxScore} คะแนน</span>
-                      {assignment.fileName && (
-                        <div className="flex items-center space-x-1">
-                          <DocumentArrowUpIcon className="h-4 w-4" />
-                          <a
-                            href={assignment.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-700 underline"
-                          >
-                            ดาวน์โหลดไฟล์การบ้าน ({formatFileSize(assignment.fileSize)})
-                          </a>
+                      </div>
+                      {assignment.fileName && assignment.fileUrl && (
+                        <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <div className="flex items-center space-x-2">
+                            <DocumentArrowUpIcon className="h-5 w-5 text-blue-600" />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-gray-900">ไฟล์การบ้าน</p>
+                              <a
+                                href={assignment.fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-700 underline text-sm"
+                                download
+                              >
+                                {assignment.fileName} ({formatFileSize(assignment.fileSize)})
+                              </a>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>

@@ -42,8 +42,8 @@ export const updateVideoProgress = async (
     ? Math.min(100, Math.max(0, (currentTime / duration) * 100))
     : 0;
 
-  // Mark as completed if watched more than 90% or explicitly marked
-  const isCompleted = completed || progressPercentage >= 90;
+  // Mark as completed if watched more than 80% or explicitly marked
+  const isCompleted = completed || progressPercentage >= 80;
 
   const progress = await prisma.contentProgress.upsert({
     where: {
@@ -144,13 +144,15 @@ const updateCourseProgress = async (courseId: string, studentId: string) => {
     },
   });
 
-  // Calculate average progress
+  // Calculate average progress - only count completed contents
+  const completedCount = progressRecords.filter(r => r.completed).length;
   const totalProgress = progressRecords.reduce((sum, record) => {
     return sum + record.progress;
   }, 0);
 
+  // Calculate progress: average of all contents (completed = 100%, incomplete = progress%)
   const averageProgress = allContentIds.length > 0
-    ? totalProgress / allContentIds.length
+    ? Math.round((totalProgress / allContentIds.length) * 100) / 100
     : 0;
 
   // Update course student progress
