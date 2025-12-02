@@ -260,6 +260,7 @@ model LessonContent {
   fileUrl       String?
   fileName      String?
   fileSize      Int?
+  s3Key         String?     // S3 key สำหรับลบไฟล์จาก S3
   duration      Int?        // in minutes
   order         Int
   createdAt     DateTime    @default(now())

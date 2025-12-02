@@ -31,7 +31,7 @@
 └─────────────────┘
 ```
 
-## 🚀 Step-by-Step Deployment
+1.## 🚀 Step-by-Step Deployment
 
 ### 1. สร้าง Project ใน Railway
 

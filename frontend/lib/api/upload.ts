@@ -7,6 +7,7 @@ export interface UploadFileResponse {
     fileName: string;
     fileSize: number;
     mimeType: string;
+    s3Key?: string; // S3 key สำหรับลบไฟล์
   };
   error?: string;
 }

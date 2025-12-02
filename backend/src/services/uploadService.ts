@@ -11,7 +11,7 @@ const ALLOWED_DOCUMENT_TYPES = ['application/pdf', 'application/msword', 'applic
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
 
 // Check if S3 is configured
-const isS3Configured = () => {
+export const isS3Configured = () => {
   const hasAccessKey = !!process.env.AWS_ACCESS_KEY_ID;
   const hasSecretKey = !!process.env.AWS_SECRET_ACCESS_KEY;
   const hasBucket = !!process.env.AWS_S3_BUCKET_NAME;

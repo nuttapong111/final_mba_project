@@ -220,9 +220,12 @@ export const uploadFileToS3 = async (
 
     console.log(`[S3] ✅ Generated URL: ${url}`);
 
+    // Extract generated filename from s3Key (e.g., "uploads/documents/2025/11/document_1764434458100_9pmlffg1emw.pdf" -> "document_1764434458100_9pmlffg1emw.pdf")
+    const generatedFileName = s3Key.split('/').pop() || file.name;
+
     return {
       url,
-      fileName: file.name,
+      fileName: generatedFileName, // เก็บ generated filename (ที่ใช้ใน S3) แทนชื่อไฟล์เดิม
       fileSize: file.size,
       mimeType: mimeType,
       s3Key,

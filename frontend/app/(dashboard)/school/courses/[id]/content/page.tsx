@@ -583,7 +583,7 @@ export default function CourseContentPage() {
   const handleSave = async () => {
     try {
       // อัพโหลดไฟล์ใหม่ก่อน และเก็บข้อมูลไฟล์ไว้ใน map
-      const fileUploadResults = new Map<string, { fileUrl: string; fileName: string; fileSize: number }>();
+      const fileUploadResults = new Map<string, { fileUrl: string; fileName: string; fileSize: number; s3Key?: string }>();
       const uploadPromises: Array<Promise<void>> = [];
       
       lessons.forEach((lesson, lessonIndex) => {
@@ -649,6 +649,7 @@ export default function CourseContentPage() {
                       fileUrl: response.data.url, // เก็บ relative path สำหรับส่งไป backend
                       fileName: response.data.fileName,
                       fileSize: response.data.fileSize,
+                      s3Key: response.data.s3Key, // เก็บ S3 key สำหรับลบไฟล์
                     });
                     
                     console.log(`[DEBUG] Stored in map with key: ${contentKey}`, fileUploadResults.get(contentKey));
@@ -832,6 +833,7 @@ export default function CourseContentPage() {
             contentData.fileUrl = uploadedFile.fileUrl;
             contentData.fileName = uploadedFile.fileName;
             contentData.fileSize = uploadedFile.fileSize;
+            contentData.s3Key = uploadedFile.s3Key; // ส่ง S3 key ไป backend
           } else if (content.fileUrl) {
             // ถ้า fileUrl เป็น URL จาก backend (http/https หรือ /uploads/) ให้ใช้
             // แต่ต้องแปลงเป็น relative path สำหรับส่งไป backend

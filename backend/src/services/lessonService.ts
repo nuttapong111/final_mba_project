@@ -1,5 +1,7 @@
 import prisma from '../config/database';
 import { AuthUser } from '../middleware/auth';
+import { deleteFileFromS3 } from './s3Service';
+import { isS3Configured } from './uploadService';
 
 export interface LessonData {
   id?: string;
@@ -17,6 +19,7 @@ export interface ContentData {
   fileUrl?: string;
   fileName?: string;
   fileSize?: number;
+  s3Key?: string; // S3 key สำหรับลบไฟล์จาก S3
   duration?: number;
   order: number;
   quizSettings?: {
@@ -60,6 +63,38 @@ export const saveCourseContent = async (
 
   // Use transaction to ensure data consistency
   await prisma.$transaction(async (tx) => {
+    // ก่อนลบ lessons ให้ลบไฟล์จาก S3 ก่อน
+    const existingLessons = await tx.lesson.findMany({
+      where: { courseId },
+      include: {
+        contents: {
+          select: {
+            id: true,
+            s3Key: true,
+            fileName: true,
+          },
+        },
+      },
+    });
+
+    // ลบไฟล์จาก S3 สำหรับไฟล์ที่มี s3Key
+    if (isS3Configured()) {
+      for (const lesson of existingLessons) {
+        for (const content of lesson.contents) {
+          if (content.s3Key) {
+            try {
+              console.log(`[DELETE] ลบไฟล์จาก S3: ${content.s3Key}`);
+              await deleteFileFromS3(content.s3Key);
+              console.log(`[DELETE] ✅ ลบไฟล์จาก S3 สำเร็จ: ${content.s3Key}`);
+            } catch (error: any) {
+              // Log error แต่ไม่ throw เพื่อให้ลบ database ได้ต่อ
+              console.error(`[DELETE] ⚠️ ไม่สามารถลบไฟล์จาก S3: ${content.s3Key}`, error.message);
+            }
+          }
+        }
+      }
+    }
+
     // Delete existing lessons and contents (cascade will handle contents)
     await tx.lesson.deleteMany({
       where: { courseId },
@@ -105,6 +140,7 @@ export const saveCourseContent = async (
             fileUrl: contentData.fileUrl || null,
             fileName: contentData.fileName || null,
             fileSize: contentData.fileSize || null,
+            s3Key: contentData.s3Key || null, // เก็บ S3 key สำหรับลบไฟล์
             duration: contentData.duration || null,
             order: contentData.order,
             quizSettings: contentData.quizSettings
