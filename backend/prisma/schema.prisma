@@ -144,6 +144,10 @@ model User {
   
   // Grading
   gradingTasks       GradingTask[]
+  
+  // Assignments
+  assignmentSubmissions AssignmentSubmission[] @relation("AssignmentSubmissions")
+  assignmentGradings    AssignmentSubmission[] @relation("AssignmentGradings")
 }
 
 // Course Categories
@@ -197,6 +201,9 @@ model Course {
   webboardPosts         WebboardPost[]
   completionRequirements CourseCompletionRequirements?
   certificates          Certificate[]
+  assignments          Assignment[]
+  gradingSystem        GradingSystem?
+  gradeWeights         GradeWeight[]
 }
 
 // Course Teachers (Many-to-Many with roles)
@@ -660,5 +667,104 @@ model Certificate {
   @@unique([courseId, studentId])
   @@index([courseId])
   @@index([studentId])
+}
+
+// Grading System Type
+enum GradingSystemType {
+  PASS_FAIL
+  GRADE
+}
+
+// Assignments
+model Assignment {
+  id            String   @id @default(uuid())
+  courseId      String
+  title         String
+  description   String?  @db.Text
+  fileUrl       String?
+  fileName      String?
+  fileSize      Int?
+  s3Key         String?
+  dueDate       DateTime?
+  maxScore      Float    @default(100)
+  order         Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  createdBy     String   // User ID who created the assignment
+
+  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  submissions   AssignmentSubmission[]
+
+  @@index([courseId])
+  @@index([createdBy])
+}
+
+// Assignment Submissions
+model AssignmentSubmission {
+  id            String   @id @default(uuid())
+  assignmentId  String
+  studentId     String
+  fileUrl       String?
+  fileName      String?
+  fileSize      Int?
+  s3Key         String?
+  submittedAt   DateTime?
+  score         Float?
+  feedback      String?  @db.Text
+  gradedAt      DateTime?
+  gradedBy      String?  // User ID who graded
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  assignment    Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student       User       @relation("AssignmentSubmissions", fields: [studentId], references: [id], onDelete: Cascade)
+  grader        User?      @relation("AssignmentGradings", fields: [gradedBy], references: [id], onDelete: SetNull)
+
+  @@unique([assignmentId, studentId])
+  @@index([assignmentId])
+  @@index([studentId])
+}
+
+// Grading System
+model GradingSystem {
+  id            String   @id @default(uuid())
+  courseId      String   @unique
+  systemType    GradingSystemType @default(PASS_FAIL)
+  passingScore  Float?   // For PASS_FAIL system
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  criteria      GradeCriteria[]
+}
+
+// Grade Criteria (for GRADE system)
+model GradeCriteria {
+  id            String   @id @default(uuid())
+  gradingSystemId String
+  grade         String   // A, B, C, D, F
+  minScore      Float    // Minimum percentage (e.g., 80 for A)
+  maxScore      Float?   // Maximum percentage (optional)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  gradingSystem GradingSystem @relation(fields: [gradingSystemId], references: [id], onDelete: Cascade)
+
+  @@index([gradingSystemId])
+}
+
+// Grade Weights (for GRADE system)
+model GradeWeight {
+  id            String   @id @default(uuid())
+  courseId      String
+  category      String   // 'quiz', 'assignment', 'exam', 'participation', etc.
+  weight        Float    // Percentage (e.g., 30 for 30%)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, category])
+  @@index([courseId])
 }
 

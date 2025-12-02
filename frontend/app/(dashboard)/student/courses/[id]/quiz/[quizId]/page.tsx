@@ -164,28 +164,58 @@ export default function StudentQuizPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">แบบทดสอบ</h1>
-            <p className="text-gray-600 mt-1">กรุณาตอบคำถามทั้งหมด ({questions.length} ข้อ)</p>
-          </div>
-          <div className="flex items-center space-x-4">
-            {timeRemaining !== null && (
-              <div className="flex items-center space-x-2 px-4 py-2 bg-red-50 border border-red-200 rounded-lg">
-                <ClockIcon className="h-5 w-5 text-red-600" />
-                <span className="font-semibold text-red-600">{formatTime(timeRemaining)}</span>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+        {/* Modern Header with Progress */}
+        <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex-1">
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+                  <CheckCircleIcon className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    แบบทดสอบ
+                  </h1>
+                  <p className="text-gray-600 mt-1">กรุณาตอบคำถามทั้งหมด ({questions.length} ข้อ)</p>
+                </div>
               </div>
-            )}
-            {!isSubmitted && (
-              <Button variant="outline" onClick={() => router.back()}>
-                ยกเลิก
-              </Button>
-            )}
+              {/* Progress Bar */}
+              <div className="mt-4">
+                <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+                  <span>ความคืบหน้า</span>
+                  <span>{Object.keys(answers).length} / {questions.length} ข้อ</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 h-2.5 rounded-full transition-all duration-300"
+                    style={{ width: `${(Object.keys(answers).length / questions.length) * 100}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4 ml-6">
+              {timeRemaining !== null && (
+                <div className="flex items-center space-x-2 px-5 py-3 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-xl shadow-lg animate-pulse">
+                  <ClockIcon className="h-5 w-5" />
+                  <span className="font-bold text-lg">{formatTime(timeRemaining)}</span>
+                </div>
+              )}
+              {!isSubmitted && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => router.back()}
+                  className="border-gray-300 hover:bg-gray-50"
+                >
+                  ยกเลิก
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
+        {/* Questions Container */}
         <div className="space-y-6">
           {questions.map((q, index) => {
             const correctOption = q.options.find((opt) => opt.isCorrect);
@@ -193,95 +223,122 @@ export default function StudentQuizPage() {
             const isCorrect = correctOption && userAnswer === correctOption.text;
 
             return (
-              <div key={q.id} className="border-b border-gray-200 pb-6 last:border-0">
-                <div className="flex items-start justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex-1">
-                    {index + 1}. {q.question}
-                  </h3>
-                  <span className="text-sm text-gray-500 ml-4">
-                    ({q.points} คะแนน)
-                  </span>
+              <Card key={q.id} className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-shrink-0 w-10 h-10 bg-white rounded-full flex items-center justify-center font-bold text-blue-600 shadow-lg">
+                        {index + 1}
+                      </div>
+                      <h3 className="text-lg font-semibold text-white flex-1">
+                        {q.question}
+                      </h3>
+                    </div>
+                    <span className="flex-shrink-0 ml-4 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-white text-sm font-semibold">
+                      {q.points} คะแนน
+                    </span>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  {q.type === 'multiple_choice' || q.type === 'true_false' ? (
-                    q.options.map((option) => (
-                      <label
-                        key={option.id}
-                        className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
-                          answers[q.id] === option.text
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        } ${isSubmitted ? 'opacity-60' : ''}`}
-                      >
-                        <input
-                          type="radio"
-                          name={q.id}
-                          value={option.text}
-                          checked={answers[q.id] === option.text}
-                          onChange={(e) =>
-                            setAnswers({ ...answers, [q.id]: e.target.value })
-                          }
-                          disabled={isSubmitted}
-                          className="mr-3"
-                        />
-                        <span className="flex-1">{option.text}</span>
-                        {isSubmitted && option.isCorrect && (
-                          <CheckCircleIcon className="h-5 w-5 text-green-600 ml-auto" />
-                        )}
-                        {isSubmitted &&
-                          answers[q.id] === option.text &&
-                          !option.isCorrect && (
-                            <XCircleIcon className="h-5 w-5 text-red-600 ml-auto" />
+                <div className="p-6 bg-white">
+                  <div className="space-y-3">
+                    {q.type === 'multiple_choice' || q.type === 'true_false' ? (
+                      q.options.map((option) => (
+                        <label
+                          key={option.id}
+                          className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                            answers[q.id] === option.text
+                              ? isSubmitted 
+                                ? isCorrect
+                                  ? 'border-green-500 bg-green-50 shadow-md'
+                                  : 'border-red-500 bg-red-50 shadow-md'
+                                : 'border-blue-500 bg-blue-50 shadow-md scale-[1.02]'
+                              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                          } ${isSubmitted ? 'cursor-not-allowed' : ''}`}
+                        >
+                          <input
+                            type="radio"
+                            name={q.id}
+                            value={option.text}
+                            checked={answers[q.id] === option.text}
+                            onChange={(e) =>
+                              setAnswers({ ...answers, [q.id]: e.target.value })
+                            }
+                            disabled={isSubmitted}
+                            className="mr-4 h-5 w-5 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                          />
+                          <span className="flex-1 text-gray-800 font-medium">{option.text}</span>
+                          {isSubmitted && option.isCorrect && (
+                            <CheckCircleIcon className="h-6 w-6 text-green-600 ml-auto animate-pulse" />
                           )}
-                      </label>
-                    ))
-                  ) : q.type === 'short_answer' ? (
-                    <textarea
-                      value={answers[q.id] || ''}
-                      onChange={(e) =>
-                        setAnswers({ ...answers, [q.id]: e.target.value })
-                      }
-                      disabled={isSubmitted}
-                      rows={4}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                      placeholder="กรอกคำตอบ..."
-                    />
-                  ) : (
-                    <textarea
-                      value={answers[q.id] || ''}
-                      onChange={(e) =>
-                        setAnswers({ ...answers, [q.id]: e.target.value })
-                      }
-                      disabled={isSubmitted}
-                      rows={6}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                      placeholder="กรอกคำตอบ..."
-                    />
+                          {isSubmitted &&
+                            answers[q.id] === option.text &&
+                            !option.isCorrect && (
+                              <XCircleIcon className="h-6 w-6 text-red-600 ml-auto animate-pulse" />
+                            )}
+                        </label>
+                      ))
+                    ) : q.type === 'short_answer' ? (
+                      <textarea
+                        value={answers[q.id] || ''}
+                        onChange={(e) =>
+                          setAnswers({ ...answers, [q.id]: e.target.value })
+                        }
+                        disabled={isSubmitted}
+                        rows={4}
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200 resize-none"
+                        placeholder="กรอกคำตอบ..."
+                      />
+                    ) : (
+                      <textarea
+                        value={answers[q.id] || ''}
+                        onChange={(e) =>
+                          setAnswers({ ...answers, [q.id]: e.target.value })
+                        }
+                        disabled={isSubmitted}
+                        rows={6}
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200 resize-none"
+                        placeholder="กรอกคำตอบ..."
+                      />
+                    )}
+                  </div>
+                  {isSubmitted && q.explanation && (
+                    <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-l-4 border-blue-500 rounded-r-lg">
+                      <p className="text-sm text-gray-800">
+                        <strong className="text-blue-600">💡 คำอธิบาย:</strong> {q.explanation}
+                      </p>
+                    </div>
                   )}
                 </div>
-                {isSubmitted && q.explanation && (
-                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-blue-900">
-                      <strong>คำอธิบาย:</strong> {q.explanation}
-                    </p>
-                  </div>
-                )}
-              </div>
+              </Card>
             );
           })}
         </div>
 
+        {/* Submit Button */}
         {!isSubmitted && (
-          <div className="mt-6 flex justify-end">
-            <Button
-              onClick={handleSubmit}
-              disabled={Object.keys(answers).length !== questions.length}
-            >
-              ส่งคำตอบ
-            </Button>
+          <div className="sticky bottom-0 bg-white rounded-2xl shadow-2xl p-6 border-t-4 border-blue-500">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                {Object.keys(answers).length === questions.length ? (
+                  <span className="text-green-600 font-semibold">✓ ตอบครบทุกข้อแล้ว</span>
+                ) : (
+                  <span className="text-orange-600 font-semibold">
+                    ⚠ ยังตอบไม่ครบ {questions.length - Object.keys(answers).length} ข้อ
+                  </span>
+                )}
+              </div>
+              <Button
+                onClick={handleSubmit}
+                disabled={Object.keys(answers).length !== questions.length}
+                className="px-8 py-3 text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <CheckCircleIcon className="h-5 w-5 mr-2 inline" />
+                ส่งคำตอบ
+              </Button>
+            </div>
           </div>
         )}
-      </Card>
+      </div>
     </div>
   );
 }

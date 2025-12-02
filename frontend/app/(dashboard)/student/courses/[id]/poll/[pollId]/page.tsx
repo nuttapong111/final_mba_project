@@ -141,156 +141,188 @@ export default function TakePollPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      <div className="flex items-center space-x-4">
-        <button
-          onClick={() => router.back()}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <ArrowLeftIcon className="h-6 w-6 text-gray-600" />
-        </button>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">{poll.title}</h1>
-          <p className="text-gray-600 mt-1">{course?.title}</p>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50">
+      <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+        {/* Modern Header */}
+        <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
+          <div className="flex items-center space-x-4 mb-4">
+            <button
+              onClick={() => router.back()}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ArrowLeftIcon className="h-6 w-6 text-gray-600" />
+            </button>
+            <div className="flex-1">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg">
+                  <CheckIcon className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    {poll.title}
+                  </h1>
+                  <p className="text-gray-600 mt-1">{course?.title}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          {poll.description && (
+            <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border-l-4 border-purple-500">
+              <p className="text-gray-700">{poll.description}</p>
+            </div>
+          )}
         </div>
-      </div>
 
-      {poll.description && (
-        <Card>
-          <p className="text-gray-700">{poll.description}</p>
-        </Card>
-      )}
-
-      <Card>
+        {/* Questions Container */}
         <div className="space-y-6">
           {poll.questions.map((question, index) => {
             const questionId = question.id || `q-${index}`;
             return (
-            <div key={questionId} className="border-b border-gray-200 pb-6 last:border-b-0 last:pb-0">
-              <div className="mb-4">
-                <label className="block text-lg font-medium text-gray-900 mb-1">
-                  {index + 1}. {question.question}
-                  {question.required && <span className="text-red-500 ml-1">*</span>}
-                </label>
+            <Card key={questionId} className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <div className="bg-gradient-to-r from-purple-500 to-pink-600 p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="flex-shrink-0 w-10 h-10 bg-white rounded-full flex items-center justify-center font-bold text-purple-600 shadow-lg">
+                    {index + 1}
+                  </div>
+                  <label className="block text-lg font-semibold text-white flex-1">
+                    {question.question}
+                    {question.required && <span className="text-red-200 ml-1">*</span>}
+                  </label>
+                </div>
               </div>
+              <div className="p-6 bg-white">
 
-              <div className="ml-4">
-                {question.type === 'text' && (
-                  <textarea
-                    value={(answers[questionId]?.answer as string) || ''}
-                    onChange={(e) => handleAnswerChange(questionId, e.target.value)}
-                    rows={4}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    placeholder="กรอกคำตอบ..."
-                    required={question.required}
-                  />
-                )}
+                <div className="space-y-3">
+                  {question.type === 'text' && (
+                    <textarea
+                      value={(answers[questionId]?.answer as string) || ''}
+                      onChange={(e) => handleAnswerChange(questionId, e.target.value)}
+                      rows={4}
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all duration-200 resize-none"
+                      placeholder="กรอกคำตอบ..."
+                      required={question.required}
+                    />
+                  )}
 
-                {question.type === 'multiple_choice' && question.options && (
-                  <div className="space-y-2">
-                    {question.options.map((option, optIndex) => (
-                      <label
-                        key={optIndex}
-                        className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
-                      >
-                        <input
-                          type="radio"
-                          name={`question-${questionId}`}
-                          value={option}
-                          checked={answers[questionId]?.answer === option}
-                          onChange={(e) => handleAnswerChange(questionId, e.target.value)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500"
-                          required={question.required}
-                        />
-                        <span className="text-gray-700">{option}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-
-                {question.type === 'checkbox' && question.options && (
-                  <div className="space-y-2">
-                    {question.options.map((option, optIndex) => (
-                      <label
-                        key={optIndex}
-                        className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          value={option}
-                          checked={(answers[questionId]?.answer as string[])?.includes(option) || false}
-                          onChange={(e) => {
-                            const currentAnswers = (answers[questionId]?.answer as string[]) || [];
-                            if (e.target.checked) {
-                              handleAnswerChange(questionId, [...currentAnswers, option]);
-                            } else {
-                              handleAnswerChange(questionId, currentAnswers.filter(a => a !== option));
-                            }
-                          }}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 rounded"
-                        />
-                        <span className="text-gray-700">{option}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-
-                {question.type === 'rating' && (
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-600">
-                      {question.minRating || 1}
-                    </span>
-                    <div className="flex space-x-1">
-                      {Array.from({ length: (question.maxRating || 5) - (question.minRating || 1) + 1 }, (_, i) => {
-                        const rating = (question.minRating || 1) + i;
-                        return (
-                          <button
-                            key={rating}
-                            type="button"
-                            onClick={() => handleAnswerChange(questionId, rating)}
-                            className={`p-2 rounded-lg transition-colors ${
-                              answers[questionId]?.answer === rating
-                                ? 'bg-yellow-400 text-yellow-900'
-                                : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
-                            }`}
-                          >
-                            <StarIcon className="h-6 w-6" />
-                          </button>
-                        );
-                      })}
+                  {question.type === 'multiple_choice' && question.options && (
+                    <div className="space-y-3">
+                      {question.options.map((option, optIndex) => (
+                        <label
+                          key={optIndex}
+                          className={`flex items-center space-x-3 p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                            answers[questionId]?.answer === option
+                              ? 'border-purple-500 bg-purple-50 shadow-md scale-[1.02]'
+                              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name={`question-${questionId}`}
+                            value={option}
+                            checked={answers[questionId]?.answer === option}
+                            onChange={(e) => handleAnswerChange(questionId, e.target.value)}
+                            className="h-5 w-5 text-purple-600 focus:ring-purple-500"
+                            required={question.required}
+                          />
+                          <span className="text-gray-800 font-medium flex-1">{option}</span>
+                        </label>
+                      ))}
                     </div>
-                    <span className="text-sm text-gray-600">
-                      {question.maxRating || 5}
-                    </span>
-                    {answers[questionId]?.answer && (
-                      <span className="text-sm font-medium text-gray-700 ml-2">
-                        ({answers[questionId].answer as number} คะแนน)
+                  )}
+
+                  {question.type === 'checkbox' && question.options && (
+                    <div className="space-y-3">
+                      {question.options.map((option, optIndex) => (
+                        <label
+                          key={optIndex}
+                          className={`flex items-center space-x-3 p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                            (answers[questionId]?.answer as string[])?.includes(option)
+                              ? 'border-purple-500 bg-purple-50 shadow-md scale-[1.02]'
+                              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            value={option}
+                            checked={(answers[questionId]?.answer as string[])?.includes(option) || false}
+                            onChange={(e) => {
+                              const currentAnswers = (answers[questionId]?.answer as string[]) || [];
+                              if (e.target.checked) {
+                                handleAnswerChange(questionId, [...currentAnswers, option]);
+                              } else {
+                                handleAnswerChange(questionId, currentAnswers.filter(a => a !== option));
+                              }
+                            }}
+                            className="h-5 w-5 text-purple-600 focus:ring-purple-500 rounded"
+                          />
+                          <span className="text-gray-800 font-medium flex-1">{option}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  {question.type === 'rating' && (
+                    <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border-2 border-yellow-200">
+                      <span className="text-sm font-semibold text-gray-700">
+                        {question.minRating || 1}
                       </span>
-                    )}
-                  </div>
-                )}
+                      <div className="flex space-x-2">
+                        {Array.from({ length: (question.maxRating || 5) - (question.minRating || 1) + 1 }, (_, i) => {
+                          const rating = (question.minRating || 1) + i;
+                          return (
+                            <button
+                              key={rating}
+                              type="button"
+                              onClick={() => handleAnswerChange(questionId, rating)}
+                              className={`p-3 rounded-xl transition-all duration-200 transform hover:scale-110 ${
+                                answers[questionId]?.answer === rating
+                                  ? 'bg-yellow-400 text-yellow-900 shadow-lg scale-110'
+                                  : 'bg-white text-gray-400 hover:bg-yellow-100'
+                              }`}
+                            >
+                              <StarIcon className="h-8 w-8" />
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <span className="text-sm font-semibold text-gray-700">
+                        {question.maxRating || 5}
+                      </span>
+                      {answers[questionId]?.answer && (
+                        <span className="text-sm font-bold text-purple-600 ml-4 px-3 py-1 bg-white rounded-full">
+                          {answers[questionId].answer as number} ⭐
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            </Card>
           );
           })}
         </div>
-      </Card>
 
-      <div className="flex justify-end space-x-3">
-        <Button
-          variant="outline"
-          onClick={() => router.back()}
-          disabled={isSubmitting}
-        >
-          ยกเลิก
-        </Button>
-        <Button
-          onClick={handleSubmit}
-          disabled={isSubmitting}
-        >
-          <CheckIcon className="h-5 w-5 mr-2 inline" />
-          {isSubmitting ? 'กำลังส่ง...' : 'ส่งแบบประเมิน'}
-        </Button>
+        {/* Submit Button */}
+        <div className="sticky bottom-0 bg-white rounded-2xl shadow-2xl p-6 border-t-4 border-purple-500">
+          <div className="flex items-center justify-end space-x-4">
+            <Button
+              variant="outline"
+              onClick={() => router.back()}
+              disabled={isSubmitting}
+              className="px-6 py-3 border-gray-300 hover:bg-gray-50"
+            >
+              ยกเลิก
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="px-8 py-3 text-lg font-semibold bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <CheckIcon className="h-5 w-5 mr-2 inline" />
+              {isSubmitting ? 'กำลังส่ง...' : 'ส่งแบบประเมิน'}
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );
