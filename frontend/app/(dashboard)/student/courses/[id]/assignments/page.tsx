@@ -255,37 +255,58 @@ export default function StudentAssignmentsPage() {
                     </div>
 
                     {submission && (
-                      <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-gray-700">ไฟล์ที่ส่ง:</span>
+                      <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-sm font-semibold text-gray-900">ไฟล์ที่ส่ง</h4>
                           {submission.submittedAt && (
                             <span className="text-xs text-gray-500">
                               ส่งเมื่อ: {formatDate(submission.submittedAt)}
                             </span>
                           )}
                         </div>
-                        {submission.fileName && (
-                          <a
-                            href={submission.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-700 underline text-sm"
-                          >
-                            {submission.fileName} ({formatFileSize(submission.fileSize)})
-                          </a>
+                        {submission.fileName && submission.fileUrl && (
+                          <div className="p-3 bg-white rounded-lg border border-gray-200 mb-3">
+                            <div className="flex items-center space-x-2">
+                              <DocumentArrowUpIcon className="h-5 w-5 text-blue-600" />
+                              <div className="flex-1">
+                                <a
+                                  href={submission.fileUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-700 underline text-sm font-medium"
+                                  download
+                                >
+                                  {submission.fileName}
+                                </a>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  ขนาด: {formatFileSize(submission.fileSize)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
                         )}
                         {submission.score !== null && submission.score !== undefined && (
-                          <div className="mt-3 pt-3 border-t border-gray-200">
-                            <div className="flex items-center justify-between mb-1">
+                          <div className="pt-3 border-t border-gray-200">
+                            <div className="flex items-center justify-between mb-2">
                               <span className="text-sm font-medium text-gray-700">คะแนน:</span>
-                              <span className="text-lg font-bold text-green-600">
+                              <span className="text-xl font-bold text-green-600">
                                 {submission.score} / {assignment.maxScore}
                               </span>
                             </div>
+                            <div className="mt-2">
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                  className="bg-green-600 h-2 rounded-full"
+                                  style={{
+                                    width: `${(submission.score / assignment.maxScore) * 100}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
                             {submission.feedback && (
-                              <div className="mt-2">
-                                <span className="text-sm font-medium text-gray-700">ความคิดเห็น:</span>
-                                <p className="text-sm text-gray-600 mt-1">{submission.feedback}</p>
+                              <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                <span className="text-sm font-medium text-gray-700 block mb-1">ความคิดเห็นจากอาจารย์:</span>
+                                <p className="text-sm text-gray-700">{submission.feedback}</p>
                               </div>
                             )}
                           </div>
@@ -294,51 +315,90 @@ export default function StudentAssignmentsPage() {
                     )}
                   </div>
 
-                  <div className="ml-4">
-                    {!submission && !isOverdue(assignment.dueDate) && (
-                      <label className="cursor-pointer">
-                        <input
-                          type="file"
-                          accept=".pdf,.doc,.docx"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              handleFileSelect(assignment, file);
-                            }
-                          }}
-                          className="hidden"
-                          disabled={submittingId === assignment.id}
-                        />
-                        <Button
-                          disabled={submittingId === assignment.id}
-                          className="whitespace-nowrap"
-                        >
-                          {submittingId === assignment.id ? 'กำลังส่ง...' : 'ส่งการบ้าน'}
-                        </Button>
-                      </label>
+                  <div className="ml-4 flex flex-col space-y-2">
+                    {!submission && (
+                      <>
+                        {!isOverdue(assignment.dueDate) ? (
+                          <label className="cursor-pointer">
+                            <input
+                              type="file"
+                              accept=".pdf,.doc,.docx"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  handleFileSelect(assignment, file);
+                                }
+                              }}
+                              className="hidden"
+                              disabled={submittingId === assignment.id}
+                            />
+                            <Button
+                              disabled={submittingId === assignment.id}
+                              className="whitespace-nowrap"
+                            >
+                              {submittingId === assignment.id ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block"></div>
+                                  กำลังส่ง...
+                                </>
+                              ) : (
+                                <>
+                                  <DocumentArrowUpIcon className="h-5 w-5 mr-2 inline" />
+                                  ส่งการบ้าน
+                                </>
+                              )}
+                            </Button>
+                          </label>
+                        ) : (
+                          <div className="text-center">
+                            <XCircleIcon className="h-8 w-8 text-red-500 mx-auto mb-2" />
+                            <p className="text-sm text-red-600 font-medium">หมดเวลาแล้ว</p>
+                          </div>
+                        )}
+                      </>
                     )}
-                    {submission && !submission.score && submission.score !== 0 && (
-                      <label className="cursor-pointer">
-                        <input
-                          type="file"
-                          accept=".pdf,.doc,.docx"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              handleFileSelect(assignment, file);
-                            }
-                          }}
-                          className="hidden"
-                          disabled={submittingId === assignment.id}
-                        />
-                        <Button
-                          variant="outline"
-                          disabled={submittingId === assignment.id}
-                          className="whitespace-nowrap"
-                        >
-                          {submittingId === assignment.id ? 'กำลังส่ง...' : 'ส่งใหม่'}
-                        </Button>
-                      </label>
+                    {submission && (
+                      <>
+                        {submission.score === null && submission.score !== 0 && (
+                          <label className="cursor-pointer">
+                            <input
+                              type="file"
+                              accept=".pdf,.doc,.docx"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  handleFileSelect(assignment, file);
+                                }
+                              }}
+                              className="hidden"
+                              disabled={submittingId === assignment.id}
+                            />
+                            <Button
+                              variant="outline"
+                              disabled={submittingId === assignment.id}
+                              className="whitespace-nowrap"
+                            >
+                              {submittingId === assignment.id ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2 inline-block"></div>
+                                  กำลังส่ง...
+                                </>
+                              ) : (
+                                <>
+                                  <DocumentArrowUpIcon className="h-5 w-5 mr-2 inline" />
+                                  ส่งใหม่
+                                </>
+                              )}
+                            </Button>
+                          </label>
+                        )}
+                        {submission.score !== null && submission.score !== undefined && (
+                          <div className="text-center p-2 bg-green-50 rounded-lg border border-green-200">
+                            <CheckCircleIcon className="h-6 w-6 text-green-600 mx-auto mb-1" />
+                            <p className="text-sm font-medium text-green-700">ตรวจแล้ว</p>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>

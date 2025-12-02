@@ -91,7 +91,21 @@ export default function YouTubePlayer({
       apiReadyRef.current = true;
       initializePlayer();
     };
-  }, []);
+
+    // Cleanup
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+      if (playerRef.current && playerRef.current.destroy) {
+        try {
+          playerRef.current.destroy();
+        } catch (error) {
+          console.error('[YouTubePlayer] Error destroying player:', error);
+        }
+      }
+    };
+  }, [videoId, contentId, courseId, savedPosition]);
 
   const initializePlayer = () => {
     if (!apiReadyRef.current || !containerRef.current || playerReadyRef.current) return;
@@ -204,21 +218,6 @@ export default function YouTubePlayer({
     }
   };
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-      }
-      if (playerRef.current && playerRef.current.destroy) {
-        try {
-          playerRef.current.destroy();
-        } catch (error) {
-          console.error('[YouTubePlayer] Error destroying player:', error);
-        }
-      }
-    };
-  }, []);
 
   return (
     <div className={className} style={{ position: 'relative' }}>
