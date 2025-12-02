@@ -34,8 +34,19 @@ export default function StudentAssignmentsPage() {
         coursesApi.getById(courseId),
       ]);
 
-      if (assignmentsResponse.success) {
+      if (assignmentsResponse.success && assignmentsResponse.data) {
+        // Log assignments for debugging
+        console.log('[ASSIGNMENTS] Fetched assignments:', assignmentsResponse.data.map((a: any) => ({
+          id: a.id,
+          title: a.title,
+          fileName: a.fileName,
+          fileUrl: a.fileUrl ? 'exists' : 'missing',
+          s3Key: a.s3Key ? 'exists' : 'missing',
+          submissions: a.submissions?.length || 0,
+        })));
         setAssignments(assignmentsResponse.data);
+      } else {
+        console.error('[ASSIGNMENTS] Failed to fetch assignments:', assignmentsResponse);
       }
 
       if (courseResponse.success) {
