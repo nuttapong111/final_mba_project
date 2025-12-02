@@ -258,15 +258,55 @@ export const submitQuiz = async (
   }
 
   // Check if already submitted (before submitting)
+  // Use findUnique with compound key if available, or findFirst
   const existingSubmission = await prisma.examSubmission.findFirst({
     where: {
       examId: examId,
       studentId: user.id,
     },
+    select: {
+      id: true,
+      score: true,
+      submittedAt: true,
+    },
   });
 
   if (existingSubmission) {
-    throw new Error('คุณได้ส่งข้อสอบนี้แล้ว');
+    // Return existing submission instead of throwing error
+    // This prevents duplicate submission errors when auto-submit is triggered multiple times
+    // Get full submission data with exam info
+    const fullSubmission = await prisma.examSubmission.findUnique({
+      where: { id: existingSubmission.id },
+      include: {
+        exam: {
+          include: {
+            examQuestions: {
+              include: {
+                question: true,
+              },
+            },
+          },
+        },
+        gradingTasks: true,
+        answers: true,
+      },
+    });
+
+    if (!fullSubmission) {
+      throw new Error('ไม่พบข้อมูลการส่งข้อสอบ');
+    }
+
+    // Check if there are essay questions
+    const hasEssayQuestions = fullSubmission.gradingTasks && fullSubmission.gradingTasks.length > 0;
+
+    return {
+      id: fullSubmission.id,
+      score: fullSubmission.score || 0,
+      percentage: fullSubmission.percentage || 0,
+      passed: fullSubmission.passed,
+      totalScore: fullSubmission.exam.totalScore || 0,
+      hasEssayQuestions: hasEssayQuestions,
+    };
   }
 
   // Submit exam

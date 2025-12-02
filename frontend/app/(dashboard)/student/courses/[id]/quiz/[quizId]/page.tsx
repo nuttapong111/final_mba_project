@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -25,6 +25,7 @@ export default function StudentQuizPage() {
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState<number>(0); // Track elapsed time
+  const isSubmittingRef = useRef<boolean>(false); // Prevent duplicate submissions
 
   useEffect(() => {
     const fetchQuiz = async () => {
@@ -118,8 +119,10 @@ export default function StudentQuizPage() {
   };
 
   const handleSubmit = useCallback(async () => {
-    if (isSubmitted || submitting) return;
+    // Prevent duplicate submissions
+    if (isSubmitted || submitting || isSubmittingRef.current) return;
 
+    isSubmittingRef.current = true;
     setSubmitting(true);
     setIsSubmitted(true);
 
@@ -194,8 +197,12 @@ export default function StudentQuizPage() {
       }
     } catch (error: any) {
       console.error('Error submitting quiz:', error);
-      setIsSubmitted(false);
-      setSubmitting(false);
+      // Only reset if it's not a "already submitted" error
+      if (!error.message?.includes('ส่งข้อสอบนี้แล้ว')) {
+        setIsSubmitted(false);
+        setSubmitting(false);
+        isSubmittingRef.current = false;
+      }
       Swal.fire({
         icon: 'error',
         title: 'เกิดข้อผิดพลาด',
@@ -206,10 +213,10 @@ export default function StudentQuizPage() {
 
   // Timer countdown
   useEffect(() => {
-    if (timeRemaining === null || isSubmitted) return;
+    if (timeRemaining === null || isSubmitted || isSubmittingRef.current) return;
 
     // If time is already up, auto submit immediately
-    if (timeRemaining <= 0 && !isSubmitted && !submitting) {
+    if (timeRemaining <= 0 && !isSubmitted && !submitting && !isSubmittingRef.current) {
       handleSubmit();
       return;
     }
@@ -240,7 +247,7 @@ export default function StudentQuizPage() {
         // Auto submit when time runs out
         if (newRemaining <= 0) {
           clearInterval(timer);
-          if (!isSubmitted && !submitting) {
+          if (!isSubmitted && !submitting && !isSubmittingRef.current) {
             handleSubmit();
           }
           return 0;
