@@ -190,6 +190,7 @@ export const saveCourseContent = async (
                     endTime: contentData.quizSettings.endTime || null,
                     passingPercentage:
                       contentData.quizSettings.passingPercentage || 70,
+                    examType: contentData.quizSettings.examType || null,
                     categorySelections: {
                       create:
                         contentData.quizSettings.categorySelections?.map(

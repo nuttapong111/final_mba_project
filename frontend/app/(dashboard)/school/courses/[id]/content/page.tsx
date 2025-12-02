@@ -100,6 +100,34 @@ function QuizSettingsForm({
     <div className="ml-8 mt-4 space-y-4 p-4 bg-white rounded-lg border border-blue-200">
       <h4 className="font-bold text-gray-900 mb-4">ตั้งค่าข้อสอบ</h4>
 
+      {/* ประเภทข้อสอบ */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          ประเภทข้อสอบ *
+        </label>
+        <select
+          value={quizSettings.examType || ''}
+          onChange={(e) => handleUpdateQuizSettings('examType', e.target.value)}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none cursor-pointer"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+            backgroundPosition: 'right 0.5rem center',
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: '1.5em 1.5em',
+            paddingRight: '2.5rem',
+          }}
+          required
+        >
+          <option value="">-- เลือกประเภทข้อสอบ --</option>
+          <option value="QUIZ">ข้อสอบในบทเรียน</option>
+          <option value="MIDTERM">ข้อสอบกลางภาค</option>
+          <option value="FINAL">ข้อสอบปลายภาค</option>
+        </select>
+        <p className="text-xs text-gray-500 mt-1">
+          เลือกประเภทข้อสอบที่ต้องการสร้าง
+        </p>
+      </div>
+
       {/* จำนวนข้อทั้งหมด */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
@@ -1653,12 +1681,6 @@ export default function CourseContentPage() {
                   className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   📋 เพิ่มแบบทดสอบ
-                </button>
-                <button
-                  onClick={() => handleAddContent(lessonIndex, 'exam')}
-                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  📝 เพิ่มข้อสอบ
                 </button>
                 <button
                   onClick={() => {

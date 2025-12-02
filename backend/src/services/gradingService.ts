@@ -513,22 +513,65 @@ export const calculateStudentGrade = async (courseId: string, studentId: string)
     scores['assignment'] = assignmentScores.map((s) => s.score || 0);
   }
 
-  // Get exam scores
-  const examScores = await prisma.examSubmission.findMany({
+  // Get midterm exam scores
+  const midtermScores = await prisma.examSubmission.findMany({
     where: {
       studentId,
       exam: {
         courseId,
-        type: { in: ['MIDTERM', 'FINAL'] },
+        type: 'MIDTERM',
       },
     },
     select: {
       score: true,
     },
   });
-  if (examScores.length > 0) {
-    scores['exam'] = examScores.map((s) => s.score || 0);
+  if (midtermScores.length > 0) {
+    scores['midterm'] = midtermScores.map((s) => s.score || 0);
   }
+
+  // Get final exam scores
+  const finalScores = await prisma.examSubmission.findMany({
+    where: {
+      studentId,
+      exam: {
+        courseId,
+        type: 'FINAL',
+      },
+    },
+    select: {
+      score: true,
+    },
+  });
+  if (finalScores.length > 0) {
+    scores['final'] = finalScores.map((s) => s.score || 0);
+  }
+
+  // Get quiz scores from LessonContent (QUIZ type)
+  const quizContentScores = await prisma.contentProgress.findMany({
+    where: {
+      studentId,
+      content: {
+        lesson: {
+          courseId,
+        },
+        type: 'QUIZ',
+        quizSettings: {
+          examType: 'QUIZ',
+        },
+      },
+      completed: true,
+    },
+    include: {
+      content: {
+        include: {
+          quizSettings: true,
+        },
+      },
+    },
+  });
+  // Note: Quiz scores from LessonContent might need to be calculated differently
+  // For now, we'll use exam scores for quiz type
 
   // Calculate weighted average
   let totalWeightedScore = 0;

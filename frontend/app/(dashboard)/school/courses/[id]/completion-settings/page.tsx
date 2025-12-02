@@ -1156,10 +1156,10 @@ export default function CourseCompletionSettingsPage() {
                   }}
                 >
                   <option value="">-- เลือกหมวดหมู่ --</option>
-                  <option value="quiz">แบบทดสอบ (Quiz)</option>
-                  <option value="assignment">การบ้าน (Assignment)</option>
-                  <option value="exam">การสอบ (Exam)</option>
-                  <option value="participation">การมีส่วนร่วม (Participation)</option>
+                  <option value="assignment">การบ้าน</option>
+                  <option value="quiz">การสอบในบทเรียน</option>
+                  <option value="midterm">ข้อสอบกลางภาค</option>
+                  <option value="final">ข้อสอบปลายภาค</option>
                 </select>
                 <p className="text-xs text-gray-500 mt-1">
                   เลือกหมวดหมู่ที่ต้องการกำหนดน้ำหนักคะแนน

@@ -300,6 +300,7 @@ model QuizSettings {
   endDate           DateTime?
   endTime           String?
   passingPercentage Int      @default(70)
+  examType          String?  // 'QUIZ' | 'MIDTERM' | 'FINAL' - ประเภทข้อสอบ
 
   content           LessonContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
   categorySelections ExamQuestionSelection[]
