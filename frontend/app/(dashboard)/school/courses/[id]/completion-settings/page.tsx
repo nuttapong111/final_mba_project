@@ -72,9 +72,10 @@ export default function CourseCompletionSettingsPage() {
         setCourse(courseResponse.data);
         
         // Load completion requirements
-        if (courseResponse.data.completionRequirements) {
-          const existingReqs = courseResponse.data.completionRequirements;
-          const allQuizzes = getAllQuizzes(courseResponse.data);
+        const courseData = courseResponse.data as any;
+        if (courseData.completionRequirements) {
+          const existingReqs = courseData.completionRequirements;
+          const allQuizzes = getAllQuizzes(courseData);
           
           const existingQuizIds = existingReqs.quizRequirements?.map((q: QuizPassingRequirement) => q.quizId) || [];
           const currentQuizIds = allQuizzes.map((q: { id: string; title: string; lessonTitle: string }) => q.id);
@@ -96,9 +97,10 @@ export default function CourseCompletionSettingsPage() {
       setRequirements({
         ...existingReqs,
         quizRequirements: updatedQuizReqs,
-      });
-    } else {
-          const allQuizzes = getAllQuizzes(courseResponse.data);
+        });
+      } else {
+          const courseData = courseResponse.data as any;
+          const allQuizzes = getAllQuizzes(courseData);
       setRequirements({
         requireProgress: true,
         minProgressPercentage: 100,

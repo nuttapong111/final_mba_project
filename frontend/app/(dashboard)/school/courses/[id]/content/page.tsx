@@ -1462,6 +1462,12 @@ export default function CourseContentPage() {
                 >
                   📊 เพิ่มแบบประเมิน
                 </button>
+                <button
+                  onClick={() => handleAddContent(lessonIndex, 'assignment')}
+                  className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  📝 เพิ่มการบ้าน
+                </button>
               </div>
             </div>
           </Card>
