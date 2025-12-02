@@ -38,9 +38,11 @@ interface LessonContent {
   url?: string;
   fileUrl?: string;
   fileName?: string;
+  fileSize?: number;
   order: number;
   poll?: any;
   quizSettings?: any;
+  assignment?: any;
   duration?: number;
 }
 
