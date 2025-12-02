@@ -420,6 +420,9 @@ export const submitAssignment = async (
       },
     });
 
+    // Update content progress if assignment is linked to LessonContent
+    await updateAssignmentContentProgress(assignmentId, assignment.courseId, user.id);
+
     return updated;
   } else {
     // Create new submission
@@ -435,7 +438,44 @@ export const submitAssignment = async (
       },
     });
 
+    // Update content progress if assignment is linked to LessonContent
+    await updateAssignmentContentProgress(assignmentId, assignment.courseId, user.id);
+
     return submission;
+  }
+};
+
+/**
+ * Update content progress when assignment is submitted
+ */
+const updateAssignmentContentProgress = async (
+  assignmentId: string,
+  courseId: string,
+  studentId: string
+) => {
+  try {
+    // Find LessonContent that is linked to this assignment
+    const content = await prisma.lessonContent.findFirst({
+      where: {
+        assignmentId: assignmentId,
+        courseId: courseId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (content) {
+      // Mark the assignment content as completed
+      const { markContentCompleted } = await import('./contentProgressService');
+      await markContentCompleted(content.id, courseId, studentId);
+      console.log(`[ASSIGNMENT] Updated content progress for assignment ${assignmentId}, contentId: ${content.id}`);
+    } else {
+      console.log(`[ASSIGNMENT] No LessonContent found for assignment ${assignmentId}, skipping progress update`);
+    }
+  } catch (error: any) {
+    console.error(`[ASSIGNMENT] Error updating content progress:`, error);
+    // Don't throw error, just log it - assignment submission should still succeed
   }
 };
 

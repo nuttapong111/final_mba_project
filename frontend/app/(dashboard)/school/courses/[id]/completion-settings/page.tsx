@@ -57,10 +57,10 @@ export default function CourseCompletionSettingsPage() {
     minQuizPassingPercentage: number | undefined;
     certificateMinGrade: string;
   }>({
-    requireProgress: true,
-    minProgressPercentage: 100,
-    requireAllQuizzes: false,
-    minQuizPassingPercentage: 70,
+        requireProgress: true,
+        minProgressPercentage: 100,
+        requireAllQuizzes: false,
+        minQuizPassingPercentage: 70,
     certificateMinGrade: '',
   });
   
@@ -355,7 +355,7 @@ export default function CourseCompletionSettingsPage() {
         });
         if (response.success) {
           Swal.fire({
-            icon: 'success',
+      icon: 'success',
             title: 'สร้างสำเร็จ',
           });
           setShowCriteriaModal(false);
@@ -550,7 +550,7 @@ export default function CourseCompletionSettingsPage() {
 
       {/* Pass/Fail System */}
       {systemType === 'PASS_FAIL' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             {/* Passing Score */}
             <Card>
@@ -673,7 +673,7 @@ export default function CourseCompletionSettingsPage() {
 
             {/* Individual Quiz Requirements */}
             {allQuizzes.length > 0 && (
-              <Card>
+            <Card>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">เงื่อนไขการผ่านแต่ละบททดสอบ</h3>
                 <div className="space-y-4">
                   {quizRequirements.map((quizReq, index) => {
@@ -728,7 +728,7 @@ export default function CourseCompletionSettingsPage() {
                   })}
                 </div>
               </Card>
-            )}
+              )}
           </div>
 
           <div className="space-y-6">
@@ -916,7 +916,7 @@ export default function CourseCompletionSettingsPage() {
           </div>
 
           {/* Grade Criteria */}
-          <Card>
+            <Card>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">เกณฑ์การให้เกรด</h3>
               <Button onClick={handleCreateCriteria}>
@@ -960,7 +960,7 @@ export default function CourseCompletionSettingsPage() {
             ) : (
               <p className="text-gray-500">ยังไม่มีเกณฑ์การให้เกรด</p>
             )}
-          </Card>
+            </Card>
 
           {/* Grade Weights */}
           <Card>
@@ -990,8 +990,8 @@ export default function CourseCompletionSettingsPage() {
                       >
                         <PencilIcon className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="outline"
+              <Button
+                variant="outline"
                         size="sm"
                         onClick={() => handleDeleteWeight(weight)}
                         className="text-red-600"
@@ -1111,13 +1111,13 @@ export default function CourseCompletionSettingsPage() {
 
               <div className="flex justify-end space-x-3 pt-4">
                 <Button variant="outline" onClick={() => setShowCriteriaModal(false)}>
-                  ยกเลิก
-                </Button>
+                ยกเลิก
+              </Button>
                 <Button onClick={handleSubmitCriteria}>
-                  บันทึก
-                </Button>
-              </div>
+                บันทึก
+              </Button>
             </div>
+          </div>
           </Card>
         </div>
       )}
@@ -1195,6 +1195,6 @@ export default function CourseCompletionSettingsPage() {
           </Card>
         </div>
       )}
-    </div>
+      </div>
   );
 }

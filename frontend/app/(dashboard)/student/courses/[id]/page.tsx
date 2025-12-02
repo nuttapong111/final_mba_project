@@ -433,18 +433,18 @@ export default function StudentCourseDetailPage() {
           </div>
 
           {/* Progress Bar */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
               <span className="text-gray-600 font-medium">ความคืบหน้า</span>
-              <span className="font-bold text-gray-900">{progress}%</span>
-            </div>
+                <span className="font-bold text-gray-900">{progress}%</span>
+              </div>
             <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-              <div
+                <div
                 className="bg-gradient-to-r from-blue-500 to-purple-600 h-3 rounded-full transition-all duration-500 shadow-sm"
-                style={{ width: `${progress}%` }}
-              />
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
             </div>
-          </div>
 
           {/* Continue Learning Button */}
           {!isCompleted && (
@@ -530,7 +530,7 @@ export default function StudentCourseDetailPage() {
                 <div className="p-4 sm:p-6">
                   <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
                     บทเรียนและหลักสูตรของคุณ
-                  </h2>
+            </h2>
                   <p className="text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6">
                     {lessons.length} บทเรียน - ความยาวทั้งหมด {duration.hours} ชั่วโมง {duration.minutes} นาที
                   </p>
@@ -541,8 +541,8 @@ export default function StudentCourseDetailPage() {
                       const lessonContents = lesson.contents.length;
                       const lessonDuration = lesson.contents.reduce((sum, c) => sum + (c.duration || 0), 0);
 
-                      return (
-                        <div
+                return (
+                  <div
                           key={lesson.id}
                           className="border border-gray-200 rounded-lg overflow-hidden bg-white hover:shadow-md transition-shadow"
                         >
@@ -573,7 +573,7 @@ export default function StudentCourseDetailPage() {
 
                                 return (
                                   <button
-                                    key={content.id}
+                    key={content.id}
                                     onClick={() => handleVideoSelect(content)}
                                     className={`w-full flex items-center space-x-3 p-4 text-left transition-colors ${
                                       isSelected
@@ -587,7 +587,7 @@ export default function StudentCourseDetailPage() {
                                       {getContentIcon(content.type)}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                      <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between">
                                         <p className={`text-sm font-medium truncate ${
                                           isSelected ? 'text-purple-900' : 'text-gray-900'
                                         }`}>
@@ -801,7 +801,7 @@ export default function StudentCourseDetailPage() {
                             <span className="font-semibold text-gray-900">{post.student?.name || 'นักเรียน'}</span>
                             <span className="text-sm text-gray-500">
                               {new Date(post.createdAt).toLocaleString('th-TH')}
-                            </span>
+                              </span>
                           </div>
                           <p className="text-gray-700 whitespace-pre-wrap">{post.question}</p>
                         </div>
@@ -891,14 +891,14 @@ export default function StudentCourseDetailPage() {
                             ตอบกลับ
                           </Button>
                         </div>
-                      )}
-                    </div>
-                  </Card>
-                ))}
-              </div>
+                        )}
+            </div>
+          </Card>
+        ))}
+      </div>
             )}
           </div>
-        )}
+      )}
       </div>
     </div>
   );
