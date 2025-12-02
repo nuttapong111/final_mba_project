@@ -117,7 +117,7 @@ export default function CourseLayout({
     },
     {
       id: 'completion',
-      name: 'เงื่อนไขการจบหลักสูตร',
+      name: 'เงื่อนไขการจบหลักสูตรและระบบเกรด',
       icon: CheckCircleIcon,
       href: `/school/courses/${id}/completion-settings`,
     },
@@ -138,12 +138,6 @@ export default function CourseLayout({
       name: 'การบ้าน',
       icon: DocumentArrowUpIcon,
       href: `/school/courses/${id}/assignments`,
-    },
-    {
-      id: 'grading',
-      name: 'ระบบเกรด',
-      icon: AcademicCapIcon,
-      href: `/school/courses/${id}/grading`,
     },
     {
       id: 'certificate',
@@ -167,7 +161,6 @@ export default function CourseLayout({
     if (pathname?.includes('/question-bank')) return 'question-bank';
     if (pathname?.includes('/polls')) return 'polls';
     if (pathname?.includes('/assignments')) return 'assignments';
-    if (pathname?.includes('/grading')) return 'grading';
     if (pathname?.includes('/certificate')) return 'certificate';
     if (pathname?.includes('/teachers-students')) return 'teachers-students';
     return 'content';
