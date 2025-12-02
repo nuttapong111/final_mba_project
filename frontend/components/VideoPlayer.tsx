@@ -23,8 +23,7 @@ export default function VideoPlayer({
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [savedPosition, setSavedPosition] = useState<number | null>(null);
-  const progressUpdateInterval = useRef<NodeJS.Timeout | null>(null);
-  const lastUpdateTime = useRef<number>(0);
+  const lastProgressPercentage = useRef<number>(0); // Track last saved progress percentage
 
   // Load saved progress
   useEffect(() => {
@@ -61,46 +60,23 @@ export default function VideoPlayer({
     };
   }, [savedPosition]);
 
-  // Update progress periodically
+  // Initialize last progress percentage from saved position
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || savedPosition === null) return;
 
-    const updateProgress = async () => {
-      const currentTime = video.currentTime;
-      const duration = video.duration;
-
-      if (duration > 0 && currentTime > 0) {
-        // Only update if at least 5 seconds have passed since last update
-        const now = Date.now();
-        if (now - lastUpdateTime.current < 5000) return;
-        lastUpdateTime.current = now;
-
-        try {
-          const progressData: VideoProgressData = {
-            contentId,
-            courseId,
-            currentTime,
-            duration,
-            completed: false,
-          };
-
-          await contentProgressApi.updateVideoProgress(progressData);
-        } catch (error) {
-          console.error('Error updating video progress:', error);
-        }
+    const handleLoadedMetadata = async () => {
+      if (video.duration > 0 && savedPosition > 0) {
+        const savedPercentage = (savedPosition / video.duration) * 100;
+        lastProgressPercentage.current = Math.floor(savedPercentage / 5) * 5; // Round to nearest 5%
       }
     };
 
-    // Update every 5 seconds
-    progressUpdateInterval.current = setInterval(updateProgress, 5000);
-
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
     return () => {
-      if (progressUpdateInterval.current) {
-        clearInterval(progressUpdateInterval.current);
-      }
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
     };
-  }, [contentId, courseId]);
+  }, [savedPosition]);
 
   // Handle video end
   const handleEnded = async () => {
@@ -108,6 +84,7 @@ export default function VideoPlayer({
     if (!video) return;
 
     try {
+      lastProgressPercentage.current = 100;
       await contentProgressApi.updateVideoProgress({
         contentId,
         courseId,
@@ -124,7 +101,7 @@ export default function VideoPlayer({
     }
   };
 
-  // Update progress on timeupdate (for more frequent updates)
+  // Update progress every 5% of video watched
   const handleTimeUpdate = async () => {
     const video = videoRef.current;
     if (!video) return;
@@ -132,22 +109,27 @@ export default function VideoPlayer({
     const currentTime = video.currentTime;
     const duration = video.duration;
 
-    // Update every 10 seconds of playback
-    if (duration > 0 && Math.floor(currentTime) % 10 === 0) {
-      const now = Date.now();
-      if (now - lastUpdateTime.current < 10000) return;
-      lastUpdateTime.current = now;
+    if (duration > 0 && currentTime > 0) {
+      // Calculate current progress percentage
+      const currentPercentage = (currentTime / duration) * 100;
+      const currentPercentageRounded = Math.floor(currentPercentage / 5) * 5; // Round to nearest 5%
 
-      try {
-        await contentProgressApi.updateVideoProgress({
-          contentId,
-          courseId,
-          currentTime,
-          duration,
-          completed: false,
-        });
-      } catch (error) {
-        console.error('Error updating video progress:', error);
+      // Update if progress increased by at least 5%
+      if (currentPercentageRounded > lastProgressPercentage.current) {
+        lastProgressPercentage.current = currentPercentageRounded;
+
+        try {
+          await contentProgressApi.updateVideoProgress({
+            contentId,
+            courseId,
+            currentTime,
+            duration,
+            completed: false,
+          });
+          console.log(`[VideoProgress] Updated: ${currentPercentageRounded}% (${currentTime.toFixed(1)}s / ${duration.toFixed(1)}s)`);
+        } catch (error) {
+          console.error('Error updating video progress:', error);
+        }
       }
     }
   };

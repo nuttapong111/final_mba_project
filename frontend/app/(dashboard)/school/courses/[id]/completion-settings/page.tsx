@@ -36,7 +36,13 @@ export default function CourseCompletionSettingsPage() {
   const [editingWeight, setEditingWeight] = useState<GradeWeight | null>(null);
   
   // Form Data
-  const [passFailFormData, setPassFailFormData] = useState({
+  const [passFailFormData, setPassFailFormData] = useState<{
+    passingScore: number;
+    requireProgress: boolean;
+    minProgressPercentage: number | undefined;
+    requireAllQuizzes: boolean;
+    minQuizPassingPercentage: number | undefined;
+  }>({
     passingScore: 70,
     requireProgress: true,
     minProgressPercentage: 100,
@@ -44,7 +50,13 @@ export default function CourseCompletionSettingsPage() {
     minQuizPassingPercentage: 70,
   });
   
-  const [gradeFormData, setGradeFormData] = useState({
+  const [gradeFormData, setGradeFormData] = useState<{
+    requireProgress: boolean;
+    minProgressPercentage: number | undefined;
+    requireAllQuizzes: boolean;
+    minQuizPassingPercentage: number | undefined;
+    certificateMinGrade: string;
+  }>({
     requireProgress: true,
     minProgressPercentage: 100,
     requireAllQuizzes: false,
@@ -572,7 +584,7 @@ export default function CourseCompletionSettingsPage() {
                       setPassFailFormData({
                         ...passFailFormData,
                         requireProgress: e.target.checked,
-                        minProgressPercentage: e.target.checked ? (passFailFormData.minProgressPercentage || 100) : undefined,
+                        minProgressPercentage: e.target.checked ? (passFailFormData.minProgressPercentage ?? 100) : undefined,
                       });
                     }}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
@@ -784,7 +796,7 @@ export default function CourseCompletionSettingsPage() {
                         setGradeFormData({
                           ...gradeFormData,
                           requireProgress: e.target.checked,
-                          minProgressPercentage: e.target.checked ? (gradeFormData.minProgressPercentage || 100) : undefined,
+                          minProgressPercentage: e.target.checked ? (gradeFormData.minProgressPercentage ?? 100) : undefined,
                         });
                       }}
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
