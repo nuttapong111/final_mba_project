@@ -78,6 +78,15 @@ export const examsApi = {
     return response.data;
   },
 
+  getByCourse: async (courseId: string): Promise<{
+    success: boolean;
+    data?: any[];
+    error?: string;
+  }> => {
+    const response = await apiClient.get(`/exams/courses/${courseId}`);
+    return response.data;
+  },
+
   getQuizQuestions: async (contentId: string): Promise<{
     success: boolean;
     data?: QuizData;

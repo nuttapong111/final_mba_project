@@ -163,11 +163,17 @@ export const getCourseById = async (courseId: string, user: AuthUser) => {
                 },
               },
               assignment: true,
+              exam: true,
             },
             orderBy: { order: 'asc' },
           },
         },
         orderBy: { order: 'asc' },
+      },
+      exams: {
+        orderBy: {
+          createdAt: 'desc',
+        },
       },
       liveSessions: {
         orderBy: { date: 'asc' },

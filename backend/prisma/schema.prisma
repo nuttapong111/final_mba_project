@@ -62,6 +62,7 @@ enum ContentType {
   PRE_TEST
   POLL
   ASSIGNMENT
+  EXAM
 }
 
 enum QuestionType {
@@ -279,6 +280,8 @@ model LessonContent {
   poll           Poll?
   assignmentId  String?     @unique
   assignment    Assignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+  examId        String?     @unique
+  exam          Exam?       @relation(fields: [examId], references: [id], onDelete: SetNull)
   contentProgress ContentProgress[]
 
   @@index([lessonId])
@@ -471,6 +474,7 @@ model Exam {
   course              Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
   examQuestions       ExamQuestion[]
   submissions         ExamSubmission[]
+  content             LessonContent?
 
   @@index([courseId])
   @@index([startDate])

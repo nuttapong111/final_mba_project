@@ -1,5 +1,5 @@
 import { Context } from 'hono';
-import { submitExam, createExam, type SubmitExamData, type CreateExamData } from '../services/examService';
+import { submitExam, createExam, getExamsByCourse, type SubmitExamData, type CreateExamData } from '../services/examService';
 
 export const submitExamController = async (c: Context) => {
   try {
@@ -61,6 +61,22 @@ export const createExamController = async (c: Context) => {
       success: true,
       data: exam,
       message: 'สร้างข้อสอบสำเร็จ',
+    });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 400);
+  }
+};
+
+export const getExamsByCourseController = async (c: Context) => {
+  try {
+    const user = c.get('user');
+    const courseId = c.req.param('courseId');
+
+    const exams = await getExamsByCourse(courseId, user);
+
+    return c.json({
+      success: true,
+      data: exams,
     });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 400);

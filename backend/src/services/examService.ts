@@ -31,6 +31,43 @@ export interface CreateExamData {
   }>;
 }
 
+export const getExamsByCourse = async (courseId: string, user: AuthUser) => {
+  // Check if course exists
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    include: {
+      students: {
+        where: { studentId: user.id },
+      },
+      teachers: {
+        where: { teacherId: user.id },
+      },
+    },
+  });
+
+  if (!course) {
+    throw new Error('ไม่พบหลักสูตร');
+  }
+
+  // Check permission
+  const isStudent = course.students.length > 0;
+  const isTeacher = course.teachers.length > 0 || course.instructorId === user.id;
+  const isAdmin = user.role === 'SUPER_ADMIN' || (user.role === 'SCHOOL_ADMIN' && course.schoolId === user.schoolId);
+
+  if (!isStudent && !isTeacher && !isAdmin) {
+    throw new Error('ไม่มีสิทธิ์เข้าถึงหลักสูตรนี้');
+  }
+
+  const exams = await prisma.exam.findMany({
+    where: { courseId },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+
+  return exams;
+};
+
 export const createExam = async (data: CreateExamData, user: AuthUser) => {
   // Check if course exists
   const course = await prisma.course.findUnique({

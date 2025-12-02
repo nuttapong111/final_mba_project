@@ -41,6 +41,7 @@ export interface ContentData {
   };
   pollId?: string;
   assignmentId?: string;
+  examId?: string;
 }
 
 export const saveCourseContent = async (
@@ -147,6 +148,20 @@ export const saveCourseContent = async (
               console.warn(`[WARN] Assignment ${contentData.assignmentId} not found, skipping connection for content: ${contentData.title}`);
             }
           }
+
+          // Check if exam exists before connecting
+          let examConnection = undefined;
+          if (contentData.examId) {
+            const examExists = await tx.exam.findUnique({
+              where: { id: contentData.examId },
+            });
+            if (examExists) {
+              examConnection = contentData.examId;
+              console.log(`[DEBUG] Exam ${contentData.examId} found, will connect`);
+            } else {
+              console.warn(`[WARN] Exam ${contentData.examId} not found, skipping connection for content: ${contentData.title}`);
+            }
+          }
           
           const contentToSave = {
             type: contentData.type.toUpperCase() as any,
@@ -193,6 +208,7 @@ export const saveCourseContent = async (
               : undefined,
             poll: pollConnection,
             assignmentId: assignmentConnection || null,
+            examId: examConnection || null,
           };
           
           console.log(`[DEBUG] Content to save (final):`, {
