@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { coursesApi, webboardApi } from '@/lib/api';
+import { coursesApi, webboardApi, contentProgressApi } from '@/lib/api';
 import dynamic from 'next/dynamic';
 import YouTubePlayer from '@/components/YouTubePlayer';
 
@@ -64,6 +64,7 @@ export default function StudentCourseDetailPage() {
   const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
   const [selectedVideo, setSelectedVideo] = useState<LessonContent | null>(null);
   const [completedContents, setCompletedContents] = useState<Set<string>>(new Set());
+  const [courseProgress, setCourseProgress] = useState<number>(0); // Store course progress from API
   const [webboardPosts, setWebboardPosts] = useState<any[]>([]);
   const [showNewPost, setShowNewPost] = useState(false);
   const [newQuestion, setNewQuestion] = useState('');
@@ -156,6 +157,49 @@ export default function StudentCourseDetailPage() {
               break;
             }
           }
+          
+          // Fetch course progress from API
+          try {
+            const progressResponse = await contentProgressApi.getCourseProgress(courseId);
+            if (progressResponse.success && progressResponse.data) {
+              // Extract completed content IDs
+              const completedSet = new Set<string>();
+              if (progressResponse.data.lessons) {
+                progressResponse.data.lessons.forEach((lesson: any) => {
+                  if (lesson.contents) {
+                    lesson.contents.forEach((content: any) => {
+                      if (content.contentProgress && content.contentProgress.length > 0) {
+                        const progress = content.contentProgress[0];
+                        if (progress.completed) {
+                          completedSet.add(content.id);
+                        }
+                      }
+                    });
+                  }
+                });
+              }
+              setCompletedContents(completedSet);
+              
+              // Get course progress from enrolledStudents
+              const student = courseData.enrolledStudents?.find((s: any) => s.id === user?.id);
+              if (student && typeof student.progress === 'number') {
+                setCourseProgress(student.progress);
+              } else {
+                // Calculate progress from completed contents if not available in enrolledStudents
+                const totalContents = transformedLessons.reduce((sum, lesson) => sum + lesson.contents.length, 0);
+                const completedCount = completedSet.size;
+                const calculatedProgress = totalContents > 0 ? Math.round((completedCount / totalContents) * 100) : 0;
+                setCourseProgress(calculatedProgress);
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching course progress:', error);
+            // Fallback to calculating from completedContents
+            const totalContents = transformedLessons.reduce((sum, lesson) => sum + lesson.contents.length, 0);
+            const completedCount = completedContents.size;
+            const calculatedProgress = totalContents > 0 ? Math.round((completedCount / totalContents) * 100) : 0;
+            setCourseProgress(calculatedProgress);
+          }
         } else {
           Swal.fire({
             icon: 'error',
@@ -198,6 +242,12 @@ export default function StudentCourseDetailPage() {
   };
 
   const getProgress = () => {
+    // Use courseProgress from API if available
+    if (courseProgress > 0) {
+      return courseProgress;
+    }
+    
+    // Fallback to calculating from completedContents
     let totalContents = 0;
     let completedCount = 0;
 
