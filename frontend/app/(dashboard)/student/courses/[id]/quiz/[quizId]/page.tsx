@@ -444,6 +444,16 @@ export default function StudentQuizPage() {
                   )}
                 </>
               )}
+              {/* TODO: Remove delete submission button when system is complete - for testing only */}
+              {ENABLE_DELETE_SUBMISSION && isSubmitted && (
+                <Button 
+                  variant="outline" 
+                  onClick={handleDeleteSubmission}
+                  className="border-red-300 hover:bg-red-50 text-red-600"
+                >
+                  ลบการส่งข้อสอบ (เทส)
+                </Button>
+              )}
               {!isSubmitted && (
                 <Button 
                   variant="outline" 
