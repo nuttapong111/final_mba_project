@@ -1,6 +1,7 @@
 import prisma from '../config/database';
 import { AuthUser } from '../middleware/auth';
 import { submitExam, SubmitExamData } from './examService';
+import { Prisma } from '@prisma/client';
 
 export const getQuizQuestions = async (
   contentId: string,
@@ -191,10 +192,9 @@ export const submitQuiz = async (
   }
 
   // Get examId from content if exists (check via raw query since examId might not be in schema)
-  // Use proper UUID casting in PostgreSQL - cast the parameter value directly
-  const contentWithExam = await prisma.$queryRawUnsafe<Array<{ examId: string | null }>>(
-    `SELECT "examId" FROM "LessonContent" WHERE id = CAST($1 AS uuid)`,
-    contentId
+  // Use Prisma.sql template tag for proper UUID handling
+  const contentWithExam = await prisma.$queryRaw<Array<{ examId: string | null }>>(
+    Prisma.sql`SELECT "examId" FROM "LessonContent" WHERE id = ${contentId}::uuid`
   );
   
   let examId = contentWithExam[0]?.examId || null;
@@ -235,10 +235,8 @@ export const submitQuiz = async (
     examId = exam.id;
 
     // Link exam to content (using raw query since examId might not be in schema)
-    await prisma.$executeRawUnsafe(
-      `UPDATE "LessonContent" SET "examId" = CAST($1 AS uuid) WHERE id = CAST($2 AS uuid)`,
-      exam.id,
-      contentId
+    await prisma.$executeRaw(
+      Prisma.sql`UPDATE "LessonContent" SET "examId" = ${exam.id}::uuid WHERE id = ${contentId}::uuid`
     );
 
     // Add questions to exam
