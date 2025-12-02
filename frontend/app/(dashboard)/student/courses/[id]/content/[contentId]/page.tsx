@@ -58,6 +58,7 @@ export default function StudentContentPage() {
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
   const [completedContents, setCompletedContents] = useState<Set<string>>(new Set());
+  const [contentProgressMap, setContentProgressMap] = useState<Map<string, boolean>>(new Map()); // Map of contentId -> completed
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
   const [contentUrl, setContentUrl] = useState<string | null>(null);
@@ -130,6 +131,49 @@ export default function StudentContentPage() {
     
     return url || fileUrl;
   }, []);
+
+  // Fetch content progress for all contents in the course
+  useEffect(() => {
+    const fetchContentProgress = async () => {
+      try {
+        const response = await contentProgressApi.getCourseProgress(courseId);
+        if (response.success && response.data) {
+          const progressMap = new Map<string, boolean>();
+          
+          // Extract completed status from course data
+          if (response.data.lessons) {
+            response.data.lessons.forEach((lesson: any) => {
+              if (lesson.contents) {
+                lesson.contents.forEach((content: any) => {
+                  if (content.contentProgress && content.contentProgress.length > 0) {
+                    const progress = content.contentProgress[0];
+                    progressMap.set(content.id, progress.completed || false);
+                  }
+                });
+              }
+            });
+          }
+          
+          setContentProgressMap(progressMap);
+          
+          // Also update completedContents set for backward compatibility
+          const completedSet = new Set<string>();
+          progressMap.forEach((completed, contentId) => {
+            if (completed) {
+              completedSet.add(contentId);
+            }
+          });
+          setCompletedContents(completedSet);
+        }
+      } catch (error) {
+        console.error('Error fetching content progress:', error);
+      }
+    };
+
+    if (courseId) {
+      fetchContentProgress();
+    }
+  }, [courseId]);
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -290,12 +334,52 @@ export default function StudentContentPage() {
   };
 
   const isContentCompleted = (contentId: string) => {
-    return completedContents.has(contentId);
+    // Check both state and progress map
+    return completedContents.has(contentId) || contentProgressMap.get(contentId) === true;
+  };
+
+  // Helper function to refresh progress from API
+  const refreshProgress = async () => {
+    try {
+      const response = await contentProgressApi.getCourseProgress(courseId);
+      if (response.success && response.data) {
+        const updatedProgressMap = new Map<string, boolean>();
+        if (response.data.lessons) {
+          response.data.lessons.forEach((lesson: any) => {
+            if (lesson.contents) {
+              lesson.contents.forEach((content: any) => {
+                if (content.contentProgress && content.contentProgress.length > 0) {
+                  const progress = content.contentProgress[0];
+                  updatedProgressMap.set(content.id, progress.completed || false);
+                }
+              });
+            }
+          });
+        }
+        setContentProgressMap(updatedProgressMap);
+        
+        const updatedCompletedSet = new Set<string>();
+        updatedProgressMap.forEach((completed, contentId) => {
+          if (completed) {
+            updatedCompletedSet.add(contentId);
+          }
+        });
+        setCompletedContents(updatedCompletedSet);
+      }
+    } catch (error) {
+      console.error('Error refreshing progress:', error);
+    }
   };
 
   const handleContentComplete = async () => {
     if (currentContent) {
-      setCompletedContents(new Set([...completedContents, currentContent.id]));
+      const newCompletedSet = new Set([...completedContents, currentContent.id]);
+      setCompletedContents(newCompletedSet);
+      
+      // Update progress map
+      const newProgressMap = new Map(contentProgressMap);
+      newProgressMap.set(currentContent.id, true);
+      setContentProgressMap(newProgressMap);
       
       // Mark document as completed when viewed (only once per document)
       if (currentContent.type === 'document' && !documentMarkedRef.current.has(currentContent.id)) {
@@ -303,6 +387,9 @@ export default function StudentContentPage() {
           await contentProgressApi.markContentCompleted(currentContent.id, courseId);
           documentMarkedRef.current.add(currentContent.id);
           console.log(`[ContentProgress] Marked document ${currentContent.id} as completed`);
+          
+          // Refresh progress to get updated data
+          await refreshProgress();
         } catch (error) {
           console.error('Error marking document as completed:', error);
         }
@@ -457,7 +544,11 @@ export default function StudentContentPage() {
                       title={currentContent.title}
                       contentId={currentContent.id}
                       courseId={courseId}
-                      onComplete={handleContentComplete}
+                      onComplete={async () => {
+                        await handleContentComplete();
+                        // Refresh progress after video completion
+                        await refreshProgress();
+                      }}
                       className="w-full h-full"
                     />
                   );
@@ -481,7 +572,11 @@ export default function StudentContentPage() {
                     title={currentContent.title}
                     contentId={currentContent.id}
                     courseId={courseId}
-                    onComplete={handleContentComplete}
+                    onComplete={async () => {
+                      await handleContentComplete();
+                      // Refresh progress after video completion
+                      await refreshProgress();
+                    }}
                     className="w-full h-full"
                   />
                 );
@@ -733,8 +828,10 @@ export default function StudentContentPage() {
                               }`}>
                                 {content.title}
                               </p>
-                              {isCompleted && !isActive && (
-                                <CheckCircleIcon className="h-4 w-4 text-green-600 flex-shrink-0 ml-2" />
+                              {isCompleted && (
+                                <CheckCircleIcon className={`h-4 w-4 flex-shrink-0 ml-2 ${
+                                  isActive ? 'text-green-600' : 'text-green-600'
+                                }`} />
                               )}
                             </div>
                             <div className="flex items-center space-x-2 mt-0.5">
