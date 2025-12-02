@@ -61,10 +61,8 @@ export default function StudentQuizPage() {
                 setElapsedTime(totalElapsed);
                 setStartTime(savedStartTime);
                 
-                // If time is up, mark as submitted (will be handled by timer useEffect)
-                if (remaining <= 0) {
-                  setIsSubmitted(true);
-                }
+                // If time is up, don't mark as submitted yet - let timer useEffect handle auto-submit
+                // This allows auto-submit to work properly with current answers
               } catch (error) {
                 console.error('Error parsing saved timer data:', error);
                 // Fallback to fresh start
@@ -208,16 +206,17 @@ export default function StudentQuizPage() {
 
   // Timer countdown
   useEffect(() => {
-    if (timeRemaining === null || timeRemaining <= 0 || isSubmitted) return;
+    if (timeRemaining === null || isSubmitted) return;
+
+    // If time is already up, auto submit immediately
+    if (timeRemaining <= 0 && !isSubmitted && !submitting) {
+      handleSubmit();
+      return;
+    }
 
     const timer = setInterval(() => {
       setTimeRemaining((prev) => {
-        if (prev === null || prev <= 1) {
-          clearInterval(timer);
-          // Auto submit when time runs out
-          handleSubmit();
-          return 0;
-        }
+        if (prev === null) return null;
         
         // Update elapsed time
         setElapsedTime((prevElapsed) => {
@@ -236,12 +235,62 @@ export default function StudentQuizPage() {
           return newElapsed;
         });
         
-        return prev - 1;
+        const newRemaining = prev - 1;
+        
+        // Auto submit when time runs out
+        if (newRemaining <= 0) {
+          clearInterval(timer);
+          if (!isSubmitted && !submitting) {
+            handleSubmit();
+          }
+          return 0;
+        }
+        
+        return newRemaining;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [timeRemaining, isSubmitted, startTime, quizId, quizSettings, handleSubmit]);
+  }, [timeRemaining, isSubmitted, submitting, startTime, quizId, quizSettings, handleSubmit]);
+
+  // Reset timer function (for admin/special cases)
+  const resetTimer = () => {
+    if (!quizSettings?.duration) return;
+    
+    Swal.fire({
+      title: 'รีเซ็ตเวลา?',
+      text: 'คุณต้องการรีเซ็ตเวลาให้เริ่มต้นใหม่หรือไม่?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'รีเซ็ต',
+      cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const totalDuration = quizSettings.duration * 60;
+        setTimeRemaining(totalDuration);
+        setElapsedTime(0);
+        setStartTime(Date.now());
+        
+        // Update localStorage
+        const storageKey = `quiz_timer_${quizId}`;
+        localStorage.setItem(storageKey, JSON.stringify({
+          startTime: Date.now(),
+          elapsedTime: 0,
+          totalDuration: totalDuration,
+        }));
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'รีเซ็ตเวลาแล้ว',
+          text: 'เวลาได้ถูกรีเซ็ตให้เริ่มต้นใหม่',
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      }
+    });
+  };
 
   if (loading) {
     return (
@@ -301,10 +350,25 @@ export default function StudentQuizPage() {
             </div>
             <div className="flex items-center space-x-4 ml-6">
               {timeRemaining !== null && (
-                <div className="flex items-center space-x-2 px-5 py-3 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-xl shadow-lg animate-pulse">
-                  <ClockIcon className="h-5 w-5" />
-                  <span className="font-bold text-lg">{formatTime(timeRemaining)}</span>
-                </div>
+                <>
+                  <div className={`flex items-center space-x-2 px-5 py-3 rounded-xl shadow-lg ${
+                    timeRemaining <= 60 
+                      ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white animate-pulse' 
+                      : 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                  }`}>
+                    <ClockIcon className="h-5 w-5" />
+                    <span className="font-bold text-lg">{formatTime(timeRemaining)}</span>
+                  </div>
+                  {timeRemaining <= 0 && !isSubmitted && (
+                    <Button 
+                      variant="outline" 
+                      onClick={resetTimer}
+                      className="border-orange-300 hover:bg-orange-50 text-orange-600"
+                    >
+                      รีเซ็ตเวลา
+                    </Button>
+                  )}
+                </>
               )}
               {!isSubmitted && (
                 <Button 
