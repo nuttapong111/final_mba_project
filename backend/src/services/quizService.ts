@@ -191,9 +191,9 @@ export const submitQuiz = async (
   }
 
   // Get examId from content if exists (check via raw query since examId might not be in schema)
-  // Use proper UUID casting in PostgreSQL
+  // Use proper UUID casting in PostgreSQL - cast the parameter value directly
   const contentWithExam = await prisma.$queryRawUnsafe<Array<{ examId: string | null }>>(
-    `SELECT "examId" FROM "LessonContent" WHERE id = $1::uuid`,
+    `SELECT "examId" FROM "LessonContent" WHERE id = CAST($1 AS uuid)`,
     contentId
   );
   
@@ -236,7 +236,7 @@ export const submitQuiz = async (
 
     // Link exam to content (using raw query since examId might not be in schema)
     await prisma.$executeRawUnsafe(
-      `UPDATE "LessonContent" SET "examId" = $1::uuid WHERE id = $2::uuid`,
+      `UPDATE "LessonContent" SET "examId" = CAST($1 AS uuid) WHERE id = CAST($2 AS uuid)`,
       exam.id,
       contentId
     );
