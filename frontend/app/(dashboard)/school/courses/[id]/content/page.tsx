@@ -317,6 +317,15 @@ function QuizSettingsForm({
           <div className="space-y-3">
             {(quizSettings.categorySelections || []).map((selection, index) => {
               const category = categories.find(cat => cat.id === selection.categoryId);
+              const difficultyCount = selection.categoryId && selection.difficulty 
+                ? difficultyCounts[selection.categoryId]?.[selection.difficulty] || 0
+                : null;
+              const maxQuestions = selection.difficulty && difficultyCount !== null
+                ? difficultyCount
+                : category?.questionCount || 0;
+              const hasInsufficientQuestions = selection.difficulty && difficultyCount !== null 
+                && selection.questionCount > difficultyCount;
+
               return (
                 <div key={index} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center space-x-3">
@@ -331,6 +340,9 @@ function QuizSettingsForm({
                           if (selectedCategory) {
                             handleUpdateCategorySelection(index, 'categoryId', e.target.value);
                             handleUpdateCategorySelection(index, 'categoryName', selectedCategory.name);
+                            // Reset difficulty and question count when category changes
+                            handleUpdateCategorySelection(index, 'difficulty', undefined);
+                            handleUpdateCategorySelection(index, 'questionCount', 1);
                           }
                         }}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -352,10 +364,12 @@ function QuizSettingsForm({
                           const newDifficulty = e.target.value || undefined;
                           handleUpdateCategorySelection(index, 'difficulty', newDifficulty);
                           
-                          // Reset question count if difficulty changes and current count exceeds available
-                          if (newDifficulty && category) {
-                            // This will be validated when fetching question count by difficulty
-                            // For now, just update the difficulty
+                          // Reset question count if it exceeds available questions for selected difficulty
+                          if (newDifficulty && selection.categoryId) {
+                            const availableCount = difficultyCounts[selection.categoryId]?.[newDifficulty] || 0;
+                            if (selection.questionCount > availableCount) {
+                              handleUpdateCategorySelection(index, 'questionCount', Math.max(1, availableCount));
+                            }
                           }
                         }}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -365,9 +379,16 @@ function QuizSettingsForm({
                         <option value="medium">ปานกลาง</option>
                         <option value="hard">ยาก</option>
                       </select>
-                      <p className="text-xs text-gray-500 mt-1">
-                        เลือกระดับความยาก (ถ้าไม่เลือกจะสุ่มทั้งหมด)
-                      </p>
+                      {selection.difficulty && difficultyCount !== null && (
+                        <p className="text-xs text-gray-600 mt-1 font-medium">
+                          มี {difficultyCount} ข้อ
+                        </p>
+                      )}
+                      {!selection.difficulty && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          เลือกระดับความยาก (ถ้าไม่เลือกจะสุ่มทั้งหมด)
+                        </p>
+                      )}
                     </div>
                     <div className="flex-1">
                       <label className="block text-xs font-medium text-gray-700 mb-1.5">
@@ -376,25 +397,30 @@ function QuizSettingsForm({
                       <input
                         type="number"
                         min="1"
-                        max={category?.questionCount || 0}
+                        max={maxQuestions}
                         value={selection.questionCount || ''}
                         onChange={(e) => {
                           const count = parseInt(e.target.value) || 0;
-                          const maxCount = category?.questionCount || 0;
-                          handleUpdateCategorySelection(index, 'questionCount', Math.min(count, maxCount));
+                          handleUpdateCategorySelection(index, 'questionCount', Math.min(count, maxQuestions));
                         }}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
+                          hasInsufficientQuestions 
+                            ? 'border-red-300 bg-red-50' 
+                            : 'border-gray-300'
+                        }`}
                         placeholder="0"
                       />
-                      {category && (
+                      {hasInsufficientQuestions && (
+                        <p className="text-xs text-red-600 mt-1 font-medium">
+                          ⚠️ จำนวนข้อที่เลือก ({selection.questionCount}) มากกว่าจำนวนข้อที่มีในระดับความยากนี้ ({difficultyCount} ข้อ)
+                        </p>
+                      )}
+                      {!hasInsufficientQuestions && category && (
                         <p className="text-xs text-gray-500 mt-1">
-                          {selection.difficulty ? (
-                            <span className="text-orange-600 font-medium">
-                              สูงสุด {category.questionCount} ข้อ (กรุณาตรวจสอบจำนวนข้อในระดับความยากที่เลือก)
-                            </span>
-                          ) : (
-                            <span>สูงสุด {category.questionCount} ข้อ</span>
-                          )}
+                          {selection.difficulty 
+                            ? `สูงสุด ${maxQuestions} ข้อ (ในระดับความยากนี้)`
+                            : `สูงสุด ${maxQuestions} ข้อ`
+                          }
                         </p>
                       )}
                     </div>
