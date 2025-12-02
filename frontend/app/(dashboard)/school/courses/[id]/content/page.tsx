@@ -8,7 +8,7 @@ import Input from '@/components/ui/Input';
 import { PlusIcon, XMarkIcon, ChevronUpIcon, ChevronDownIcon, Bars3Icon } from '@heroicons/react/24/outline';
 import Swal from 'sweetalert2';
 import { type Lesson, type LessonContent, type Poll, type QuestionCategory, type ExamQuestionSelection, type QuizSettings } from '@/lib/mockData';
-import { coursesApi, pollsApi, uploadApi, questionBanksApi, assignmentsApi, examsApi } from '@/lib/api';
+import { coursesApi, pollsApi, uploadApi, questionBanksApi, assignmentsApi } from '@/lib/api';
 
 // Component สำหรับการตั้งค่าข้อสอบ
 function QuizSettingsForm({
@@ -526,8 +526,7 @@ export default function CourseContentPage() {
       type,
       title: type === 'pre_test' ? 'แบบทดสอบก่อนเรียน' : 
             type === 'quiz' ? 'แบบทดสอบ' : 
-            type === 'assignment' ? 'การบ้าน' : 
-            type === 'exam' ? 'ข้อสอบ' : '',
+            type === 'assignment' ? 'การบ้าน' : '',
       order: updated[lessonIndex].contents.length + 1,
     };
     updated[lessonIndex].contents.push(newContent);
@@ -585,7 +584,6 @@ export default function CourseContentPage() {
 
   const [availablePolls, setAvailablePolls] = useState<Array<{ id: string; title: string; poll: Poll }>>([]);
   const [availableAssignments, setAvailableAssignments] = useState<Array<{ id: string; title: string; assignment: any }>>([]);
-  const [availableExams, setAvailableExams] = useState<Array<{ id: string; title: string; exam: any }>>([]);
 
   // ดึง polls ทั้งหมดที่สร้างไว้แล้วจาก API
   useEffect(() => {
@@ -631,28 +629,6 @@ export default function CourseContentPage() {
     fetchAssignments();
   }, [courseId]);
 
-  // ดึง exams ทั้งหมดที่สร้างไว้แล้วจาก API
-  useEffect(() => {
-    const fetchExams = async () => {
-      try {
-        const response = await examsApi.getByCourse(courseId);
-        if (response.success && response.data) {
-          // แปลงข้อมูลจาก API เป็นรูปแบบที่ใช้ในหน้า content
-          const exams = response.data.map((exam: any) => ({
-            id: exam.id,
-            title: exam.title,
-            exam: exam,
-          }));
-          setAvailableExams(exams);
-        }
-      } catch (error) {
-        console.error('Error fetching exams:', error);
-      }
-    };
-
-    fetchExams();
-  }, [courseId]);
-
   const handleSelectPoll = (lessonIndex: number, contentIndex: number, pollId: string) => {
     const selectedPoll = availablePolls.find(p => p.poll.id === pollId);
     if (selectedPoll) {
@@ -674,19 +650,6 @@ export default function CourseContentPage() {
         ...updated[lessonIndex].contents[contentIndex],
         assignment: selectedAssignment.assignment,
         title: selectedAssignment.title || selectedAssignment.assignment.title,
-      };
-      setLessons(updated);
-    }
-  };
-
-  const handleSelectExam = (lessonIndex: number, contentIndex: number, examId: string) => {
-    const selectedExam = availableExams.find(e => e.exam.id === examId);
-    if (selectedExam) {
-      const updated = [...lessons];
-      updated[lessonIndex].contents[contentIndex] = {
-        ...updated[lessonIndex].contents[contentIndex],
-        exam: selectedExam.exam,
-        title: selectedExam.title || selectedExam.exam.title,
       };
       setLessons(updated);
     }
@@ -976,10 +939,6 @@ export default function CourseContentPage() {
           if (content.assignment?.id) {
             contentData.assignmentId = content.assignment.id;
             console.log(`[DEBUG] Saving assignmentId: ${content.assignment.id} for content: ${content.title}`);
-          }
-          if (content.exam?.id) {
-            contentData.examId = content.exam.id;
-            console.log(`[DEBUG] Saving examId: ${content.exam.id} for content: ${content.title}`);
           }
 
           // Add quiz settings if exists
