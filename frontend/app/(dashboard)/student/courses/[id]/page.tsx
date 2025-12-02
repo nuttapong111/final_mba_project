@@ -6,6 +6,12 @@ import { useAuthStore } from '@/store/authStore';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { coursesApi, webboardApi } from '@/lib/api';
+import dynamic from 'next/dynamic';
+
+const StudentAssignmentsPage = dynamic(
+  () => import('./assignments/page'),
+  { ssr: false }
+);
 import {
   PlayIcon,
   DocumentTextIcon,
@@ -514,13 +520,7 @@ export default function StudentCourseDetailPage() {
       {/* Main Content */}
       <div className="w-full px-3 sm:px-6 py-4 sm:py-6">
         {activeTab === 'assignments' ? (
-          <div>
-            <iframe
-              src={`/student/courses/${courseId}/assignments`}
-              className="w-full h-[calc(100vh-300px)] border-0"
-              title="Assignments"
-            />
-          </div>
+          <StudentAssignmentsPage />
         ) : activeTab === 'lessons' ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Left Side - Lessons List */}
