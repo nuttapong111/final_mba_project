@@ -1,7 +1,6 @@
 import prisma from '../config/database';
 import { AuthUser } from '../middleware/auth';
 import { submitExam, SubmitExamData } from './examService';
-import { Prisma } from '@prisma/client';
 
 export const getQuizQuestions = async (
   contentId: string,
@@ -191,13 +190,13 @@ export const submitQuiz = async (
     throw new Error('คุณไม่ได้ลงทะเบียนในหลักสูตรนี้');
   }
 
-  // Get examId from content if exists (check via raw query since examId might not be in schema)
-  // Use Prisma.sql template tag for proper UUID handling
-  const contentWithExam = await prisma.$queryRaw<Array<{ examId: string | null }>>(
-    Prisma.sql`SELECT "examId" FROM "LessonContent" WHERE id = ${contentId}::uuid`
-  );
+  // Get examId from content - examId exists in schema, so we can query it directly
+  const contentWithExam = await prisma.lessonContent.findUnique({
+    where: { id: contentId },
+    select: { examId: true },
+  });
   
-  let examId = contentWithExam[0]?.examId || null;
+  let examId = contentWithExam?.examId || null;
   
   if (!examId) {
     // Get question points from database
@@ -234,10 +233,11 @@ export const submitQuiz = async (
 
     examId = exam.id;
 
-    // Link exam to content (using raw query since examId might not be in schema)
-    await prisma.$executeRaw(
-      Prisma.sql`UPDATE "LessonContent" SET "examId" = ${exam.id}::uuid WHERE id = ${contentId}::uuid`
-    );
+    // Link exam to content - examId exists in schema, so we can update it directly
+    await prisma.lessonContent.update({
+      where: { id: contentId },
+      data: { examId: exam.id },
+    });
 
     // Add questions to exam
     for (let i = 0; i < data.answers.length; i++) {
