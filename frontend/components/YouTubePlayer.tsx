@@ -31,10 +31,12 @@ export default function YouTubePlayer({
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [savedPosition, setSavedPosition] = useState<number | null>(null);
+  const savedPositionRef = useRef<number | null>(null); // Use ref to track saved position
   const lastProgressPercentage = useRef<number>(0);
   const apiReadyRef = useRef<boolean>(false);
   const playerReadyRef = useRef<boolean>(false);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const hasSeekedRef = useRef<boolean>(false); // Track if we've already seeked
 
   // Load saved progress
   useEffect(() => {
@@ -42,11 +44,24 @@ export default function YouTubePlayer({
       try {
         const response = await contentProgressApi.getContentProgress(contentId);
         if (response.success && response.data?.lastPosition) {
-          setSavedPosition(response.data.lastPosition);
+          const position = response.data.lastPosition;
+          setSavedPosition(position);
+          savedPositionRef.current = position; // Update ref immediately
           const duration = response.data.progress > 0 ? (response.data.lastPosition / (response.data.progress / 100)) : null;
           if (duration && duration > 0) {
             const savedPercentage = (response.data.lastPosition / duration) * 100;
             lastProgressPercentage.current = Math.floor(savedPercentage / 5) * 5;
+          }
+          
+          // If player is already ready, seek immediately
+          if (playerReadyRef.current && playerRef.current && !hasSeekedRef.current && position > 0) {
+            try {
+              playerRef.current.seekTo(position, true);
+              hasSeekedRef.current = true;
+              console.log(`[YouTubePlayer] Seeking to saved position: ${position} seconds`);
+            } catch (error) {
+              console.error('[YouTubePlayer] Error seeking to saved position:', error);
+            }
           }
         }
       } catch (error) {
@@ -57,8 +72,25 @@ export default function YouTubePlayer({
     loadProgress();
   }, [contentId]);
 
+  // Watch for savedPosition changes and seek if player is ready
+  useEffect(() => {
+    if (savedPosition !== null && savedPosition > 0 && playerReadyRef.current && playerRef.current && !hasSeekedRef.current) {
+      try {
+        playerRef.current.seekTo(savedPosition, true);
+        hasSeekedRef.current = true;
+        console.log(`[YouTubePlayer] Seeking to saved position (delayed): ${savedPosition} seconds`);
+      } catch (error) {
+        console.error('[YouTubePlayer] Error seeking to saved position (delayed):', error);
+      }
+    }
+  }, [savedPosition]);
+
   // Load YouTube IFrame API
   useEffect(() => {
+    // Reset seek flag when video changes
+    hasSeekedRef.current = false;
+    playerReadyRef.current = false;
+    
     // Check if API is already loaded
     if (window.YT && window.YT.Player) {
       apiReadyRef.current = true;
@@ -105,7 +137,7 @@ export default function YouTubePlayer({
         }
       }
     };
-  }, [videoId, contentId, courseId, savedPosition]);
+  }, [videoId, contentId, courseId]);
 
   const initializePlayer = () => {
     if (!apiReadyRef.current || !containerRef.current || playerReadyRef.current) return;
@@ -124,10 +156,16 @@ export default function YouTubePlayer({
             playerReadyRef.current = true;
             setIsLoading(false);
             
-            // Seek to saved position if available
-            if (savedPosition !== null && savedPosition > 0) {
-              event.target.seekTo(savedPosition, true);
-              console.log(`[YouTubePlayer] Seeking to ${savedPosition} seconds`);
+            // Seek to saved position if available (check both state and ref)
+            const positionToSeek = savedPositionRef.current || savedPosition;
+            if (positionToSeek !== null && positionToSeek > 0 && !hasSeekedRef.current) {
+              try {
+                event.target.seekTo(positionToSeek, true);
+                hasSeekedRef.current = true;
+                console.log(`[YouTubePlayer] Seeking to saved position: ${positionToSeek} seconds`);
+              } catch (error) {
+                console.error('[YouTubePlayer] Error seeking to saved position:', error);
+              }
             }
 
             // Set up progress tracking
