@@ -19,6 +19,8 @@ import {
   ArrowDownTrayIcon,
   ChevronDownIcon,
   ChevronUpIcon,
+  DocumentArrowUpIcon,
+  PaperClipIcon,
 } from '@heroicons/react/24/outline';
 import Swal from 'sweetalert2';
 
@@ -168,9 +170,11 @@ export default function StudentContentPage() {
                 url: content.url ? String(content.url) : undefined,
                 fileUrl: fileUrl,
                 fileName: content.fileName ? String(content.fileName) : undefined,
+                fileSize: typeof content.fileSize === 'number' ? content.fileSize : undefined,
                 order: typeof content.order === 'number' ? content.order : 0,
                 poll: content.poll || undefined,
                 quizSettings: content.quizSettings || undefined,
+                assignment: content.assignment || undefined,
                 duration: typeof content.duration === 'number' ? content.duration : undefined,
               };
             }),
@@ -256,6 +260,8 @@ export default function StudentContentPage() {
         return <ClipboardDocumentCheckIcon className="h-5 w-5" />;
       case 'poll':
         return <ClipboardDocumentCheckIcon className="h-5 w-5" />;
+      case 'assignment':
+        return <DocumentArrowUpIcon className="h-5 w-5" />;
       default:
         return <DocumentTextIcon className="h-5 w-5" />;
     }
@@ -273,6 +279,8 @@ export default function StudentContentPage() {
         return 'แบบทดสอบก่อนเรียน';
       case 'poll':
         return 'แบบประเมิน';
+      case 'assignment':
+        return 'การบ้าน';
       default:
         return 'เนื้อหา';
     }
@@ -550,6 +558,64 @@ export default function StudentContentPage() {
                 >
                   เริ่มทำแบบประเมิน
                 </Button>
+              </div>
+            </div>
+          )}
+
+          {currentContent.type === 'assignment' && (
+            <div className="w-full h-full bg-gradient-to-br from-blue-50 to-white flex items-center justify-center p-8">
+              <div className="text-center max-w-2xl bg-white rounded-xl shadow-lg p-8">
+                <DocumentArrowUpIcon className="h-20 w-20 text-blue-600 mx-auto mb-6" />
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">การบ้าน</h3>
+                <p className="text-gray-600 mb-6 text-lg">{currentContent.title}</p>
+                
+                {/* Assignment File Download */}
+                {currentContent.fileName && contentUrl && (
+                  <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-start space-x-3">
+                      <PaperClipIcon className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1 text-left">
+                        <p className="text-sm font-semibold text-gray-900 mb-2">ไฟล์การบ้าน</p>
+                        <a
+                          href={contentUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center text-blue-600 hover:text-blue-700 underline text-sm font-medium break-words mb-1"
+                          download={currentContent.fileName}
+                        >
+                          <DocumentArrowUpIcon className="h-4 w-4 mr-1.5 flex-shrink-0" />
+                          <span className="break-words">{currentContent.fileName}</span>
+                        </a>
+                        {currentContent.fileSize && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            ขนาด: {currentContent.fileSize < 1024 
+                              ? `${currentContent.fileSize} B` 
+                              : currentContent.fileSize < 1024 * 1024
+                              ? `${(currentContent.fileSize / 1024).toFixed(2)} KB`
+                              : `${(currentContent.fileSize / (1024 * 1024)).toFixed(2)} MB`}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  <Button
+                    onClick={() => router.push(`/student/courses/${courseId}/assignments`)}
+                    className="w-full py-3 text-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                  >
+                    <DocumentArrowUpIcon className="h-5 w-5 mr-2 inline" />
+                    ไปที่หน้าส่งการบ้าน
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push(`/student/courses/${courseId}`)}
+                    className="w-full py-2 text-sm"
+                  >
+                    กลับไปหน้าหลักสูตร
+                  </Button>
+                </div>
               </div>
             </div>
           )}
