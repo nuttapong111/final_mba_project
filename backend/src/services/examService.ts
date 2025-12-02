@@ -1,7 +1,6 @@
 import prisma from '../config/database';
 import { AuthUser } from '../middleware/auth';
 import { gradeWithAI } from './gradingService';
-import { ExamType } from '@prisma/client';
 
 export interface SubmitExamData {
   examId: string;
