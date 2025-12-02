@@ -105,6 +105,15 @@ export const examsApi = {
     });
     return response.data;
   },
+
+  deleteQuizSubmission: async (contentId: string): Promise<{
+    success: boolean;
+    data?: any;
+    error?: string;
+  }> => {
+    const response = await apiClient.delete(`/quiz/content/${contentId}/submission`);
+    return response.data;
+  },
 };
 
 

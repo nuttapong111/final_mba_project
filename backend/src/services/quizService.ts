@@ -257,56 +257,98 @@ export const submitQuiz = async (
     throw new Error('ไม่พบข้อสอบ');
   }
 
-  // Check if already submitted (before submitting)
-  // Use findUnique with compound key if available, or findFirst
-  const existingSubmission = await prisma.examSubmission.findFirst({
+  // Check existing submissions and maxAttempts
+  const existingSubmissions = await prisma.examSubmission.findMany({
     where: {
       examId: examId,
       studentId: user.id,
     },
-    select: {
-      id: true,
-      score: true,
-      submittedAt: true,
+    orderBy: {
+      submittedAt: 'desc',
+    },
+    include: {
+      gradingTasks: true,
     },
   });
 
-  if (existingSubmission) {
-    // Return existing submission instead of throwing error
-    // This prevents duplicate submission errors when auto-submit is triggered multiple times
-    // Get full submission data with exam info
-    const fullSubmission = await prisma.examSubmission.findUnique({
-      where: { id: existingSubmission.id },
+  const maxAttempts = content.quizSettings?.maxAttempts || 0; // 0 = unlimited
+  const attemptCount = existingSubmissions.length;
+
+  // Check if maxAttempts exceeded
+  if (maxAttempts > 0 && attemptCount >= maxAttempts) {
+    throw new Error(`คุณได้ส่งข้อสอบครบ ${maxAttempts} ครั้งแล้ว ไม่สามารถส่งซ้ำได้`);
+  }
+
+  // Check if there's a recent submission with pending essay grading
+  if (existingSubmissions.length > 0) {
+    const latestSubmission = existingSubmissions[0];
+    
+    // Get grading tasks with question info
+    const gradingTasks = await prisma.gradingTask.findMany({
+      where: {
+        submissionId: latestSubmission.id,
+      },
       include: {
-        exam: {
-          include: {
-            examQuestions: {
-              include: {
-                question: true,
+        question: {
+          select: {
+            id: true,
+            type: true,
+          },
+        },
+      },
+    });
+    
+    // Check if there are essay questions that haven't been graded yet
+    const pendingEssayGrading = gradingTasks.some(
+      (task) => {
+        // Check if it's an essay question and hasn't been graded
+        return task.question?.type === 'ESSAY' && 
+               (task.teacherScore === null || task.teacherScore === undefined);
+      }
+    );
+
+    if (pendingEssayGrading) {
+      throw new Error('กรุณารอให้อาจารย์ตรวจสอบข้อสอบอัตนัยให้เสร็จก่อนจึงจะสามารถส่งซ้ำได้');
+    }
+
+    // If this is a duplicate submission (same answers, same time), return existing
+    // This prevents duplicate submission errors when auto-submit is triggered multiple times
+    const isDuplicate = existingSubmissions.some((sub) => {
+      // Check if submitted very recently (within 5 seconds) - likely duplicate auto-submit
+      const timeDiff = Math.abs(Date.now() - sub.submittedAt.getTime()) / 1000;
+      return timeDiff < 5;
+    });
+
+    if (isDuplicate) {
+      const fullSubmission = await prisma.examSubmission.findUnique({
+        where: { id: latestSubmission.id },
+        include: {
+          exam: {
+            include: {
+              examQuestions: {
+                include: {
+                  question: true,
+                },
               },
             },
           },
+          gradingTasks: true,
+          answers: true,
         },
-        gradingTasks: true,
-        answers: true,
-      },
-    });
+      });
 
-    if (!fullSubmission) {
-      throw new Error('ไม่พบข้อมูลการส่งข้อสอบ');
+      if (fullSubmission) {
+        const hasEssayQuestions = fullSubmission.gradingTasks && fullSubmission.gradingTasks.length > 0;
+        return {
+          id: fullSubmission.id,
+          score: fullSubmission.score || 0,
+          percentage: fullSubmission.percentage || 0,
+          passed: fullSubmission.passed,
+          totalScore: fullSubmission.exam.totalScore || 0,
+          hasEssayQuestions: hasEssayQuestions,
+        };
+      }
     }
-
-    // Check if there are essay questions
-    const hasEssayQuestions = fullSubmission.gradingTasks && fullSubmission.gradingTasks.length > 0;
-
-    return {
-      id: fullSubmission.id,
-      score: fullSubmission.score || 0,
-      percentage: fullSubmission.percentage || 0,
-      passed: fullSubmission.passed,
-      totalScore: fullSubmission.exam.totalScore || 0,
-      hasEssayQuestions: hasEssayQuestions,
-    };
   }
 
   // Submit exam
@@ -349,5 +391,53 @@ export const submitQuiz = async (
     hasEssayQuestions: (submissionWithTasks?.gradingTasks?.length || 0) > 0,
     gradingTasks: submissionWithTasks?.gradingTasks || [],
   };
+};
+
+// Delete submission (for testing purposes only)
+export const deleteQuizSubmission = async (
+  contentId: string,
+  user: AuthUser
+) => {
+  // Get lesson content
+  const content = await prisma.lessonContent.findUnique({
+    where: { id: contentId },
+    select: { examId: true },
+  });
+
+  if (!content || !content.examId) {
+    throw new Error('ไม่พบข้อสอบ');
+  }
+
+  // Check if user is student
+  if (user.role !== 'STUDENT') {
+    throw new Error('เฉพาะนักเรียนเท่านั้นที่สามารถลบการส่งข้อสอบได้');
+  }
+
+  // Find and delete submission
+  const submission = await prisma.examSubmission.findFirst({
+    where: {
+      examId: content.examId,
+      studentId: user.id,
+    },
+  });
+
+  if (!submission) {
+    throw new Error('ไม่พบการส่งข้อสอบ');
+  }
+
+  // Delete submission (cascade will delete answers and gradingTasks)
+  await prisma.examSubmission.delete({
+    where: { id: submission.id },
+  });
+
+  // Also unmark content as completed
+  await prisma.contentProgress.deleteMany({
+    where: {
+      contentId: contentId,
+      studentId: user.id,
+    },
+  });
+
+  return { success: true, message: 'ลบการส่งข้อสอบสำเร็จ' };
 };
 

@@ -1,5 +1,5 @@
 import { Context } from 'hono';
-import { getQuizQuestions, submitQuiz } from '../services/quizService';
+import { getQuizQuestions, submitQuiz, deleteQuizSubmission } from '../services/quizService';
 
 export const getQuizQuestionsController = async (c: Context) => {
   try {
@@ -34,6 +34,24 @@ export const submitQuizController = async (c: Context) => {
     });
   } catch (error: any) {
     console.error('[submitQuizController] Error:', error);
+    return c.json({ success: false, error: error.message }, 400);
+  }
+};
+
+export const deleteQuizSubmissionController = async (c: Context) => {
+  try {
+    const user = c.get('user');
+    const contentId = c.req.param('contentId');
+
+    const result = await deleteQuizSubmission(contentId, user);
+
+    return c.json({
+      success: true,
+      data: result,
+      message: 'ลบการส่งข้อสอบสำเร็จ',
+    });
+  } catch (error: any) {
+    console.error('[deleteQuizSubmissionController] Error:', error);
     return c.json({ success: false, error: error.message }, 400);
   }
 };
