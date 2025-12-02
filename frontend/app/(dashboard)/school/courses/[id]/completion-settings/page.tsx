@@ -1143,13 +1143,19 @@ export default function CourseCompletionSettingsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   หมวดหมู่ *
                 </label>
-                <Input
+                <select
                   value={weightFormData.category}
                   onChange={(e) => setWeightFormData({ ...weightFormData, category: e.target.value })}
-                  placeholder="quiz, assignment, exam, participation"
-                />
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">-- เลือกหมวดหมู่ --</option>
+                  <option value="quiz">แบบทดสอบ (Quiz)</option>
+                  <option value="assignment">การบ้าน (Assignment)</option>
+                  <option value="exam">การสอบ (Exam)</option>
+                  <option value="participation">การมีส่วนร่วม (Participation)</option>
+                </select>
                 <p className="text-xs text-gray-500 mt-1">
-                  เช่น: quiz, assignment, exam, participation
+                  เลือกหมวดหมู่ที่ต้องการกำหนดน้ำหนักคะแนน
                 </p>
               </div>
 
