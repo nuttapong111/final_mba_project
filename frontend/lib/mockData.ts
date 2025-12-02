@@ -47,6 +47,7 @@ export interface QuizSettings {
   startTime?: string; // เวลาเริ่มสอบ (ถ้าเป็น scheduled)
   endDate?: string; // วันที่สิ้นสุดสอบ (ถ้าเป็น scheduled)
   endTime?: string; // เวลาสิ้นสุดสอบ (ถ้าเป็น scheduled)
+  examType?: 'QUIZ' | 'MIDTERM' | 'FINAL'; // ประเภทข้อสอบ
 }
 
 export interface LessonContent {

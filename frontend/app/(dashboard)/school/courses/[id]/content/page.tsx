@@ -58,6 +58,7 @@ function QuizSettingsForm({
     duration: 60,
     maxAttempts: 0,
     timeRestriction: 'always' as const,
+    examType: undefined,
   };
 
   const handleUpdateQuizSettings = (field: keyof QuizSettings, value: any) => {
@@ -439,6 +440,7 @@ export default function CourseContentPage() {
               endDate: content.quizSettings.endDate,
               endTime: content.quizSettings.endTime,
               passingPercentage: content.quizSettings.passingPercentage,
+              examType: content.quizSettings.examType || null,
               categorySelections: (content.quizSettings.categorySelections || []).map((sel: any) => ({
                 categoryId: sel.categoryId,
                 categoryName: sel.categoryName,
@@ -1582,77 +1584,6 @@ export default function CourseContentPage() {
                     </div>
                   )}
 
-                  {/* Exam Selector */}
-                  {content.type === 'exam' && (
-                    <div className="ml-8 mt-4 space-y-4 p-4 bg-white rounded-lg border border-blue-200">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                          เลือกข้อสอบ *
-                        </label>
-                        {availableExams.length === 0 ? (
-                          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                            <p className="text-sm text-yellow-800">
-                              ยังไม่มีข้อสอบที่สร้างไว้ กรุณาไปที่หน้า "จัดการข้อสอบ" เพื่อสร้างข้อสอบก่อน
-                            </p>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="mt-2"
-                              onClick={() => router.push(`/exams/new?courseId=${courseId}`)}
-                            >
-                              ไปที่หน้าสร้างข้อสอบ
-                            </Button>
-                          </div>
-                        ) : (
-                          <select
-                            value={content.exam?.id || ''}
-                            onChange={(e) => handleSelectExam(lessonIndex, contentIndex, e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                            required
-                          >
-                            <option value="">-- เลือกข้อสอบ --</option>
-                            {availableExams.map((exam) => (
-                              <option key={exam.exam.id} value={exam.exam.id}>
-                                {exam.title} ({exam.exam.type === 'QUIZ' ? 'แบบทดสอบ' : exam.exam.type === 'MIDTERM' ? 'สอบกลางภาค' : 'สอบปลายภาค'})
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                      </div>
-                      {content.exam && (
-                        <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                          <h4 className="font-medium text-gray-900 mb-2">{content.exam.title}</h4>
-                          <div className="space-y-2 text-sm text-gray-600">
-                            <div className="flex items-center space-x-4">
-                              <span>
-                                ประเภท: {content.exam.type === 'QUIZ' ? 'แบบทดสอบ' : content.exam.type === 'MIDTERM' ? 'สอบกลางภาค' : 'สอบปลายภาค'}
-                              </span>
-                              <span>
-                                จำนวนข้อ: {content.exam.totalQuestions} ข้อ
-                              </span>
-                            </div>
-                            <div className="flex items-center space-x-4">
-                              <span>
-                                เวลา: {content.exam.duration} นาที
-                              </span>
-                              <span>
-                                คะแนนเต็ม: {content.exam.totalScore} คะแนน
-                              </span>
-                              <span>
-                                คะแนนผ่าน: {content.exam.passingScore} คะแนน
-                              </span>
-                            </div>
-                            {content.exam.startDate && content.exam.endDate && (
-                              <div className="text-xs text-gray-500">
-                                วันที่สอบ: {new Date(content.exam.startDate).toLocaleDateString('th-TH')} - {new Date(content.exam.endDate).toLocaleDateString('th-TH')}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
               ))}
 
