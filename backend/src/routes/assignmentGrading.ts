@@ -3,6 +3,7 @@ import { authMiddleware, roleMiddleware } from '../middleware/auth';
 import {
   getAssignmentGradingTasksController,
   gradeAssignmentSubmissionController,
+  generateAssignmentAIFeedbackController,
 } from '../controllers/assignmentGradingController';
 
 const assignmentGrading = new Hono();
@@ -14,6 +15,9 @@ assignmentGrading.get('/tasks', roleMiddleware('TEACHER'), getAssignmentGradingT
 
 // Grade an assignment submission
 assignmentGrading.patch('/tasks/:submissionId', roleMiddleware('TEACHER'), gradeAssignmentSubmissionController);
+
+// Generate AI feedback for assignment
+assignmentGrading.post('/ai-feedback', roleMiddleware('TEACHER'), generateAssignmentAIFeedbackController);
 
 export default assignmentGrading;
 

@@ -18,6 +18,8 @@ export interface AssignmentGradingTask {
   gradedAt?: string;
   maxScore: number;
   status: 'pending' | 'graded';
+  aiScore?: number;
+  aiFeedback?: string;
 }
 
 export const assignmentGradingApi = {
@@ -39,6 +41,20 @@ export const assignmentGradingApi = {
     error?: string;
   }> => {
     const response = await apiClient.patch(`/assignment-grading/tasks/${submissionId}`, data);
+    return response.data;
+  },
+
+  generateAIFeedback: async (data: {
+    assignmentTitle: string;
+    assignmentDescription?: string;
+    studentNotes?: string;
+    maxScore: number;
+  }): Promise<{
+    success: boolean;
+    data?: { score: number; feedback: string };
+    error?: string;
+  }> => {
+    const response = await apiClient.post('/assignment-grading/ai-feedback', data);
     return response.data;
   },
 };

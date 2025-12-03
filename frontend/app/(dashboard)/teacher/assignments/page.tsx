@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { coursesApi, assignmentGradingApi, type AssignmentGradingTask } from '@/lib/api';
+import { coursesApi } from '@/lib/api';
+import { assignmentGradingApi, type AssignmentGradingTask } from '@/lib/api/assignmentGrading';
 import {
   DocumentArrowUpIcon,
   MagnifyingGlassIcon,
@@ -13,6 +14,7 @@ import {
   DocumentIcon,
   UserCircleIcon,
   ArrowDownTrayIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline';
 import Swal from 'sweetalert2';
 
@@ -250,9 +252,10 @@ function AssignmentGradingCard({
   formatDateTime: (date: string) => string;
   formatFileSize: (bytes?: number) => string;
 }) {
-  const [score, setScore] = useState(task.score?.toString() || '');
-  const [feedback, setFeedback] = useState(task.feedback || '');
+  const [score, setScore] = useState(task.score?.toString() || task.aiScore?.toString() || '');
+  const [feedback, setFeedback] = useState(task.feedback || task.aiFeedback || '');
   const [isEditing, setIsEditing] = useState(task.status === 'pending');
+  const [generatingAI, setGeneratingAI] = useState(false);
 
   const handleSubmit = () => {
     const scoreNum = parseFloat(score);
@@ -340,6 +343,63 @@ function AssignmentGradingCard({
             </div>
           </div>
         )}
+
+        {/* AI Feedback */}
+        {task.aiScore !== undefined && task.aiFeedback ? (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-medium text-blue-900 flex items-center">
+                <SparklesIcon className="h-5 w-5 mr-2" />
+                คำแนะนำจาก AI:
+              </h4>
+              <span className="px-2 py-1 bg-blue-200 text-blue-900 rounded text-sm font-medium">
+                คะแนนแนะนำ: {task.aiScore}/{task.maxScore}
+              </span>
+            </div>
+            <p className="text-blue-800 text-sm whitespace-pre-wrap">{task.aiFeedback}</p>
+          </div>
+        ) : isEditing && !generatingAI ? (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <Button
+              variant="outline"
+              onClick={async () => {
+                setGeneratingAI(true);
+                try {
+                  const response = await assignmentGradingApi.generateAIFeedback({
+                    assignmentTitle: task.assignmentTitle,
+                    studentNotes: `นักเรียนส่งไฟล์: ${task.fileName || 'ไฟล์การบ้าน'}`,
+                    maxScore: task.maxScore,
+                  });
+                  if (response.success && response.data) {
+                    setScore(response.data.score.toString());
+                    setFeedback(response.data.feedback);
+                    await Swal.fire({
+                      icon: 'success',
+                      title: 'สร้างคำแนะนำสำเร็จ!',
+                      text: 'ได้รับคำแนะนำจาก Gemini AI แล้ว',
+                      timer: 2000,
+                      showConfirmButton: false,
+                    });
+                  } else {
+                    throw new Error(response.error || 'ไม่สามารถสร้างคำแนะนำได้');
+                  }
+                } catch (error: any) {
+                  console.error('Error generating AI feedback:', error);
+                  Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: error.message || 'ไม่สามารถสร้างคำแนะนำจาก AI ได้ กรุณาตรวจสอบว่าได้ตั้งค่า GEMINI_API_KEY แล้วหรือยัง',
+                    confirmButtonText: 'เข้าใจแล้ว',
+                  });
+                } finally {
+                  setGeneratingAI(false);
+                }
+              }}
+            >
+              {generatingAI ? 'กำลังสร้างคำแนะนำ...' : 'ขอคำแนะนำจาก AI'}
+            </Button>
+          </div>
+        ) : null}
 
         {/* Grading Form */}
         {isEditing ? (

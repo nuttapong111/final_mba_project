@@ -1,5 +1,6 @@
 import prisma from '../config/database';
 import { AuthUser } from '../middleware/auth';
+import { getAIGradingSuggestion } from './aiService';
 
 export interface AssignmentGradingTask {
   id: string;
@@ -19,6 +20,8 @@ export interface AssignmentGradingTask {
   gradedAt?: string;
   maxScore: number;
   status: 'pending' | 'graded';
+  aiScore?: number;
+  aiFeedback?: string;
 }
 
 /**
