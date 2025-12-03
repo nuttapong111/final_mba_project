@@ -30,13 +30,22 @@ docker run -p 8000:8000 \
 
 ### Option 2: Deploy บน Railway/Render/Heroku
 
-1. สร้าง service ใหม่บน platform ที่เลือก
+#### สำหรับ Railway:
+1. สร้าง service ใหม่บน Railway
 2. Connect GitHub repository
-3. ตั้งค่า root directory เป็น `ml-service/`
-4. ตั้งค่า environment variables:
+3. **ตั้งค่า Root Directory เป็น `ml-service/`** (สำคัญมาก!)
+4. **ตั้งค่า Build Command:** ปล่อยว่างไว้ หรือใช้ `pip install -r requirements.txt`
+5. **ตั้งค่า Start Command:** `python app.py`
+6. **ตั้งค่า Builder:** เลือก "Dockerfile" หรือ "Nixpacks" (ถ้าใช้ Nixpacks จะใช้ `nixpacks.toml` ที่สร้างไว้แล้ว)
+7. ตั้งค่า environment variables:
    - `DATABASE_URL` - Database connection string (ใช้ database เดียวกับ backend)
    - `PORT` - Port สำหรับ service (default: 8000)
    - `MODEL_PATH` - Path สำหรับเก็บ model file (optional)
+
+**หมายเหตุ:** ถ้า Railway ยัง detect เป็น Node.js ให้:
+- ตรวจสอบว่า Root Directory ตั้งเป็น `ml-service/` แล้ว
+- ตั้งค่า Builder เป็น "Dockerfile" แทน Nixpacks
+- หรือตรวจสอบว่าไฟล์ `nixpacks.toml` อยู่ใน `ml-service/` directory
 
 ### Option 3: Deploy บน VPS/Server
 
