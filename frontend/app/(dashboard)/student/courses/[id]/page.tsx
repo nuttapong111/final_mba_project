@@ -230,6 +230,81 @@ export default function StudentCourseDetailPage() {
   }, [courseId, router]);
 
   useEffect(() => {
+    // Listen for content completion events to refresh progress
+    const handleContentCompleted = async () => {
+      // Refresh course data and progress
+      try {
+        const response = await coursesApi.getById(courseId);
+        if (response.success && response.data) {
+          const courseData = {
+            ...response.data,
+            instructor: response.data.instructor ? {
+              id: String(response.data.instructor.id || ''),
+              name: String(response.data.instructor.name || 'อาจารย์'),
+              avatar: response.data.instructor.avatar ? String(response.data.instructor.avatar) : undefined,
+            } : null,
+            enrolledStudents: Array.isArray(response.data.enrolledStudents) 
+              ? response.data.enrolledStudents.map((s: any) => ({
+                  id: String(s.id || ''),
+                  name: String(s.name || ''),
+                  email: String(s.email || ''),
+                  avatar: s.avatar ? String(s.avatar) : undefined,
+                  enrolledAt: s.enrolledAt ? String(s.enrolledAt) : new Date().toISOString(),
+                  progress: typeof s.progress === 'number' ? s.progress : 0,
+                }))
+              : [],
+          };
+          
+          setCourse(courseData);
+          
+          // Refresh progress
+          const progressResponse = await contentProgressApi.getCourseProgress(courseId);
+          if (progressResponse.success && progressResponse.data) {
+            const completedSet = new Set<string>();
+            if (progressResponse.data.lessons) {
+              progressResponse.data.lessons.forEach((lesson: any) => {
+                if (lesson.contents) {
+                  lesson.contents.forEach((content: any) => {
+                    if (content.contentProgress && content.contentProgress.length > 0) {
+                      const progress = content.contentProgress[0];
+                      if (progress.completed) {
+                        completedSet.add(content.id);
+                      }
+                    }
+                  });
+                }
+              });
+            }
+            setCompletedContents(completedSet);
+            
+            const student = courseData.enrolledStudents?.find((s: any) => s.id === user?.id);
+            if (student && typeof student.progress === 'number') {
+              setCourseProgress(student.progress);
+            } else {
+              const totalContents = lessons.reduce((sum, lesson) => sum + lesson.contents.length, 0);
+              const completedCount = completedSet.size;
+              const calculatedProgress = totalContents > 0 ? Math.round((completedCount / totalContents) * 100) : 0;
+              setCourseProgress(calculatedProgress);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error refreshing course progress:', error);
+      }
+    };
+    
+    if (typeof window !== 'undefined') {
+      window.addEventListener('contentCompleted', handleContentCompleted);
+    }
+    
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('contentCompleted', handleContentCompleted);
+      }
+    };
+  }, [courseId, user?.id, lessons]);
+
+  useEffect(() => {
     if (activeTab === 'webboard') {
       fetchWebboard();
     }

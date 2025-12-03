@@ -11,7 +11,7 @@ import {
   StarIcon,
 } from '@heroicons/react/24/outline';
 import Swal from 'sweetalert2';
-import { pollsApi, coursesApi } from '@/lib/api';
+import { pollsApi, coursesApi, contentProgressApi } from '@/lib/api';
 import type { Poll, PollQuestion } from '@/lib/api/polls';
 
 interface PollAnswer {
@@ -49,6 +49,20 @@ export default function TakePollPage() {
           );
           if (pollItem) {
             setPoll(pollItem.poll);
+            
+            // Get contentId from pollItem if available
+            if (pollItem.contentId) {
+              // Check if already completed
+              try {
+                const progressResponse = await contentProgressApi.getContentProgress(pollItem.contentId);
+                if (progressResponse.success && progressResponse.data?.completed) {
+                  setIsSubmitted(true);
+                  setSubmittedAt(progressResponse.data.completedAt || new Date().toISOString());
+                }
+              } catch (error) {
+                console.error('Error checking poll completion status:', error);
+              }
+            }
           }
         }
 
@@ -181,6 +195,34 @@ export default function TakePollPage() {
         setIsSubmitted(true);
         setSubmittedAt(new Date().toISOString());
         
+        // Find contentId from poll to mark as completed
+        if (poll) {
+          // Try to find contentId from course lessons
+          try {
+            const courseResponse = await coursesApi.getById(courseId);
+            if (courseResponse.success && courseResponse.data) {
+              const lessons = courseResponse.data.lessons || [];
+              for (const lesson of lessons) {
+                const content = lesson.contents?.find((c: any) => 
+                  c.type === 'poll' && (c.poll?.id === pollId || c.id === pollId)
+                );
+                if (content?.id) {
+                  // Mark content as completed
+                  try {
+                    await contentProgressApi.markContentCompleted(content.id, courseId);
+                    console.log(`[POLL] Marked content ${content.id} as completed`);
+                  } catch (error) {
+                    console.error('Error marking content as completed:', error);
+                  }
+                  break;
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error finding content for poll:', error);
+          }
+        }
+        
         await Swal.fire({
           icon: 'success',
           title: 'ส่งแบบประเมินสำเร็จ!',
@@ -189,7 +231,15 @@ export default function TakePollPage() {
           showConfirmButton: false,
         });
 
-        // Don't navigate back, let the UI show the submitted state
+        // Refresh the parent page to update progress
+        // Use router.back() and then refresh, or use window.location
+        setTimeout(() => {
+          router.back();
+          // Trigger a refresh on the parent page
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new Event('contentCompleted'));
+          }
+        }, 2000);
       } else {
         throw new Error(response.error || 'ไม่สามารถส่งแบบประเมินได้');
       }

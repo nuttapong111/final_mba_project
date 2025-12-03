@@ -303,6 +303,15 @@ export const submitPollResponse = async (
         orderBy: { order: 'asc' },
       },
       course: true,
+      content: {
+        include: {
+          lesson: {
+            select: {
+              courseId: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -382,6 +391,21 @@ export const submitPollResponse = async (
       answers: true,
     },
   });
+
+  // Mark content as completed if poll is linked to LessonContent
+  if (poll.contentId && poll.content) {
+    try {
+      const courseId = poll.course?.id || poll.content.lesson?.courseId;
+      if (courseId) {
+        const { markContentCompleted } = await import('./contentProgressService');
+        await markContentCompleted(poll.contentId, courseId, user.id);
+        console.log(`[POLL] Marked content ${poll.contentId} as completed for student ${user.id}`);
+      }
+    } catch (error: any) {
+      console.error(`[POLL] Error marking content as completed:`, error);
+      // Don't throw error, just log it - poll submission should still succeed
+    }
+  }
 
   return response;
 };
