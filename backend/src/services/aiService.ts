@@ -51,7 +51,8 @@ export const getAIGradingSuggestion = async (
     
     console.log('[GEMINI] Using API key (first 10 chars):', apiKey.substring(0, 10) + '...');
     const genAI = getGeminiAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    // Use gemini-1.5-flash as it's faster and more cost-effective, or gemini-1.5-pro for better quality
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const prompt = `คุณเป็นผู้ช่วยตรวจข้อสอบอัตนัย ให้คะแนนและให้คำแนะนำสำหรับคำตอบของนักเรียน
 

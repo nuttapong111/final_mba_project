@@ -1,0 +1,7 @@
+# Ignore root package.json to prevent Node.js detection
+../package.json
+../package-lock.json
+../frontend/
+../backend/
+../mobile/
+
