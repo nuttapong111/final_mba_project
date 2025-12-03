@@ -101,6 +101,32 @@ export const getAssignmentGradingTasks = async (user: AuthUser): Promise<Assignm
         }
       }
 
+      // Try to generate AI feedback automatically if not graded yet
+      let aiScore: number | undefined = undefined;
+      let aiFeedback: string | undefined = undefined;
+
+      if (!submission.score && submission.submittedAt) {
+        try {
+          const schoolId = submission.assignment.course.schoolId;
+          const assignmentTitle = submission.assignment.title;
+          const assignmentDescription = submission.assignment.description || '';
+          const studentNotes = `นักเรียนส่งไฟล์: ${submission.fileName || 'ไฟล์การบ้าน'}`;
+          
+          const aiResult = await getAIGradingSuggestion(
+            `การบ้าน: ${assignmentTitle}${assignmentDescription ? `\nคำอธิบาย: ${assignmentDescription}` : ''}`,
+            studentNotes,
+            submission.assignment.maxScore,
+            schoolId
+          );
+          
+          aiScore = aiResult.score;
+          aiFeedback = aiResult.feedback;
+        } catch (error) {
+          console.error('[ASSIGNMENT GRADING] Error generating AI feedback:', error);
+          // Continue without AI feedback
+        }
+      }
+
       return {
         id: submission.id,
         courseId: submission.assignment.courseId,
@@ -119,6 +145,8 @@ export const getAssignmentGradingTasks = async (user: AuthUser): Promise<Assignm
         gradedAt: submission.gradedAt?.toISOString() || undefined,
         maxScore: submission.assignment.maxScore,
         status: submission.score !== null ? ('graded' as const) : ('pending' as const),
+        aiScore,
+        aiFeedback,
       };
     })
   );
