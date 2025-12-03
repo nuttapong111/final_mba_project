@@ -35,16 +35,34 @@ export const updateGradingTaskController = async (c: Context) => {
 
 export const generateAIFeedbackController = async (c: Context) => {
   try {
+    const user = c.get('user');
     const { question, answer, maxScore } = await c.req.json();
 
     if (!question || !answer) {
       return c.json({ success: false, error: 'กรุณาระบุคำถามและคำตอบ' }, 400);
     }
 
-    const result = await getAIGradingSuggestion(question, answer, maxScore || 100);
+    // Get schoolId from user
+    const schoolId = user.schoolId || null;
+    
+    console.log('[AI FEEDBACK] Generating feedback with:', {
+      question: question.substring(0, 50) + '...',
+      answer: answer.substring(0, 50) + '...',
+      maxScore,
+      schoolId,
+    });
+
+    const result = await getAIGradingSuggestion(question, answer, maxScore || 100, schoolId);
+    
+    console.log('[AI FEEDBACK] Success:', {
+      score: result.score,
+      feedback: result.feedback.substring(0, 50) + '...',
+    });
+    
     return c.json({ success: true, data: result });
   } catch (error: any) {
-    return c.json({ success: false, error: error.message }, 500);
+    console.error('[AI FEEDBACK] Error:', error);
+    return c.json({ success: false, error: error.message || 'ไม่สามารถสร้างคำแนะนำจาก AI ได้' }, 500);
   }
 };
 

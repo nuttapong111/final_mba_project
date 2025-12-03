@@ -341,12 +341,23 @@ function GradingTaskCard({
                   if (response.success && response.data) {
                     setScore(response.data.score.toString());
                     setFeedback(response.data.feedback);
+                    await Swal.fire({
+                      icon: 'success',
+                      title: 'สร้างคำแนะนำสำเร็จ!',
+                      text: 'ได้รับคำแนะนำจาก Gemini AI แล้ว',
+                      timer: 2000,
+                      showConfirmButton: false,
+                    });
+                  } else {
+                    throw new Error(response.error || 'ไม่สามารถสร้างคำแนะนำได้');
                   }
-                } catch (error) {
+                } catch (error: any) {
+                  console.error('Error generating AI feedback:', error);
                   Swal.fire({
                     icon: 'error',
                     title: 'เกิดข้อผิดพลาด',
-                    text: 'ไม่สามารถสร้างคำแนะนำจาก AI ได้',
+                    text: error.message || 'ไม่สามารถสร้างคำแนะนำจาก AI ได้ กรุณาตรวจสอบว่าได้ตั้งค่า GEMINI_API_KEY แล้วหรือยัง',
+                    confirmButtonText: 'เข้าใจแล้ว',
                   });
                 } finally {
                   setGeneratingAI(false);

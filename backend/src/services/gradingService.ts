@@ -967,9 +967,11 @@ export const getGradingTasks = async (user: AuthUser) => {
               aiFeedback: aiResult.feedback,
             },
           });
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error generating AI feedback:', error);
-          // Continue without AI feedback
+          // Log the error but continue without AI feedback
+          // The error will be shown when user manually requests AI feedback
+          console.error('AI feedback generation failed:', error.message);
         }
       }
 

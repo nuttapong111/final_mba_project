@@ -94,11 +94,18 @@ export const getAIGradingSuggestion = async (
   } catch (error: any) {
     console.error('Error calling Gemini AI:', error);
     
-    // Fallback: return default values
-    return {
-      score: Math.round(maxScore * 0.7), // Default to 70% of max score
-      feedback: 'ไม่สามารถให้คำแนะนำจาก AI ได้ในขณะนี้ กรุณาตรวจสอบด้วยตนเอง',
-    };
+    // Check if it's an API key error
+    if (error.message?.includes('API_KEY') || error.message?.includes('API key') || error.message?.includes('ไม่พบ')) {
+      throw new Error('Gemini API Key ไม่พบหรือไม่ถูกต้อง กรุณาตั้งค่า GEMINI_API_KEY ใน environment variables หรือตั้งค่าในหน้าตั้งค่า AI');
+    }
+    
+    // Check if it's a quota/rate limit error
+    if (error.message?.includes('quota') || error.message?.includes('rate limit') || error.status === 429) {
+      throw new Error('Gemini API ถึงขีดจำกัดการใช้งาน กรุณาลองใหม่อีกครั้งในภายหลัง');
+    }
+    
+    // Re-throw the error instead of returning default values
+    throw error;
   }
 };
 
