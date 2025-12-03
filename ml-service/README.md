@@ -2,12 +2,15 @@
 
 Machine Learning API service for automated essay grading.
 
+**⚠️ หมายเหตุ: ML Service เป็น service เดียวที่ต้อง deploy แยกจาก backend และ frontend**
+
 ## Features
 
 - Train ML model from historical grading data
 - Grade student answers using trained model
 - RESTful API for integration with main backend
 - Can be deployed as separate service
+- Supports Docker deployment
 
 ## Setup
 
