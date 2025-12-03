@@ -45,8 +45,11 @@ export const getAIGradingSuggestion = async (
     // Get API key from settings or use provided key or env variable
     const apiKey = geminiApiKey || await getGeminiApiKey(schoolId || null) || process.env.GEMINI_API_KEY;
     if (!apiKey) {
+      console.error('[GEMINI] API Key not found. schoolId:', schoolId, 'env key exists:', !!process.env.GEMINI_API_KEY);
       throw new Error('Gemini API Key ไม่พบ กรุณาตั้งค่าในหน้าตั้งค่า AI หรือตั้งค่า GEMINI_API_KEY ใน environment variables');
     }
+    
+    console.log('[GEMINI] Using API key (first 10 chars):', apiKey.substring(0, 10) + '...');
     const genAI = getGeminiAI(apiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
@@ -68,9 +71,12 @@ export const getAIGradingSuggestion = async (
 
 คำแนะนำควรเป็นภาษาไทยและให้คำแนะนำที่เป็นประโยชน์`;
 
+    console.log('[GEMINI] Calling API with prompt length:', prompt.length);
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
+    
+    console.log('[GEMINI] Received response (first 200 chars):', text.substring(0, 200));
 
     // Parse JSON from response
     // Try to extract JSON from markdown code blocks if present
@@ -81,11 +87,14 @@ export const getAIGradingSuggestion = async (
       jsonText = jsonText.split('```')[1].split('```')[0].trim();
     }
 
+    console.log('[GEMINI] Parsing JSON (first 200 chars):', jsonText.substring(0, 200));
     const parsed = JSON.parse(jsonText);
     
     // Validate score range
     const score = Math.max(0, Math.min(maxScore, Math.round(parsed.score || 0)));
     const feedback = parsed.feedback || 'ไม่สามารถให้คำแนะนำได้';
+
+    console.log('[GEMINI] Successfully parsed result:', { score, feedbackLength: feedback.length });
 
     return {
       score,
