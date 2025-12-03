@@ -217,6 +217,7 @@ export default function StudentDashboardPage() {
         </Card>
       </div>
 
+      {/* Live Class Section - Hidden for Phase 2
       {stats.todaySessions > 0 && (
         <Card>
           <div className="flex items-center justify-between mb-4">
@@ -239,6 +240,7 @@ export default function StudentDashboardPage() {
           </div>
         </Card>
       )}
+      */}
         </>
       )}
     </div>

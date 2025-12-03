@@ -130,8 +130,8 @@ export default function NewCoursePage() {
       return;
     }
     
-    // Validate live platform if course type is live
-    if (formData.courseType === 'live') {
+    // Live class validation - Hidden for Phase 2
+    // if (formData.courseType === 'live') {
       if (!formData.livePlatform) {
         await Swal.fire({
           icon: 'error',
@@ -173,7 +173,7 @@ export default function NewCoursePage() {
         });
         return;
       }
-    }
+    // }
     
     try {
       // Find category ID if category name is provided
@@ -187,7 +187,7 @@ export default function NewCoursePage() {
         categoryId: selectedCategory?.id,
         level: formData.level,
         courseType: formData.courseType,
-        livePlatform: formData.courseType === 'live' ? formData.livePlatform : undefined,
+        livePlatform: undefined, // formData.courseType === 'live' ? formData.livePlatform : undefined, // Phase 2
         instructorId: formData.instructorId,
         duration: parseInt(formData.duration) || 0,
         price: parseFloat(formData.price) || 0,
@@ -203,9 +203,7 @@ export default function NewCoursePage() {
         await Swal.fire({
           icon: 'success',
           title: 'สร้างหลักสูตรสำเร็จ!',
-          text: formData.courseType === 'live' 
-            ? 'หลักสูตรถูกสร้างเรียบร้อยแล้ว ระบบจะแจ้งเตือนครูผู้สอนและนักเรียนก่อนวันเรียน'
-            : 'หลักสูตรถูกสร้างเรียบร้อยแล้ว คุณสามารถเพิ่มเนื้อหาหลักสูตรได้',
+          text: 'หลักสูตรถูกสร้างเรียบร้อยแล้ว คุณสามารถเพิ่มเนื้อหาหลักสูตรได้',
           timer: 2000,
           showConfirmButton: false,
         });
@@ -461,6 +459,7 @@ export default function NewCoursePage() {
                         </div>
                       </div>
                     </label>
+                    {/* Live Class Option - Hidden for Phase 2
                     <label className={`relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
                       formData.courseType === 'live' 
                         ? 'border-blue-500 bg-blue-50' 
@@ -490,7 +489,9 @@ export default function NewCoursePage() {
                         </div>
                       </div>
                     </label>
+                    */}
                   </div>
+                  {/* Live Platform Selection - Hidden for Phase 2
                   {formData.courseType === 'live' && (
                     <div className="mt-4">
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -509,6 +510,7 @@ export default function NewCoursePage() {
                       </select>
                     </div>
                   )}
+                  */}
                 </div>
               </div>
             </Card>
@@ -590,6 +592,7 @@ export default function NewCoursePage() {
               </Card>
             )}
 
+            {/* Live Class Schedule - Hidden for Phase 2
             {formData.courseType === 'live' && (
               <Card>
                 <h2 className="text-xl font-bold text-gray-900 mb-4">ตารางเรียนสด</h2>
@@ -711,6 +714,7 @@ export default function NewCoursePage() {
                 </div>
               </Card>
             )}
+            */}
           </div>
 
           <div className="space-y-6">
@@ -755,11 +759,13 @@ export default function NewCoursePage() {
                       ครูจะอยู่ในบอร์ดตอบปัญหา ตรวจการบ้าน และตรวจข้อสอบ
                     </p>
                   )}
+                  {/* Live class teacher note - Hidden for Phase 2
                   {formData.courseType === 'live' && (
                     <p className="text-xs text-gray-500 mt-1">
                       ครูจะเป็นผู้ดูแลการเรียนการสอนและสามารถอัดวิดีโอได้
                     </p>
                   )}
+                  */}
                 </div>
                 <Input
                   label="ระยะเวลา (ชั่วโมง)"

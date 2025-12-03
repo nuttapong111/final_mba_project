@@ -41,14 +41,14 @@ export const roleNavigation: Record<string, NavItem[]> = {
   teacher: [
     { name: 'แดชบอร์ด', href: '/teacher/dashboard', icon: HomeIcon },
     { name: 'หลักสูตรของฉัน', href: '/teacher/courses', icon: AcademicCapIcon },
-    { name: 'ห้องเรียนออนไลน์', href: '/teacher/live-class', icon: VideoCameraIcon },
+    // { name: 'ห้องเรียนออนไลน์', href: '/teacher/live-class', icon: VideoCameraIcon }, // Phase 2
     { name: 'Webboard', href: '/teacher/webboard', icon: ChatBubbleLeftRightIcon },
     { name: 'ตรวจข้อสอบ', href: '/teacher/grading', icon: ClipboardDocumentCheckIcon },
   ],
   student: [
     { name: 'แดชบอร์ด', href: '/student/dashboard', icon: HomeIcon },
     { name: 'หลักสูตรของฉัน', href: '/student/courses', icon: BookOpenIcon },
-    { name: 'ห้องเรียนออนไลน์', href: '/student/live-class', icon: VideoCameraIcon },
+    // { name: 'ห้องเรียนออนไลน์', href: '/student/live-class', icon: VideoCameraIcon }, // Phase 2
     { name: 'ใบประกาศนียบัตร', href: '/student/certificates', icon: TrophyIcon },
   ],
 };

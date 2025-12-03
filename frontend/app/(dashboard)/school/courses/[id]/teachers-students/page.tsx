@@ -141,7 +141,7 @@ export default function TeachersStudentsPage() {
       return;
     }
 
-    if (!teacherRoles.liveTeaching && !teacherRoles.grading && !teacherRoles.webboard) {
+    if (!teacherRoles.grading && !teacherRoles.webboard) { // Removed liveTeaching check for Phase 2
       Swal.fire({
         icon: 'warning',
         title: 'กรุณาเลือกบทบาท',
@@ -390,6 +390,7 @@ export default function TeachersStudentsPage() {
                     <h3 className="font-semibold text-gray-900">{teacher.name}</h3>
                     <p className="text-sm text-gray-600">{teacher.email}</p>
                     <div className="flex items-center space-x-4 mt-2">
+                      {/* Live Teaching Checkbox - Hidden for Phase 2
                       <label className="flex items-center space-x-2 cursor-pointer">
                         <input
                           type="checkbox"
@@ -407,6 +408,7 @@ export default function TeachersStudentsPage() {
                           สอนสด
                         </span>
                       </label>
+                      */}
                       <label className="flex items-center space-x-2 cursor-pointer">
                         <input
                           type="checkbox"
@@ -562,6 +564,7 @@ export default function TeachersStudentsPage() {
                   บทบาทในหลักสูตร
                 </label>
                 <div className="space-y-2">
+                  {/* Live Teaching Checkbox - Hidden for Phase 2
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -576,6 +579,7 @@ export default function TeachersStudentsPage() {
                       สอนสด (Live Class)
                     </span>
                   </label>
+                  */}
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
                       type="checkbox"
