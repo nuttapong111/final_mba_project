@@ -6,6 +6,7 @@ export interface AssignmentGradingTask {
   courseTitle: string;
   assignmentId: string;
   assignmentTitle: string;
+  assignmentDescription?: string;
   studentId: string;
   studentName: string;
   studentAvatar?: string;
