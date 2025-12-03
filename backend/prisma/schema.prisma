@@ -731,6 +731,8 @@ model AssignmentSubmission {
   feedback      String?  @db.Text
   gradedAt      DateTime?
   gradedBy      String?  // User ID who graded
+  aiScore       Float?   // AI suggested score
+  aiFeedback    String?  @db.Text // AI suggested feedback
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

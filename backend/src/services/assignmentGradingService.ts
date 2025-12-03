@@ -102,11 +102,12 @@ export const getAssignmentGradingTasks = async (user: AuthUser): Promise<Assignm
         }
       }
 
-      // Try to generate AI feedback automatically if not graded yet
-      let aiScore: number | undefined = undefined;
-      let aiFeedback: string | undefined = undefined;
+      // Use existing AI feedback from database, or generate if not exists
+      let aiScore: number | undefined = submission.aiScore || undefined;
+      let aiFeedback: string | undefined = submission.aiFeedback || undefined;
 
-      if (!submission.score && submission.submittedAt) {
+      // Generate AI feedback if not exists and not graded yet
+      if (!aiScore && !aiFeedback && !submission.score && submission.submittedAt) {
         try {
           const schoolId = submission.assignment.course.schoolId;
           const assignmentTitle = submission.assignment.title;
@@ -122,7 +123,16 @@ export const getAssignmentGradingTasks = async (user: AuthUser): Promise<Assignm
           
           aiScore = aiResult.score;
           aiFeedback = aiResult.feedback;
-        } catch (error) {
+
+          // Save AI feedback to database
+          await prisma.assignmentSubmission.update({
+            where: { id: submission.id },
+            data: {
+              aiScore: aiResult.score,
+              aiFeedback: aiResult.feedback,
+            },
+          });
+        } catch (error: any) {
           console.error('[ASSIGNMENT GRADING] Error generating AI feedback:', error);
           // Continue without AI feedback
         }

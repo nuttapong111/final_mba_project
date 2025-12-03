@@ -26,6 +26,7 @@ export default function TeacherAssignmentsPage() {
   const [gradingTasks, setGradingTasks] = useState<AssignmentGradingTask[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [generatingAI, setGeneratingAI] = useState<Set<string>>(new Set()); // Track which tasks are generating AI
   const [selectedTask, setSelectedTask] = useState<AssignmentGradingTask | null>(null);
 
   useEffect(() => {
@@ -42,6 +43,59 @@ export default function TeacherAssignmentsPage() {
 
       if (tasksResponse.success && tasksResponse.data) {
         setGradingTasks(tasksResponse.data);
+        
+        // Check if any tasks need AI feedback generation
+        const tasksNeedingAI = tasksResponse.data.filter(
+          (task) => task.status === 'pending' && !task.aiScore && !task.aiFeedback
+        );
+        
+        if (tasksNeedingAI.length > 0) {
+          // Show loading message for AI generation
+          Swal.fire({
+            title: 'กำลังประมวลผลข้อเสนอแนะจาก AI',
+            text: `กรุณารอสักครู่ กำลังสร้างคำแนะนำสำหรับ ${tasksNeedingAI.length} รายการ...`,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+              Swal.showLoading();
+            },
+          });
+          
+          // Generate AI feedback for tasks that need it
+          for (const task of tasksNeedingAI) {
+            setGeneratingAI((prev) => new Set(prev).add(task.id));
+            try {
+              const aiResponse = await assignmentGradingApi.generateAIFeedback({
+                assignmentTitle: task.assignmentTitle,
+                assignmentDescription: task.assignmentDescription,
+                studentNotes: `นักเรียนส่งไฟล์: ${task.fileName || 'ไฟล์การบ้าน'}`,
+                maxScore: task.maxScore,
+              });
+              
+              if (aiResponse.success && aiResponse.data) {
+                // Update task with AI feedback
+                setGradingTasks((prev) =>
+                  prev.map((t) =>
+                    t.id === task.id
+                      ? { ...t, aiScore: aiResponse.data!.score, aiFeedback: aiResponse.data!.feedback }
+                      : t
+                  )
+                );
+              }
+            } catch (error) {
+              console.error(`Error generating AI feedback for task ${task.id}:`, error);
+            } finally {
+              setGeneratingAI((prev) => {
+                const next = new Set(prev);
+                next.delete(task.id);
+                return next;
+              });
+            }
+          }
+          
+          Swal.close();
+        }
       }
 
       if (coursesResponse.success && coursesResponse.data) {
@@ -49,6 +103,7 @@ export default function TeacherAssignmentsPage() {
       }
     } catch (error) {
       console.error('Error fetching assignment grading data:', error);
+      Swal.close();
       Swal.fire({
         icon: 'error',
         title: 'เกิดข้อผิดพลาด',
@@ -233,6 +288,7 @@ export default function TeacherAssignmentsPage() {
               onGrade={handleGrade}
               formatDateTime={formatDateTime}
               formatFileSize={formatFileSize}
+              isGeneratingAI={generatingAI.has(task.id)}
             />
           ))
         )}
@@ -246,16 +302,25 @@ function AssignmentGradingCard({
   onGrade,
   formatDateTime,
   formatFileSize,
+  isGeneratingAI,
 }: {
   task: AssignmentGradingTask;
   onGrade: (taskId: string, score: number, feedback: string) => void;
   formatDateTime: (date: string) => string;
   formatFileSize: (bytes?: number) => string;
+  isGeneratingAI: boolean;
 }) {
   const [score, setScore] = useState(task.score?.toString() || task.aiScore?.toString() || '');
   const [feedback, setFeedback] = useState(task.feedback || task.aiFeedback || '');
   const [isEditing, setIsEditing] = useState(task.status === 'pending');
-  const [generatingAI, setGeneratingAI] = useState(false);
+
+  // Update score and feedback when AI feedback is generated
+  useEffect(() => {
+    if (task.aiScore !== undefined && task.aiFeedback && isEditing && !task.score) {
+      setScore(task.aiScore.toString());
+      setFeedback(task.aiFeedback);
+    }
+  }, [task.aiScore, task.aiFeedback, task.score, isEditing]);
 
   const handleSubmit = () => {
     const scoreNum = parseFloat(score);
@@ -345,7 +410,14 @@ function AssignmentGradingCard({
         )}
 
         {/* AI Feedback */}
-        {task.aiScore !== undefined && task.aiFeedback ? (
+        {isGeneratingAI ? (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center space-x-3">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+              <p className="text-blue-800 text-sm">กำลังประมวลผลข้อเสนอแนะจาก AI กรุณารอสักครู่...</p>
+            </div>
+          </div>
+        ) : task.aiScore !== undefined && task.aiFeedback ? (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium text-blue-900 flex items-center">
@@ -357,47 +429,6 @@ function AssignmentGradingCard({
               </span>
             </div>
             <p className="text-blue-800 text-sm whitespace-pre-wrap">{task.aiFeedback}</p>
-          </div>
-        ) : isEditing && !generatingAI ? (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <Button
-              variant="outline"
-              onClick={async () => {
-                setGeneratingAI(true);
-                try {
-                  const response = await assignmentGradingApi.generateAIFeedback({
-                    assignmentTitle: task.assignmentTitle,
-                    studentNotes: `นักเรียนส่งไฟล์: ${task.fileName || 'ไฟล์การบ้าน'}`,
-                    maxScore: task.maxScore,
-                  });
-                  if (response.success && response.data) {
-                    setScore(response.data.score.toString());
-                    setFeedback(response.data.feedback);
-                    await Swal.fire({
-                      icon: 'success',
-                      title: 'สร้างคำแนะนำสำเร็จ!',
-                      text: 'ได้รับคำแนะนำจาก Gemini AI แล้ว',
-                      timer: 2000,
-                      showConfirmButton: false,
-                    });
-                  } else {
-                    throw new Error(response.error || 'ไม่สามารถสร้างคำแนะนำได้');
-                  }
-                } catch (error: any) {
-                  console.error('Error generating AI feedback:', error);
-                  Swal.fire({
-                    icon: 'error',
-                    title: 'เกิดข้อผิดพลาด',
-                    text: error.message || 'ไม่สามารถสร้างคำแนะนำจาก AI ได้ กรุณาตรวจสอบว่าได้ตั้งค่า GEMINI_API_KEY แล้วหรือยัง',
-                    confirmButtonText: 'เข้าใจแล้ว',
-                  });
-                } finally {
-                  setGeneratingAI(false);
-                }
-              }}
-            >
-              {generatingAI ? 'กำลังสร้างคำแนะนำ...' : 'ขอคำแนะนำจาก AI'}
-            </Button>
           </div>
         ) : null}
 
