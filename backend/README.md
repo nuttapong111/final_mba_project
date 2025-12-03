@@ -34,6 +34,36 @@ npm run dev
 
 Server จะรันที่ `http://localhost:3001`
 
+### Environment Variables
+
+สร้างไฟล์ `.env` ในโฟลเดอร์ `backend/`:
+
+```bash
+# Database
+DATABASE_URL=postgresql://user:password@host:5432/dbname
+
+# Server
+PORT=3001
+NODE_ENV=development
+
+# JWT Secret
+JWT_SECRET=your_jwt_secret_here
+
+# Gemini AI (สำหรับ AI grading)
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# ML Service (สำหรับ ML-based grading)
+ML_API_URL=http://localhost:8000
+
+# AWS S3 (สำหรับ file upload)
+AWS_ACCESS_KEY_ID=your_aws_access_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+AWS_REGION=ap-southeast-1
+AWS_S3_BUCKET_NAME=your_bucket_name
+```
+
+**หมายเหตุ:** สำหรับการตั้งค่า ML Service แบบละเอียด ดูที่ [ML_SERVICE_SETUP.md](./ML_SERVICE_SETUP.md)
+
 ## 📚 API Endpoints
 
 ### Authentication
@@ -69,6 +99,16 @@ Server จะรันที่ `http://localhost:3001`
 ### Grading
 - `GET /api/grading/tasks` - ดึงงานที่ต้องตรวจ
 - `PATCH /api/grading/tasks/:taskId` - อัปเดตคะแนนและความคิดเห็น
+- `POST /api/grading/ai-feedback` - สร้างคำแนะนำจาก AI (Gemini หรือ ML)
+
+### Assignment Grading
+- `GET /api/assignment-grading/tasks` - ดึงงานตรวจการบ้าน
+- `PATCH /api/assignment-grading/tasks/:submissionId` - ให้คะแนนการบ้าน
+- `POST /api/assignment-grading/ai-feedback` - สร้างคำแนะนำจาก AI สำหรับการบ้าน
+
+### AI Settings
+- `GET /api/ai-settings` - ดึงการตั้งค่า AI (Super Admin, School Admin)
+- `PUT /api/ai-settings` - อัปเดตการตั้งค่า AI (Super Admin, School Admin)
 
 ## 🔐 Authentication
 
@@ -81,6 +121,15 @@ Authorization: Bearer <token>
 ## 🗄️ Database Schema
 
 ดูได้ที่ `prisma/schema.prisma`
+
+## 🤖 ML Service Integration
+
+Backend สามารถเชื่อมต่อกับ ML Service สำหรับ AI grading ได้ 2 วิธี:
+
+1. **ตั้งค่าผ่าน UI** - ไปที่ `/settings` และตั้งค่า AI Provider และ ML API URL
+2. **ตั้งค่าผ่าน Environment Variable** - ตั้งค่า `ML_API_URL` ใน environment variables
+
+ดูรายละเอียดเพิ่มเติมที่ [ML_SERVICE_SETUP.md](./ML_SERVICE_SETUP.md)
 
 ## 🧪 Testing
 
