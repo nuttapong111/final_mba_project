@@ -17,10 +17,80 @@ import {
 import Swal from 'sweetalert2';
 
 export default function SettingsPage() {
+  const { user } = useAuthStore();
   const [schoolName, setSchoolName] = useState('โรงเรียนกวดวิชา ABC');
   const [primaryColor, setPrimaryColor] = useState('#3b82f6');
   const [domain, setDomain] = useState('abc-tutoring.com');
   const [schoolLogo, setSchoolLogo] = useState<string>('');
+  
+  // AI Settings - Default to GEMINI
+  const [aiProvider, setAiProvider] = useState<AIProvider>('GEMINI');
+  const [mlApiUrl, setMlApiUrl] = useState('');
+  const [geminiApiKey, setGeminiApiKey] = useState('');
+  const [aiEnabled, setAiEnabled] = useState(true);
+  const [loadingAI, setLoadingAI] = useState(false);
+  const [hasGeminiKey, setHasGeminiKey] = useState(false);
+
+  useEffect(() => {
+    fetchAISettings();
+  }, []);
+
+  const fetchAISettings = async () => {
+    try {
+      const response = await aiSettingsApi.getSettings(user?.schoolId || null);
+      if (response.success && response.data) {
+        setAiProvider(response.data.provider);
+        setMlApiUrl(response.data.mlApiUrl || '');
+        setAiEnabled(response.data.enabled);
+        setHasGeminiKey(response.data.hasGeminiKey);
+      } else {
+        // Default to GEMINI if no settings
+        setAiProvider('GEMINI');
+        setAiEnabled(true);
+      }
+    } catch (error) {
+      console.error('Error fetching AI settings:', error);
+      // Default to GEMINI on error
+      setAiProvider('GEMINI');
+      setAiEnabled(true);
+    }
+  };
+
+  const handleSaveAISettings = async () => {
+    try {
+      setLoadingAI(true);
+      const response = await aiSettingsApi.updateSettings({
+        provider: aiProvider,
+        mlApiUrl: mlApiUrl || undefined,
+        geminiApiKey: geminiApiKey || undefined,
+        enabled: aiEnabled,
+      }, user?.schoolId || null);
+
+      if (response.success) {
+        await Swal.fire({
+          icon: 'success',
+          title: 'บันทึกสำเร็จ!',
+          text: 'บันทึกการตั้งค่า AI เรียบร้อยแล้ว',
+          timer: 1500,
+          showConfirmButton: false,
+        });
+        setGeminiApiKey(''); // Clear API key input after saving
+        if (response.data) {
+          setHasGeminiKey(response.data.hasGeminiKey);
+        }
+      } else {
+        throw new Error(response.error || 'ไม่สามารถบันทึกได้');
+      }
+    } catch (error: any) {
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: error.message || 'ไม่สามารถบันทึกการตั้งค่าได้',
+      });
+    } finally {
+      setLoadingAI(false);
+    }
+  };
 
   const handleSave = () => {
     // บันทึกชื่อโรงเรียนและตราโรงเรียนลง localStorage (ใน production จะบันทึกลง API)
@@ -286,6 +356,96 @@ export default function SettingsPage() {
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     API Key จาก Google AI Studio (https://makersuite.google.com/app/apikey)
+                  </p>
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <Button
+                  onClick={handleSaveAISettings}
+                  disabled={loadingAI}
+                >
+                  {loadingAI ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า AI'}
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      </Card>
+
+      {/* AI Settings */}
+      <Card>
+        <div className="flex items-center space-x-3 mb-6">
+          <SparklesIcon className="h-6 w-6 text-purple-600" />
+          <h2 className="text-xl font-bold text-gray-900">ตั้งค่า AI สำหรับตรวจข้อสอบ</h2>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              เปิดใช้งาน AI
+            </label>
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={aiEnabled}
+                onChange={(e) => setAiEnabled(e.target.checked)}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">เปิดใช้งาน AI สำหรับช่วยตรวจข้อสอบ</span>
+            </label>
+          </div>
+
+          {aiEnabled && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  เลือก AI Provider
+                </label>
+                <select
+                  value={aiProvider}
+                  onChange={(e) => setAiProvider(e.target.value as AIProvider)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                >
+                  <option value="GEMINI">Gemini AI (Google) - ปัจจุบัน</option>
+                  <option value="ML">ML Model (Python)</option>
+                  <option value="BOTH">ทั้งสองแบบ (ML เป็นหลัก, Gemini เป็นสำรอง)</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  {aiProvider === 'GEMINI' && 'ใช้ Gemini AI จาก Google สำหรับตรวจข้อสอบ (ค่าเริ่มต้น)'}
+                  {aiProvider === 'ML' && 'ใช้ ML Model ที่เทรนจากข้อมูลการให้คะแนนของอาจารย์'}
+                  {aiProvider === 'BOTH' && 'ใช้ ML Model เป็นหลัก และใช้ Gemini เป็นสำรองเมื่อ ML ไม่พร้อม'}
+                </p>
+              </div>
+
+              {aiProvider === 'ML' || aiProvider === 'BOTH' ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    ML API URL
+                  </label>
+                  <Input
+                    value={mlApiUrl}
+                    onChange={(e) => setMlApiUrl(e.target.value)}
+                    placeholder="http://localhost:8000"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    URL ของ ML API service (ต้อง deploy แยก)
+                  </p>
+                </div>
+              ) : null}
+
+              {(aiProvider === 'GEMINI' || aiProvider === 'BOTH') && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Gemini API Key {hasGeminiKey && <span className="text-green-600">(มี API Key อยู่แล้ว)</span>}
+                  </label>
+                  <Input
+                    type="password"
+                    value={geminiApiKey}
+                    onChange={(e) => setGeminiApiKey(e.target.value)}
+                    placeholder={hasGeminiKey ? 'กรอกเพื่ออัพเดต API Key' : 'กรอก Gemini API Key (หรือใช้จาก GEMINI_API_KEY ใน .env)'}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    API Key จาก Google AI Studio (https://makersuite.google.com/app/apikey) หรือตั้งค่า GEMINI_API_KEY ใน environment variables
                   </p>
                 </div>
               )}

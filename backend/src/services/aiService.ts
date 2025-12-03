@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { getActiveAIProvider, getMLApiUrl } from './aiSettingsService';
+import { getActiveAIProvider, getMLApiUrl, getGeminiApiKey } from './aiSettingsService';
 
 // Initialize Gemini AI (will use API key from settings or env)
 const getGeminiAI = (apiKey?: string) => {
@@ -42,7 +42,12 @@ export const getAIGradingSuggestion = async (
     }
 
     // Use Gemini (default or fallback)
-    const genAI = getGeminiAI(geminiApiKey);
+    // Get API key from settings or use provided key or env variable
+    const apiKey = geminiApiKey || await getGeminiApiKey(schoolId || null) || process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error('Gemini API Key ไม่พบ กรุณาตั้งค่าในหน้าตั้งค่า AI หรือตั้งค่า GEMINI_API_KEY ใน environment variables');
+    }
+    const genAI = getGeminiAI(apiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
     const prompt = `คุณเป็นผู้ช่วยตรวจข้อสอบอัตนัย ให้คะแนนและให้คำแนะนำสำหรับคำตอบของนักเรียน

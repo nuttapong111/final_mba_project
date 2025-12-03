@@ -27,13 +27,14 @@ export const getAISettings = async (schoolId: string | null, user: AuthUser) => 
     where: { schoolId: targetSchoolId || undefined },
   });
 
-  // If no settings exist, create default
+  // If no settings exist, create default with Gemini
   if (!settings) {
     settings = await prisma.aISettings.create({
       data: {
         schoolId: targetSchoolId || null,
-        provider: 'GEMINI',
+        provider: 'GEMINI', // Default to Gemini
         enabled: true,
+        geminiApiKey: process.env.GEMINI_API_KEY || null, // Use env variable if available
       },
     });
   }
@@ -108,6 +109,7 @@ export const updateAISettings = async (
 
 /**
  * Get active AI provider for a school
+ * Defaults to GEMINI if no settings found
  */
 export const getActiveAIProvider = async (schoolId: string | null): Promise<AIProvider> => {
   const settings = await prisma.aISettings.findUnique({
@@ -116,6 +118,11 @@ export const getActiveAIProvider = async (schoolId: string | null): Promise<AIPr
 
   if (!settings || !settings.enabled) {
     // Default to GEMINI if no settings
+    return 'GEMINI';
+  }
+
+  // If provider is ML or BOTH but ML API URL is not set, fallback to GEMINI
+  if ((settings.provider === 'ML' || settings.provider === 'BOTH') && !settings.mlApiUrl) {
     return 'GEMINI';
   }
 
@@ -131,5 +138,16 @@ export const getMLApiUrl = async (schoolId: string | null): Promise<string | nul
   });
 
   return settings?.mlApiUrl || process.env.ML_API_URL || null;
+};
+
+/**
+ * Get Gemini API Key for a school
+ */
+export const getGeminiApiKey = async (schoolId: string | null): Promise<string | null> => {
+  const settings = await prisma.aISettings.findUnique({
+    where: { schoolId: schoolId || undefined },
+  });
+
+  return settings?.geminiApiKey || process.env.GEMINI_API_KEY || null;
 };
 
