@@ -1,11 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getActiveAIProvider, getMLApiUrl, getGeminiApiKey } from './aiSettingsService';
-
-// Initialize Gemini AI (will use API key from settings or env)
-const getGeminiAI = (apiKey?: string) => {
-  const key = apiKey || process.env.GEMINI_API_KEY || '';
-  return new GoogleGenerativeAI(key);
-};
 
 export interface AIGradingResult {
   score: number;
@@ -50,11 +43,8 @@ export const getAIGradingSuggestion = async (
     }
     
     console.log('[GEMINI] Using API key (first 10 chars):', apiKey.substring(0, 10) + '...');
-    const genAI = getGeminiAI(apiKey);
-    // Use gemini-pro as it's supported in v1beta API
-    // Note: gemini-1.5-flash and gemini-1.5-pro may not be available in v1beta
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-
+    
+    // Use REST API directly with v1 API version to support newer models
     const prompt = `คุณเป็นผู้ช่วยตรวจข้อสอบอัตนัย ให้คะแนนและให้คำแนะนำสำหรับคำตอบของนักเรียน
 
 คำถาม: ${question}
@@ -73,10 +63,32 @@ export const getAIGradingSuggestion = async (
 
 คำแนะนำควรเป็นภาษาไทยและให้คำแนะนำที่เป็นประโยชน์`;
 
-    console.log('[GEMINI] Calling API with prompt length:', prompt.length);
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    console.log('[GEMINI] Calling REST API with prompt length:', prompt.length);
+    
+    // Use v1 API instead of v1beta to support newer models
+    const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: prompt,
+          }],
+        }],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`);
+    }
+
+    const result = await response.json();
+    const text = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
     
     console.log('[GEMINI] Received response (first 200 chars):', text.substring(0, 200));
 
