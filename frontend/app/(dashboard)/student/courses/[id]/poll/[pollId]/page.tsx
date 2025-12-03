@@ -222,19 +222,19 @@ export default function TakePollPage() {
             console.error('Error finding content for poll:', error);
           }
         }
-        
-        await Swal.fire({
-          icon: 'success',
-          title: 'ส่งแบบประเมินสำเร็จ!',
-          text: 'ขอบคุณที่ให้ความร่วมมือในการประเมิน',
-          timer: 2000,
-          showConfirmButton: false,
-        });
+
+      await Swal.fire({
+        icon: 'success',
+        title: 'ส่งแบบประเมินสำเร็จ!',
+        text: 'ขอบคุณที่ให้ความร่วมมือในการประเมิน',
+        timer: 2000,
+        showConfirmButton: false,
+      });
 
         // Refresh the parent page to update progress
         // Use router.back() and then refresh, or use window.location
         setTimeout(() => {
-          router.back();
+      router.back();
           // Trigger a refresh on the parent page
           if (typeof window !== 'undefined') {
             window.dispatchEvent(new Event('contentCompleted'));

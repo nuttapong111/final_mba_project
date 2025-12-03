@@ -91,8 +91,8 @@ export const examsApi = {
     error?: string;
   }> => {
     try {
-      const response = await apiClient.post(`/exams/${examId}/submit`, data);
-      return response.data;
+    const response = await apiClient.post(`/exams/${examId}/submit`, data);
+    return response.data;
     } catch (error: any) {
       // Extract error message from API response
       const errorMessage = error.response?.data?.error || error.message || 'ไม่สามารถส่งข้อสอบได้';
@@ -109,11 +109,11 @@ export const examsApi = {
     error?: string;
   }> => {
     try {
-      const response = await apiClient.post(`/quiz/content/${contentId}/submit`, {
-        answers: data.answers,
-        timeSpent: data.timeSpent,
-      });
-      return response.data;
+    const response = await apiClient.post(`/quiz/content/${contentId}/submit`, {
+      answers: data.answers,
+      timeSpent: data.timeSpent,
+    });
+    return response.data;
     } catch (error: any) {
       // Extract error message from API response
       const errorMessage = error.response?.data?.error || error.message || 'ไม่สามารถส่งข้อสอบได้';

@@ -1,7 +1,11 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getActiveAIProvider, getMLApiUrl } from './aiSettingsService';
 
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+// Initialize Gemini AI (will use API key from settings or env)
+const getGeminiAI = (apiKey?: string) => {
+  const key = apiKey || process.env.GEMINI_API_KEY || '';
+  return new GoogleGenerativeAI(key);
+};
 
 export interface AIGradingResult {
   score: number;
@@ -9,14 +13,36 @@ export interface AIGradingResult {
 }
 
 /**
- * Get AI grading suggestion from Gemini
+ * Get AI grading suggestion from Gemini or ML
  */
 export const getAIGradingSuggestion = async (
   question: string,
   answer: string,
-  maxScore: number = 100
+  maxScore: number = 100,
+  schoolId?: string | null,
+  geminiApiKey?: string
 ): Promise<AIGradingResult> => {
   try {
+    // Get active provider
+    const provider = await getActiveAIProvider(schoolId || null);
+
+    // Use ML if provider is ML or BOTH
+    if (provider === 'ML' || provider === 'BOTH') {
+      try {
+        const mlResult = await getMLGradingSuggestion(question, answer, maxScore, schoolId);
+        // If ML succeeds and provider is ML only, return ML result
+        if (provider === 'ML') {
+          return mlResult;
+        }
+        // If BOTH, we'll use ML as primary and Gemini as fallback/validation
+      } catch (mlError) {
+        console.error('ML API error, falling back to Gemini:', mlError);
+        // Fall through to Gemini if ML fails
+      }
+    }
+
+    // Use Gemini (default or fallback)
+    const genAI = getGeminiAI(geminiApiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
     const prompt = `คุณเป็นผู้ช่วยตรวจข้อสอบอัตนัย ให้คะแนนและให้คำแนะนำสำหรับคำตอบของนักเรียน
@@ -77,10 +103,11 @@ export const getAIGradingSuggestion = async (
 export const getMLGradingSuggestion = async (
   question: string,
   answer: string,
-  maxScore: number = 100
+  maxScore: number = 100,
+  schoolId?: string | null
 ): Promise<AIGradingResult> => {
   try {
-    const mlApiUrl = process.env.ML_API_URL || 'http://localhost:8000';
+    const mlApiUrl = await getMLApiUrl(schoolId || null) || process.env.ML_API_URL || 'http://localhost:8000';
     const response = await fetch(`${mlApiUrl}/api/grade`, {
       method: 'POST',
       headers: {

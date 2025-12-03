@@ -12,5 +12,6 @@ export * from './webboard';
 export * from './contentProgress';
 export * from './assignments';
 export * from './grading';
+export * from './aiSettings';
 export { default as apiClient } from './client';
 

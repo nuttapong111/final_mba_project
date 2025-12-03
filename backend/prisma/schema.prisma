@@ -113,6 +113,7 @@ model School {
   courses       Course[]
   certificates  Certificate[]
   courseCategories CourseCategory[]
+  aiSettings    AISettings?  @relation("SchoolAISettings")
 }
 
 // Users
@@ -794,5 +795,22 @@ model GradeWeight {
 
   @@unique([courseId, category])
   @@index([courseId])
+}
+
+// AI Provider Settings
+model AISettings {
+  id            String   @id @default(uuid())
+  schoolId      String?  // null = global setting
+  provider      String   @default("GEMINI") // GEMINI, ML, BOTH
+  mlApiUrl      String?  // ML API URL if using ML
+  geminiApiKey  String?  // Gemini API key (encrypted)
+  enabled       Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  school        School?  @relation("SchoolAISettings", fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId])
+  @@index([schoolId])
 }
 

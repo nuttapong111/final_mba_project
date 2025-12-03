@@ -1,15 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuthStore } from '@/store/authStore';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { aiSettingsApi, type AIProvider } from '@/lib/api';
 import {
   Cog6ToothIcon,
   BuildingOfficeIcon,
   PaintBrushIcon,
   CreditCardIcon,
   ShieldCheckIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline';
 import Swal from 'sweetalert2';
 
@@ -207,6 +210,96 @@ export default function SettingsPage() {
               เปลี่ยนรหัสผ่าน
             </Button>
           </div>
+        </div>
+      </Card>
+
+      {/* AI Settings */}
+      <Card>
+        <div className="flex items-center space-x-3 mb-6">
+          <SparklesIcon className="h-6 w-6 text-purple-600" />
+          <h2 className="text-xl font-bold text-gray-900">ตั้งค่า AI สำหรับตรวจข้อสอบ</h2>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              เปิดใช้งาน AI
+            </label>
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={aiEnabled}
+                onChange={(e) => setAiEnabled(e.target.checked)}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">เปิดใช้งาน AI สำหรับช่วยตรวจข้อสอบ</span>
+            </label>
+          </div>
+
+          {aiEnabled && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  เลือก AI Provider
+                </label>
+                <select
+                  value={aiProvider}
+                  onChange={(e) => setAiProvider(e.target.value as AIProvider)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                >
+                  <option value="GEMINI">Gemini AI (Google)</option>
+                  <option value="ML">ML Model (Python)</option>
+                  <option value="BOTH">ทั้งสองแบบ (ML เป็นหลัก, Gemini เป็นสำรอง)</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  {aiProvider === 'GEMINI' && 'ใช้ Gemini AI จาก Google สำหรับตรวจข้อสอบ'}
+                  {aiProvider === 'ML' && 'ใช้ ML Model ที่เทรนจากข้อมูลการให้คะแนนของอาจารย์'}
+                  {aiProvider === 'BOTH' && 'ใช้ ML Model เป็นหลัก และใช้ Gemini เป็นสำรองเมื่อ ML ไม่พร้อม'}
+                </p>
+              </div>
+
+              {aiProvider === 'ML' || aiProvider === 'BOTH' ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    ML API URL
+                  </label>
+                  <Input
+                    value={mlApiUrl}
+                    onChange={(e) => setMlApiUrl(e.target.value)}
+                    placeholder="http://localhost:8000"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    URL ของ ML API service (ต้อง deploy แยก)
+                  </p>
+                </div>
+              ) : null}
+
+              {(aiProvider === 'GEMINI' || aiProvider === 'BOTH') && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Gemini API Key {hasGeminiKey && <span className="text-green-600">(มี API Key อยู่แล้ว)</span>}
+                  </label>
+                  <Input
+                    type="password"
+                    value={geminiApiKey}
+                    onChange={(e) => setGeminiApiKey(e.target.value)}
+                    placeholder={hasGeminiKey ? 'กรอกเพื่ออัพเดต API Key' : 'กรอก Gemini API Key'}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    API Key จาก Google AI Studio (https://makersuite.google.com/app/apikey)
+                  </p>
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <Button
+                  onClick={handleSaveAISettings}
+                  disabled={loadingAI}
+                >
+                  {loadingAI ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า AI'}
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </Card>
 

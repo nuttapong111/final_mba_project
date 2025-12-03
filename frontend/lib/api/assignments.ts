@@ -132,8 +132,8 @@ export const assignmentsApi = {
     error?: string;
   }> => {
     try {
-      const response = await apiClient.post(`/assignments/${id}/submit`, data);
-      return response.data;
+    const response = await apiClient.post(`/assignments/${id}/submit`, data);
+    return response.data;
     } catch (error: any) {
       // Extract error message from API response
       const errorMessage = error.response?.data?.error || error.message || 'ไม่สามารถส่งการบ้านได้';

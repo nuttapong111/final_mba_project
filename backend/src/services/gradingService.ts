@@ -953,7 +953,9 @@ export const getGradingTasks = async (user: AuthUser) => {
 
       if (!aiScore && !aiFeedback && task.status === 'pending') {
         try {
-          const aiResult = await getAIGradingSuggestion(questionText, task.answer, maxScore);
+          // Get schoolId from course
+          const schoolId = task.submission.exam.course.schoolId;
+          const aiResult = await getAIGradingSuggestion(questionText, task.answer, maxScore, schoolId);
           aiScore = aiResult.score;
           aiFeedback = aiResult.feedback;
 
