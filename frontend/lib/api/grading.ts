@@ -1,5 +1,26 @@
 import apiClient from './client';
 
+export interface GradingTask {
+  id: string;
+  courseId: string;
+  courseTitle: string;
+  examId: string;
+  examTitle: string;
+  studentId: string;
+  studentName: string;
+  studentAvatar?: string;
+  submittedAt: string;
+  questionId: string;
+  question: string;
+  answer: string;
+  aiScore?: number;
+  aiFeedback?: string;
+  teacherScore?: number;
+  teacherFeedback?: string;
+  status: 'pending' | 'graded';
+  maxScore: number;
+}
+
 export interface GradingSystem {
   id: string;
   courseId: string;
@@ -218,6 +239,44 @@ export const gradingApi = {
   }> => {
     const studentIdParam = studentId || 'me';
     const response = await apiClient.get(`/grading/courses/${courseId}/students/${studentIdParam}/report`);
+    return response.data;
+  },
+
+  // Grading Tasks API
+  getGradingTasks: async (): Promise<{
+    success: boolean;
+    data?: GradingTask[];
+    error?: string;
+  }> => {
+    const response = await apiClient.get('/grading/tasks');
+    return response.data;
+  },
+
+  updateGradingTask: async (taskId: string, data: {
+    teacherScore: number;
+    teacherFeedback: string;
+  }): Promise<{
+    success: boolean;
+    data?: GradingTask;
+    error?: string;
+  }> => {
+    const response = await apiClient.patch(`/grading/tasks/${taskId}`, data);
+    return response.data;
+  },
+
+  generateAIFeedback: async (data: {
+    question: string;
+    answer: string;
+    maxScore?: number;
+  }): Promise<{
+    success: boolean;
+    data?: {
+      score: number;
+      feedback: string;
+    };
+    error?: string;
+  }> => {
+    const response = await apiClient.post('/grading/ai/feedback', data);
     return response.data;
   },
 };

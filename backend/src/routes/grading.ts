@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { getGradingTasksController, updateGradingTaskController } from '../controllers/gradingController';
+import { getGradingTasksController, updateGradingTaskController, generateAIFeedbackController } from '../controllers/gradingController';
 import {
   getGradingSystemController,
   createGradingSystemController,
@@ -22,6 +22,7 @@ grading.use('/*', authMiddleware);
 // Old grading tasks routes (keep for backward compatibility)
 grading.get('/tasks', roleMiddleware('TEACHER'), getGradingTasksController);
 grading.patch('/tasks/:taskId', roleMiddleware('TEACHER'), updateGradingTaskController);
+grading.post('/ai/feedback', roleMiddleware('TEACHER'), generateAIFeedbackController);
 
 // New grading system routes
 grading.get('/courses/:courseId/system', getGradingSystemController);

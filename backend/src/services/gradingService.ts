@@ -1,6 +1,7 @@
 import prisma from '../config/database';
 import { AuthUser } from '../middleware/auth';
 import { GradingSystemType } from '@prisma/client';
+import { getAIGradingSuggestion } from './aiService';
 
 export interface CreateGradingSystemData {
   courseId: string;
@@ -905,7 +906,6 @@ export const getGradingTasks = async (user: AuthUser) => {
           },
         },
       },
-      status: 'pending',
     },
     include: {
       submission: {
@@ -913,13 +913,19 @@ export const getGradingTasks = async (user: AuthUser) => {
           exam: {
             include: {
               course: true,
-        },
-      },
-      student: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
+              examQuestions: {
+                include: {
+                  question: true,
+                },
+              },
+            },
+          },
+          student: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatar: true,
             },
           },
         },
@@ -930,7 +936,65 @@ export const getGradingTasks = async (user: AuthUser) => {
     },
   });
 
-  return tasks;
+  // Transform tasks to include question text and format for frontend
+  const formattedTasks = await Promise.all(
+    tasks.map(async (task) => {
+      // Find the question for this task
+      const question = task.submission.exam.examQuestions.find(
+        (eq) => eq.questionId === task.questionId
+      )?.question;
+
+      const questionText = question?.question || 'ไม่พบคำถาม';
+      const maxScore = question?.points || 100;
+
+      // If no AI score/feedback exists and task is pending, generate it
+      let aiScore = task.aiScore;
+      let aiFeedback = task.aiFeedback;
+
+      if (!aiScore && !aiFeedback && task.status === 'pending') {
+        try {
+          const aiResult = await getAIGradingSuggestion(questionText, task.answer, maxScore);
+          aiScore = aiResult.score;
+          aiFeedback = aiResult.feedback;
+
+          // Save AI feedback to database
+          await prisma.gradingTask.update({
+            where: { id: task.id },
+            data: {
+              aiScore: aiResult.score,
+              aiFeedback: aiResult.feedback,
+            },
+          });
+        } catch (error) {
+          console.error('Error generating AI feedback:', error);
+          // Continue without AI feedback
+        }
+      }
+
+      return {
+        id: task.id,
+        courseId: task.submission.exam.courseId,
+        courseTitle: task.submission.exam.course.title,
+        examId: task.submission.examId,
+        examTitle: task.submission.exam.title,
+        studentId: task.studentId,
+        studentName: task.submission.student.name,
+        studentAvatar: task.submission.student.avatar,
+        submittedAt: task.submission.submittedAt.toISOString(),
+        questionId: task.questionId,
+        question: questionText,
+        answer: task.answer,
+        aiScore: aiScore,
+        aiFeedback: aiFeedback,
+        teacherScore: task.teacherScore,
+        teacherFeedback: task.teacherFeedback,
+        status: task.status as 'pending' | 'graded',
+        maxScore: maxScore,
+      };
+    })
+  );
+
+  return formattedTasks;
 };
 
 export const updateGradingTask = async (

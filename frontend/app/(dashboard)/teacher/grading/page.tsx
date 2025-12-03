@@ -1,11 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { mockCourses } from '@/lib/mockData';
-import { filterCoursesByRole } from '@/lib/utils';
+import { coursesApi, gradingApi, type GradingTask } from '@/lib/api';
 import {
   ClipboardDocumentCheckIcon,
   MagnifyingGlassIcon,
@@ -15,85 +14,46 @@ import {
 } from '@heroicons/react/24/outline';
 import Swal from 'sweetalert2';
 
-interface GradingTask {
-  id: string;
-  courseId: string;
-  courseTitle: string;
-  examId: string;
-  examTitle: string;
-  studentId: string;
-  studentName: string;
-  studentAvatar?: string;
-  submittedAt: string;
-  aiScore?: number; // AI suggested score
-  aiFeedback?: string; // AI feedback
-  teacherScore?: number; // Teacher's final score
-  teacherFeedback?: string;
-  status: 'pending' | 'graded';
-  questionType: 'essay' | 'short_answer';
-  answer: string;
-}
-
 export default function TeacherGradingPage() {
   const { user } = useAuthStore();
-  const myCourses = filterCoursesByRole(mockCourses, user as any);
   const [selectedCourse, setSelectedCourse] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<'all' | 'pending' | 'graded'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [gradingTasks, setGradingTasks] = useState<GradingTask[]>([]);
+  const [courses, setCourses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock grading tasks
-  const [gradingTasks, setGradingTasks] = useState<GradingTask[]>([
-    {
-      id: '1',
-      courseId: '1',
-      courseTitle: 'คณิตศาสตร์ ม.4',
-      examId: 'exam-1',
-      examTitle: 'ข้อสอบคณิตศาสตร์ ม.4 - บทที่ 1',
-      studentId: '4',
-      studentName: 'นักเรียน ดีใจ',
-      studentAvatar: 'https://ui-avatars.com/api/?name=ดีใจ&background=10b981&color=fff',
-      submittedAt: '2024-03-15T10:30:00',
-      aiScore: 75,
-      aiFeedback: 'คำตอบถูกต้องส่วนใหญ่ แต่ยังขาดรายละเอียดบางส่วน ควรอธิบายขั้นตอนการคิดให้ชัดเจนขึ้น',
-      status: 'pending',
-      questionType: 'essay',
-      answer: 'ในการแก้สมการ x² + 5x + 6 = 0 ฉันใช้วิธีแยกตัวประกอบ โดยหาจำนวนสองจำนวนที่คูณกันได้ 6 และบวกกันได้ 5 ซึ่งคือ 2 และ 3 ดังนั้น (x+2)(x+3) = 0 ดังนั้น x = -2 หรือ x = -3',
-    },
-    {
-      id: '2',
-      courseId: '1',
-      courseTitle: 'คณิตศาสตร์ ม.4',
-      examId: 'exam-1',
-      examTitle: 'ข้อสอบคณิตศาสตร์ ม.4 - บทที่ 1',
-      studentId: '7',
-      studentName: 'นักเรียน สมชาย',
-      studentAvatar: 'https://ui-avatars.com/api/?name=สมชาย&background=3b82f6&color=fff',
-      submittedAt: '2024-03-15T11:00:00',
-      aiScore: 85,
-      aiFeedback: 'คำตอบถูกต้องและมีรายละเอียดดี อธิบายขั้นตอนได้ชัดเจน',
-      status: 'pending',
-      questionType: 'essay',
-      answer: 'ในการแก้สมการ x² + 5x + 6 = 0 ฉันใช้วิธีแยกตัวประกอบ:\n\n1. หาจำนวนสองจำนวนที่คูณกันได้ 6 และบวกกันได้ 5\n2. จำนวนที่เหมาะสมคือ 2 และ 3\n3. แยกตัวประกอบได้ (x+2)(x+3) = 0\n4. ดังนั้น x = -2 หรือ x = -3\n\nตรวจสอบ: (-2)² + 5(-2) + 6 = 4 - 10 + 6 = 0 ✓',
-    },
-    {
-      id: '3',
-      courseId: '2',
-      courseTitle: 'ภาษาอังกฤษ TOEIC',
-      examId: 'exam-2',
-      examTitle: 'ข้อสอบ TOEIC - Writing',
-      studentId: '4',
-      studentName: 'นักเรียน ดีใจ',
-      studentAvatar: 'https://ui-avatars.com/api/?name=ดีใจ&background=10b981&color=fff',
-      submittedAt: '2024-03-16T09:15:00',
-      aiScore: 70,
-      aiFeedback: 'โครงสร้างประโยคดี แต่ยังมีข้อผิดพลาดทางไวยากรณ์บางจุด',
-      status: 'graded',
-      teacherScore: 75,
-      teacherFeedback: 'ปรับปรุงการใช้ tense ให้ถูกต้อง',
-      questionType: 'essay',
-      answer: 'I think that technology has both positive and negative effects. On one hand, it make our life easier. On the other hand, it can cause problems like addiction.',
-    },
-  ]);
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [tasksResponse, coursesResponse] = await Promise.all([
+        gradingApi.getGradingTasks(),
+        coursesApi.getCourses(),
+      ]);
+
+      if (tasksResponse.success && tasksResponse.data) {
+        setGradingTasks(tasksResponse.data);
+      }
+
+      if (coursesResponse.success && coursesResponse.data) {
+        setCourses(coursesResponse.data);
+      }
+    } catch (error) {
+      console.error('Error fetching grading data:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: 'ไม่สามารถโหลดข้อมูลได้',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const filteredTasks = gradingTasks.filter((task) => {
     const courseMatch = selectedCourse === 'all' || task.courseId === selectedCourse;
@@ -104,27 +64,45 @@ export default function TeacherGradingPage() {
     return courseMatch && statusMatch && searchMatch;
   });
 
-  const handleGrade = (taskId: string, score: number, feedback: string) => {
-    setGradingTasks(
-      gradingTasks.map((task) =>
-        task.id === taskId
-          ? {
-              ...task,
-              teacherScore: score,
-              teacherFeedback: feedback,
-              status: 'graded' as const,
-            }
-          : task
-      )
-    );
+  const handleGrade = async (taskId: string, score: number, feedback: string) => {
+    try {
+      const response = await gradingApi.updateGradingTask(taskId, {
+        teacherScore: score,
+        teacherFeedback: feedback,
+      });
 
-    Swal.fire({
-      icon: 'success',
-      title: 'บันทึกคะแนนสำเร็จ!',
-      text: 'บันทึกคะแนนและความคิดเห็นเรียบร้อยแล้ว',
-      timer: 1500,
-      showConfirmButton: false,
-    });
+      if (response.success) {
+        // Update local state
+        setGradingTasks(
+          gradingTasks.map((task) =>
+            task.id === taskId
+              ? {
+                  ...task,
+                  teacherScore: score,
+                  teacherFeedback: feedback,
+                  status: 'graded' as const,
+                }
+              : task
+          )
+        );
+
+        await Swal.fire({
+          icon: 'success',
+          title: 'บันทึกคะแนนสำเร็จ!',
+          text: 'บันทึกคะแนนและความคิดเห็นเรียบร้อยแล้ว',
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      } else {
+        throw new Error(response.error || 'ไม่สามารถบันทึกคะแนนได้');
+      }
+    } catch (error: any) {
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: error.message || 'ไม่สามารถบันทึกคะแนนได้',
+      });
+    }
   };
 
   const formatDateTime = (dateString: string) => {
@@ -204,7 +182,7 @@ export default function TeacherGradingPage() {
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           >
             <option value="all">ทุกหลักสูตร</option>
-            {myCourses.map((course) => (
+            {courses.map((course) => (
               <option key={course.id} value={course.id}>
                 {course.title}
               </option>
@@ -223,25 +201,34 @@ export default function TeacherGradingPage() {
       </Card>
 
       {/* Grading Tasks */}
-      <div className="space-y-4">
-        {filteredTasks.length === 0 ? (
-          <Card>
-            <div className="text-center py-12">
-              <ClipboardDocumentCheckIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">ไม่พบงานที่ต้องตรวจ</p>
-            </div>
-          </Card>
-        ) : (
-          filteredTasks.map((task) => (
-            <GradingTaskCard
-              key={task.id}
-              task={task}
-              onGrade={handleGrade}
-              formatDateTime={formatDateTime}
-            />
-          ))
-        )}
-      </div>
+      {loading ? (
+        <Card>
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">กำลังโหลดข้อมูล...</p>
+          </div>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {filteredTasks.length === 0 ? (
+            <Card>
+              <div className="text-center py-12">
+                <ClipboardDocumentCheckIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">ไม่พบงานที่ต้องตรวจ</p>
+              </div>
+            </Card>
+          ) : (
+            filteredTasks.map((task) => (
+              <GradingTaskCard
+                key={task.id}
+                task={task}
+                onGrade={handleGrade}
+                formatDateTime={formatDateTime}
+              />
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -258,14 +245,15 @@ function GradingTaskCard({
   const [score, setScore] = useState(task.teacherScore?.toString() || task.aiScore?.toString() || '');
   const [feedback, setFeedback] = useState(task.teacherFeedback || task.aiFeedback || '');
   const [isEditing, setIsEditing] = useState(task.status === 'pending');
+  const [generatingAI, setGeneratingAI] = useState(false);
 
   const handleSubmit = () => {
     const scoreNum = parseInt(score);
-    if (isNaN(scoreNum) || scoreNum < 0 || scoreNum > 100) {
+    if (isNaN(scoreNum) || scoreNum < 0 || scoreNum > task.maxScore) {
       Swal.fire({
         icon: 'error',
         title: 'คะแนนไม่ถูกต้อง',
-        text: 'กรุณากรอกคะแนนระหว่าง 0-100',
+        text: `กรุณากรอกคะแนนระหว่าง 0-${task.maxScore}`,
       });
       return;
     }
@@ -309,6 +297,16 @@ function GradingTaskCard({
           </div>
         </div>
 
+        {/* Question */}
+        {task.question && (
+          <div>
+            <h4 className="font-medium text-gray-900 mb-2">คำถาม:</h4>
+            <div className="bg-gray-50 rounded-lg p-4">
+              <p className="text-gray-900 whitespace-pre-wrap">{task.question}</p>
+            </div>
+          </div>
+        )}
+
         {/* Student Answer */}
         <div>
           <h4 className="font-medium text-gray-900 mb-2">คำตอบของนักเรียน:</h4>
@@ -318,29 +316,59 @@ function GradingTaskCard({
         </div>
 
         {/* AI Feedback */}
-        {task.aiScore !== undefined && (
+        {task.aiScore !== undefined && task.aiFeedback ? (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium text-blue-900">คำแนะนำจาก AI:</h4>
               <span className="px-2 py-1 bg-blue-200 text-blue-900 rounded text-sm font-medium">
-                คะแนนแนะนำ: {task.aiScore}/100
+                คะแนนแนะนำ: {task.aiScore}/{task.maxScore}
               </span>
             </div>
             <p className="text-blue-800 text-sm">{task.aiFeedback}</p>
           </div>
-        )}
+        ) : isEditing && !generatingAI ? (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <Button
+              variant="outline"
+              onClick={async () => {
+                setGeneratingAI(true);
+                try {
+                  const response = await gradingApi.generateAIFeedback({
+                    question: task.question,
+                    answer: task.answer,
+                    maxScore: task.maxScore,
+                  });
+                  if (response.success && response.data) {
+                    setScore(response.data.score.toString());
+                    setFeedback(response.data.feedback);
+                  }
+                } catch (error) {
+                  Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: 'ไม่สามารถสร้างคำแนะนำจาก AI ได้',
+                  });
+                } finally {
+                  setGeneratingAI(false);
+                }
+              }}
+            >
+              {generatingAI ? 'กำลังสร้างคำแนะนำ...' : 'ขอคำแนะนำจาก AI'}
+            </Button>
+          </div>
+        ) : null}
 
         {/* Grading Form */}
         {isEditing ? (
           <div className="space-y-4 border-t pt-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                คะแนน (0-100)
+                คะแนน (0-{task.maxScore})
               </label>
               <input
                 type="number"
                 min="0"
-                max="100"
+                max={task.maxScore}
                 value={score}
                 onChange={(e) => setScore(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -372,7 +400,7 @@ function GradingTaskCard({
           <div className="border-t pt-4">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium text-gray-900">คะแนนที่ให้:</h4>
-              <span className="text-2xl font-bold text-green-600">{task.teacherScore}/100</span>
+              <span className="text-2xl font-bold text-green-600">{task.teacherScore}/{task.maxScore}</span>
             </div>
             {task.teacherFeedback && (
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-2">

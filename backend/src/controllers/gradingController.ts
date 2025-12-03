@@ -1,5 +1,6 @@
 import { Context } from 'hono';
 import { getGradingTasks, updateGradingTask } from '../services/gradingService';
+import { getAIGradingSuggestion } from '../services/aiService';
 
 export const getGradingTasksController = async (c: Context) => {
   try {
@@ -29,6 +30,21 @@ export const updateGradingTaskController = async (c: Context) => {
     return c.json({ success: true, data: task });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 400);
+  }
+};
+
+export const generateAIFeedbackController = async (c: Context) => {
+  try {
+    const { question, answer, maxScore } = await c.req.json();
+
+    if (!question || !answer) {
+      return c.json({ success: false, error: 'กรุณาระบุคำถามและคำตอบ' }, 400);
+    }
+
+    const result = await getAIGradingSuggestion(question, answer, maxScore || 100);
+    return c.json({ success: true, data: result });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
   }
 };
 
