@@ -19,6 +19,7 @@
     "db:check-files": "tsx scripts/check-uploaded-files.ts",
     "db:check": "tsx scripts/check-db.ts",
     "check:s3": "tsx scripts/check-s3-config.ts",
+    "update:poll-progress": "tsx scripts/update-poll-progress.ts",
     "railway:deploy": "npm run build && npx prisma generate && npx prisma db push && npm run db:seed"
   },
   "prisma": {
