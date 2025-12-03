@@ -131,8 +131,17 @@ export const assignmentsApi = {
     data: AssignmentSubmission;
     error?: string;
   }> => {
-    const response = await apiClient.post(`/assignments/${id}/submit`, data);
-    return response.data;
+    try {
+      const response = await apiClient.post(`/assignments/${id}/submit`, data);
+      return response.data;
+    } catch (error: any) {
+      // Extract error message from API response
+      const errorMessage = error.response?.data?.error || error.message || 'ไม่สามารถส่งการบ้านได้';
+      return {
+        success: false,
+        error: errorMessage,
+      } as any;
+    }
   },
 
   grade: async (submissionId: string, data: GradeAssignmentRequest): Promise<{

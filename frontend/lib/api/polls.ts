@@ -54,6 +54,13 @@ export interface UpdatePollRequest {
   }>;
 }
 
+export interface SubmitPollRequest {
+  answers: Array<{
+    questionId: string;
+    answer: string | string[] | number;
+  }>;
+}
+
 export const pollsApi = {
   getByCourse: async (courseId: string): Promise<{
     success: boolean;
@@ -89,6 +96,44 @@ export const pollsApi = {
   }> => {
     const response = await apiClient.delete(`/polls/${pollId}`);
     return response.data;
+  },
+
+  getResponseStatus: async (pollId: string): Promise<{
+    success: boolean;
+    data?: {
+      submitted: boolean;
+      submittedAt?: string;
+    };
+    error?: string;
+  }> => {
+    try {
+      const response = await apiClient.get(`/polls/${pollId}/status`);
+      return response.data;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error || error.message || 'ไม่สามารถตรวจสอบสถานะได้';
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  },
+
+  submit: async (pollId: string, data: SubmitPollRequest): Promise<{
+    success: boolean;
+    data?: any;
+    error?: string;
+  }> => {
+    try {
+      const response = await apiClient.post(`/polls/${pollId}/submit`, data);
+      return response.data;
+    } catch (error: any) {
+      // Extract error message from API response
+      const errorMessage = error.response?.data?.error || error.message || 'ไม่สามารถส่งแบบประเมินได้';
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
   },
 };
 

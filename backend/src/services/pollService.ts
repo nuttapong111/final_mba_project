@@ -1,6 +1,22 @@
 import prisma from '../config/database';
 import { AuthUser } from '../middleware/auth';
 
+export const getPollResponseStatus = async (pollId: string, user: AuthUser) => {
+  const response = await prisma.pollResponse.findUnique({
+    where: {
+      pollId_studentId: {
+        pollId,
+        studentId: user.id,
+      },
+    },
+    include: {
+      answers: true,
+    },
+  });
+
+  return response;
+};
+
 export const getPollsByCourse = async (courseId: string, user: AuthUser) => {
   // Verify course exists and user has permission
   const course = await prisma.course.findUnique({
@@ -267,5 +283,106 @@ export const deletePoll = async (pollId: string, user: AuthUser) => {
   });
 
   return { message: 'ลบแบบประเมินสำเร็จ' };
+};
+
+export const submitPollResponse = async (
+  pollId: string,
+  data: {
+    answers: Array<{
+      questionId: string;
+      answer: string | string[] | number;
+    }>;
+  },
+  user: AuthUser
+) => {
+  // Verify poll exists
+  const poll = await prisma.poll.findUnique({
+    where: { id: pollId },
+    include: {
+      questions: {
+        orderBy: { order: 'asc' },
+      },
+      course: true,
+    },
+  });
+
+  if (!poll) {
+    throw new Error('ไม่พบแบบประเมิน');
+  }
+
+  // Check if user is a student
+  if (user.role !== 'STUDENT') {
+    throw new Error('เฉพาะนักเรียนเท่านั้นที่สามารถส่งแบบประเมินได้');
+  }
+
+  // Check if student is enrolled in the course
+  if (poll.course) {
+    const enrollment = await prisma.courseStudent.findFirst({
+      where: {
+        courseId: poll.course.id,
+        studentId: user.id,
+      },
+    });
+
+    if (!enrollment) {
+      throw new Error('คุณไม่ได้ลงทะเบียนในหลักสูตรนี้');
+    }
+  }
+
+  // Check if student has already submitted
+  const existingResponse = await prisma.pollResponse.findUnique({
+    where: {
+      pollId_studentId: {
+        pollId,
+        studentId: user.id,
+      },
+    },
+  });
+
+  if (existingResponse) {
+    throw new Error('คุณได้ส่งแบบประเมินนี้แล้ว');
+  }
+
+  // Validate answers
+  const requiredQuestions = poll.questions.filter((q) => q.required);
+  for (const question of requiredQuestions) {
+    const answer = data.answers.find((a) => a.questionId === question.id);
+    if (!answer) {
+      throw new Error(`กรุณาตอบคำถามที่จำเป็น: "${question.question}"`);
+    }
+
+    // Validate answer format
+    if (question.type === 'CHECKBOX' && !Array.isArray(answer.answer)) {
+      throw new Error(`คำถาม "${question.question}" ต้องตอบหลายตัวเลือก`);
+    }
+
+    if (question.type === 'RATING') {
+      const rating = typeof answer.answer === 'number' ? answer.answer : Number(answer.answer);
+      if (isNaN(rating) || rating < (question.minRating || 1) || rating > (question.maxRating || 5)) {
+        throw new Error(`คะแนนต้องอยู่ระหว่าง ${question.minRating || 1} ถึง ${question.maxRating || 5}`);
+      }
+    }
+  }
+
+  // Create poll response
+  const response = await prisma.pollResponse.create({
+    data: {
+      pollId,
+      studentId: user.id,
+      answers: {
+        create: data.answers.map((a) => ({
+          questionId: a.questionId,
+          answer: typeof a.answer === 'string' || typeof a.answer === 'number'
+            ? String(a.answer)
+            : JSON.stringify(a.answer),
+        })),
+      },
+    },
+    include: {
+      answers: true,
+    },
+  });
+
+  return response;
 };
 

@@ -29,14 +29,17 @@ export default function TakePollPage() {
   const [loading, setLoading] = useState(true);
   const [answers, setAnswers] = useState<Record<string, PollAnswer>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submittedAt, setSubmittedAt] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [pollsResponse, courseResponse] = await Promise.all([
+        const [pollsResponse, courseResponse, statusResponse] = await Promise.all([
           pollsApi.getByCourse(courseId),
           coursesApi.getById(courseId),
+          pollsApi.getResponseStatus(pollId),
         ]);
 
         if (pollsResponse.success && pollsResponse.data) {
@@ -51,6 +54,14 @@ export default function TakePollPage() {
 
         if (courseResponse.success && courseResponse.data) {
           setCourse(courseResponse.data);
+        }
+
+        // Check if already submitted
+        if (statusResponse.success && statusResponse.data) {
+          if (statusResponse.data.submitted) {
+            setIsSubmitted(true);
+            setSubmittedAt(statusResponse.data.submittedAt || null);
+          }
         }
       } catch (error) {
         console.error('Error fetching poll:', error);
@@ -89,6 +100,44 @@ export default function TakePollPage() {
     );
   }
 
+  // Show submitted message if already submitted
+  if (isSubmitted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50">
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <Card className="text-center py-12">
+            <div className="mb-6">
+              <div className="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <CheckIcon className="h-12 w-12 text-green-600" />
+              </div>
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">ส่งแบบประเมินสำเร็จแล้ว</h2>
+              <p className="text-gray-600 mb-4">
+                คุณได้ส่งแบบประเมิน "{poll.title}" เรียบร้อยแล้ว
+              </p>
+              {submittedAt && (
+                <p className="text-sm text-gray-500">
+                  ส่งเมื่อ: {new Date(submittedAt).toLocaleString('th-TH', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </p>
+              )}
+              <p className="text-sm text-gray-500 mt-4">
+                แบบประเมินสามารถส่งได้เพียงครั้งเดียว
+              </p>
+            </div>
+            <Button onClick={() => router.back()} className="mt-6">
+              กลับ
+            </Button>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   const handleAnswerChange = (questionId: string, value: any) => {
     setAnswers({
       ...answers,
@@ -116,19 +165,34 @@ export default function TakePollPage() {
     setIsSubmitting(true);
 
     try {
-      // TODO: Implement poll submission API when available
-      // For now, just show success message
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Prepare answers array
+      const submitAnswers = Object.values(answers).map((answer) => ({
+        questionId: answer.questionId,
+        answer: answer.answer,
+      }));
 
-      await Swal.fire({
-        icon: 'success',
-        title: 'ส่งแบบประเมินสำเร็จ!',
-        text: 'ขอบคุณที่ให้ความร่วมมือในการประเมิน',
-        timer: 2000,
-        showConfirmButton: false,
+      // Submit poll via API
+      const response = await pollsApi.submit(pollId, {
+        answers: submitAnswers,
       });
 
-      router.back();
+      if (response.success) {
+        // Update submitted status
+        setIsSubmitted(true);
+        setSubmittedAt(new Date().toISOString());
+        
+        await Swal.fire({
+          icon: 'success',
+          title: 'ส่งแบบประเมินสำเร็จ!',
+          text: 'ขอบคุณที่ให้ความร่วมมือในการประเมิน',
+          timer: 2000,
+          showConfirmButton: false,
+        });
+
+        // Don't navigate back, let the UI show the submitted state
+      } else {
+        throw new Error(response.error || 'ไม่สามารถส่งแบบประเมินได้');
+      }
     } catch (error: any) {
       await Swal.fire({
         icon: 'error',

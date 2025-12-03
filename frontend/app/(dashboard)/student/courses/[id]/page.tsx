@@ -5,12 +5,17 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { coursesApi, webboardApi, contentProgressApi } from '@/lib/api';
+import { coursesApi, webboardApi, contentProgressApi, gradingApi } from '@/lib/api';
 import dynamic from 'next/dynamic';
 import YouTubePlayer from '@/components/YouTubePlayer';
 
 const StudentAssignmentsPage = dynamic(
   () => import('./assignments/page'),
+  { ssr: false }
+);
+
+const StudentGradesPage = dynamic(
+  () => import('./grades/page'),
   { ssr: false }
 );
 import {
@@ -60,7 +65,7 @@ export default function StudentCourseDetailPage() {
   const [course, setCourse] = useState<any>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'lessons' | 'webboard' | 'assignments'>('lessons');
+  const [activeTab, setActiveTab] = useState<'lessons' | 'webboard' | 'assignments' | 'grades'>('lessons');
   const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set());
   const [selectedVideo, setSelectedVideo] = useState<LessonContent | null>(null);
   const [completedContents, setCompletedContents] = useState<Set<string>>(new Set());
@@ -564,6 +569,19 @@ export default function StudentCourseDetailPage() {
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600 rounded-t-full" />
               )}
             </button>
+            <button
+              onClick={() => setActiveTab('grades')}
+              className={`px-4 sm:px-6 py-3 sm:py-4 font-medium text-xs sm:text-sm transition-colors relative whitespace-nowrap flex-shrink-0 ${
+                activeTab === 'grades'
+                  ? 'text-purple-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              ผลการเรียน
+              {activeTab === 'grades' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-600 rounded-t-full" />
+              )}
+            </button>
           </div>
         </div>
       </div>
@@ -572,6 +590,8 @@ export default function StudentCourseDetailPage() {
       <div className="w-full px-3 sm:px-6 py-4 sm:py-6">
         {activeTab === 'assignments' ? (
           <StudentAssignmentsPage />
+        ) : activeTab === 'grades' ? (
+          <StudentGradesPage courseId={courseId} />
         ) : activeTab === 'lessons' ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Left Side - Lessons List */}

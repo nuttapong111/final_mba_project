@@ -11,6 +11,7 @@ import {
   updateGradeWeightController,
   deleteGradeWeightController,
   calculateStudentGradeController,
+  getStudentGradeReportController,
 } from '../controllers/gradingSystemController';
 import { authMiddleware, roleMiddleware } from '../middleware/auth';
 
@@ -39,6 +40,9 @@ grading.delete('/weights/:id', deleteGradeWeightController);
 
 // Calculate student grade
 grading.get('/courses/:courseId/students/:studentId/grade', calculateStudentGradeController);
+
+// Get student grade report
+grading.get('/courses/:courseId/students/:studentId/report', getStudentGradeReportController);
 
 export default grading;
 

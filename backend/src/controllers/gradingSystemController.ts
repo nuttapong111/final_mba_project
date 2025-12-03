@@ -10,6 +10,7 @@ import {
   updateGradeWeight,
   deleteGradeWeight,
   calculateStudentGrade,
+  getStudentGradeReport,
 } from '../services/gradingService';
 
 export const getGradingSystemController = async (c: Context) => {
@@ -138,6 +139,25 @@ export const calculateStudentGradeController = async (c: Context) => {
     const studentId = c.req.param('studentId');
 
     const result = await calculateStudentGrade(courseId, studentId);
+    return c.json({ success: true, data: result });
+  } catch (error: any) {
+    console.error('[GRADING] Error:', error);
+    return c.json({ success: false, error: error.message }, 400);
+  }
+};
+
+export const getStudentGradeReportController = async (c: Context) => {
+  try {
+    const user = c.get('user');
+    const courseId = c.req.param('courseId');
+    let studentId = c.req.param('studentId');
+    
+    // If studentId is 'me', use current user's ID
+    if (studentId === 'me') {
+      studentId = user.id;
+    }
+
+    const result = await getStudentGradeReport(courseId, studentId, user);
     return c.json({ success: true, data: result });
   } catch (error: any) {
     console.error('[GRADING] Error:', error);

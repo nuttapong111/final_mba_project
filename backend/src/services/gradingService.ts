@@ -619,6 +619,278 @@ export const calculateStudentGrade = async (courseId: string, studentId: string)
   }
 };
 
+// Get student grade report with detailed breakdown
+export const getStudentGradeReport = async (courseId: string, studentId: string, user: AuthUser) => {
+  // Verify course and permissions
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    include: {
+      students: {
+        where: { studentId: user.id },
+      },
+    },
+  });
+
+  if (!course) {
+    throw new Error('ไม่พบหลักสูตร');
+  }
+
+  // Check if user is the student or has permission
+  const isStudent = course.students.length > 0 && user.id === studentId;
+  const isTeacher = course.instructorId === user.id;
+  const isAdmin = user.role === 'SUPER_ADMIN' || (user.role === 'SCHOOL_ADMIN' && course.schoolId === user.schoolId);
+
+  if (!isStudent && !isTeacher && !isAdmin) {
+    throw new Error('ไม่มีสิทธิ์เข้าถึงข้อมูลผลการเรียน');
+  }
+
+  // Get grading system
+  const gradingSystem = await prisma.gradingSystem.findUnique({
+    where: { courseId },
+    include: {
+      criteria: {
+        orderBy: {
+          minScore: 'desc',
+        },
+      },
+    },
+  });
+
+  if (!gradingSystem) {
+    return {
+      systemType: null,
+      finalGrade: null,
+      categories: [],
+      quizzes: [],
+      assignments: [],
+      exams: [],
+    };
+  }
+
+  const gradeWeights = await prisma.gradeWeight.findMany({
+    where: { courseId },
+    orderBy: {
+      category: 'asc',
+    },
+  });
+
+  // Get quiz submissions from LessonContent (QUIZ type) - these are stored in ExamSubmission
+  // First, get all LessonContent with QUIZ type in this course
+  const quizContents = await prisma.lessonContent.findMany({
+    where: {
+      lesson: {
+        courseId,
+      },
+      type: 'QUIZ',
+      examId: { not: null },
+    },
+    select: {
+      id: true,
+      title: true,
+      examId: true,
+      quizSettings: true,
+    },
+  });
+
+  // Get quiz submissions from ExamSubmission for these contents
+  const examIds = quizContents.map(c => c.examId).filter((id): id is string => id !== null);
+  
+  const quizSubmissions = await prisma.examSubmission.findMany({
+    where: {
+      studentId,
+      examId: { in: examIds },
+    },
+    include: {
+      exam: {
+        include: {
+          examQuestions: {
+            include: {
+              question: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: {
+      submittedAt: 'desc',
+    },
+  });
+
+  // Map quiz submissions to include content info
+  const quizSubmissionsWithContent = quizSubmissions.map((submission) => {
+    const content = quizContents.find(c => c.examId === submission.examId);
+    const totalScore = submission.exam.examQuestions.reduce((sum, eq) => sum + (eq.question.points || 0), 0);
+    const percentage = submission.percentage || 0;
+    const passingScore = content?.quizSettings?.passingPercentage || submission.exam.passingScore || 70;
+    const passed = percentage >= passingScore;
+
+    return {
+      id: content?.id || submission.examId,
+      title: content?.title || submission.exam.title,
+      score: submission.score || 0,
+      maxScore: totalScore || 100,
+      percentage: percentage,
+      passed: passed,
+      submittedAt: submission.submittedAt.toISOString(),
+      status: 'graded',
+    };
+  });
+
+  // Get assignment submissions
+  const assignmentSubmissions = await prisma.assignmentSubmission.findMany({
+    where: {
+      studentId,
+      assignment: {
+        courseId,
+      },
+    },
+    include: {
+      assignment: {
+        select: {
+          id: true,
+          title: true,
+          maxScore: true,
+        },
+      },
+    },
+    orderBy: {
+      submittedAt: 'desc',
+    },
+  });
+
+  // Get exam submissions (MIDTERM, FINAL)
+  const examSubmissions = await prisma.examSubmission.findMany({
+    where: {
+      studentId,
+      exam: {
+        courseId,
+        type: {
+          in: ['MIDTERM', 'FINAL'],
+        },
+      },
+    },
+    include: {
+      exam: {
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          passingScore: true,
+        },
+      },
+    },
+    orderBy: {
+      submittedAt: 'desc',
+    },
+  });
+
+  // Format quiz data
+  const quizzes = quizSubmissionsWithContent;
+
+  // Format assignment data
+  const assignments = assignmentSubmissions.map((submission) => {
+    const status = submission.submittedAt && !submission.score && !submission.gradedAt
+      ? 'pending'
+      : submission.score !== null
+      ? 'graded'
+      : 'not_submitted';
+
+    return {
+      id: submission.assignment.id,
+      title: submission.assignment.title,
+      score: submission.score,
+      maxScore: submission.assignment.maxScore,
+      percentage: submission.score !== null && submission.assignment.maxScore > 0
+        ? (submission.score / submission.assignment.maxScore) * 100
+        : null,
+      submittedAt: submission.submittedAt?.toISOString() || null,
+      gradedAt: submission.gradedAt?.toISOString() || null,
+      status: status,
+    };
+  });
+
+  // Format exam data
+  const exams = examSubmissions.map((submission) => {
+    const percentage = submission.percentage || 0;
+    const passingScore = submission.exam.passingScore || 70;
+    const passed = percentage >= passingScore;
+
+    return {
+      id: submission.exam.id,
+      title: submission.exam.title,
+      type: submission.exam.type,
+      score: submission.score || 0,
+      maxScore: 100,
+      percentage: percentage,
+      passed: passed,
+      submittedAt: submission.submittedAt.toISOString(),
+      status: 'graded',
+    };
+  });
+
+  // Calculate category scores
+  const categoryScores: Record<string, { scores: number[]; weight: number; average: number; percentage: number }> = {};
+
+  // Process grade weights
+  for (const weight of gradeWeights) {
+    categoryScores[weight.category] = {
+      scores: [],
+      weight: weight.weight,
+      average: 0,
+      percentage: 0,
+    };
+  }
+
+  // Add quiz scores
+  quizzes.forEach((quiz) => {
+    if (categoryScores['quiz']) {
+      categoryScores['quiz'].scores.push(quiz.percentage);
+    }
+  });
+
+  // Add assignment scores
+  assignments.forEach((assignment) => {
+    if (assignment.percentage !== null && categoryScores['assignment']) {
+      categoryScores['assignment'].scores.push(assignment.percentage);
+    }
+  });
+
+  // Add exam scores
+  exams.forEach((exam) => {
+    const category = exam.type === 'MIDTERM' ? 'midterm' : exam.type === 'FINAL' ? 'final' : 'exam';
+    if (categoryScores[category]) {
+      categoryScores[category].scores.push(exam.percentage);
+    }
+  });
+
+  // Calculate averages and percentages
+  const categories = Object.entries(categoryScores).map(([category, data]) => {
+    const average = data.scores.length > 0
+      ? data.scores.reduce((sum, s) => sum + s, 0) / data.scores.length
+      : 0;
+
+    return {
+      category,
+      weight: data.weight,
+      scores: data.scores,
+      average: average,
+      percentage: average,
+    };
+  });
+
+  // Calculate final grade
+  const finalGrade = await calculateStudentGrade(courseId, studentId);
+
+  return {
+    systemType: gradingSystem.systemType,
+    finalGrade: finalGrade,
+    categories: categories,
+    quizzes: quizzes,
+    assignments: assignments,
+    exams: exams,
+  };
+};
+
 // Legacy functions for backward compatibility
 export const getGradingTasks = async (user: AuthUser) => {
   const tasks = await prisma.gradingTask.findMany({

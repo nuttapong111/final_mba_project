@@ -70,6 +70,53 @@ export interface StudentGrade {
   systemType: 'PASS_FAIL' | 'GRADE';
 }
 
+export interface StudentGradeReport {
+  systemType: 'PASS_FAIL' | 'GRADE' | null;
+  finalGrade: {
+    percentage: number;
+    grade: string;
+    systemType: 'PASS_FAIL' | 'GRADE';
+  } | null;
+  categories: Array<{
+    category: string;
+    weight: number;
+    scores: number[];
+    average: number;
+    percentage: number;
+  }>;
+  quizzes: Array<{
+    id: string;
+    title: string;
+    score: number;
+    maxScore: number;
+    percentage: number;
+    passed: boolean;
+    submittedAt: string;
+    status: string;
+  }>;
+  assignments: Array<{
+    id: string;
+    title: string;
+    score: number | null;
+    maxScore: number;
+    percentage: number | null;
+    submittedAt: string | null;
+    gradedAt: string | null;
+    status: 'pending' | 'graded' | 'not_submitted';
+  }>;
+  exams: Array<{
+    id: string;
+    title: string;
+    type: string;
+    score: number;
+    maxScore: number;
+    percentage: number;
+    passed: boolean;
+    submittedAt: string;
+    status: string;
+  }>;
+}
+
 export const gradingApi = {
   getSystem: async (courseId: string): Promise<{
     success: boolean;
@@ -161,6 +208,16 @@ export const gradingApi = {
     error?: string;
   }> => {
     const response = await apiClient.get(`/grading/courses/${courseId}/students/${studentId}/grade`);
+    return response.data;
+  },
+
+  getStudentGradeReport: async (courseId: string, studentId?: string): Promise<{
+    success: boolean;
+    data: StudentGradeReport;
+    error?: string;
+  }> => {
+    const studentIdParam = studentId || 'me';
+    const response = await apiClient.get(`/grading/courses/${courseId}/students/${studentIdParam}/report`);
     return response.data;
   },
 };
