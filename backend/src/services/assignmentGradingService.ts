@@ -70,6 +70,7 @@ export const getAssignmentGradingTasks = async (user: AuthUser): Promise<Assignm
             select: {
               id: true,
               title: true,
+              schoolId: true,
             },
           },
         },
