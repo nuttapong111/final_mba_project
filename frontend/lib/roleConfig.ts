@@ -15,6 +15,7 @@ import {
   ClipboardDocumentCheckIcon,
   TrophyIcon,
   TagIcon,
+  DocumentArrowUpIcon,
 } from '@heroicons/react/24/outline';
 
 export interface NavItem {
@@ -44,6 +45,7 @@ export const roleNavigation: Record<string, NavItem[]> = {
     // { name: 'ห้องเรียนออนไลน์', href: '/teacher/live-class', icon: VideoCameraIcon }, // Phase 2
     { name: 'Webboard', href: '/teacher/webboard', icon: ChatBubbleLeftRightIcon },
     { name: 'ตรวจข้อสอบ', href: '/teacher/grading', icon: ClipboardDocumentCheckIcon },
+    { name: 'ตรวจการบ้าน', href: '/teacher/assignments', icon: DocumentArrowUpIcon },
   ],
   student: [
     { name: 'แดชบอร์ด', href: '/student/dashboard', icon: HomeIcon },

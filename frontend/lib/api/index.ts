@@ -13,5 +13,6 @@ export * from './contentProgress';
 export * from './assignments';
 export * from './grading';
 export * from './aiSettings';
+export * from './assignmentGrading';
 export { default as apiClient } from './client';
 
