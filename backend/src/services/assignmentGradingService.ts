@@ -112,11 +112,67 @@ export const getAssignmentGradingTasks = async (user: AuthUser): Promise<Assignm
           const schoolId = submission.assignment.course.schoolId;
           const assignmentTitle = submission.assignment.title;
           const assignmentDescription = submission.assignment.description || '';
-          const studentNotes = `นักเรียนส่งไฟล์: ${submission.fileName || 'ไฟล์การบ้าน'}`;
+          
+          // Build assignment context (question + description + teacher's file if exists)
+          let assignmentContext = `การบ้าน: ${assignmentTitle}`;
+          if (assignmentDescription) {
+            assignmentContext += `\nคำอธิบาย: ${assignmentDescription}`;
+          }
+          
+          // Try to extract text from teacher's attached file (if PDF)
+          if (submission.assignment.fileUrl || submission.assignment.s3Key) {
+            const teacherFileName = submission.assignment.fileName || '';
+            const isTeacherPDF = teacherFileName.toLowerCase().endsWith('.pdf');
+            
+            if (isTeacherPDF) {
+              try {
+                const { extractTextFromPDFUrl } = await import('./pdfService');
+                const teacherFileText = await extractTextFromPDFUrl(
+                  submission.assignment.fileUrl || '',
+                  submission.assignment.s3Key || null
+                );
+                
+                if (teacherFileText && teacherFileText.trim()) {
+                  assignmentContext += `\n\nไฟล์แนบจากอาจารย์ (${teacherFileName}):\n${teacherFileText}`;
+                  console.log(`[ASSIGNMENT GRADING] Extracted ${teacherFileText.length} characters from teacher's PDF`);
+                }
+              } catch (pdfError: any) {
+                console.warn(`[ASSIGNMENT GRADING] Could not read teacher's PDF file: ${pdfError.message}`);
+                // Continue without teacher's file content
+              }
+            }
+          }
+          
+          // Try to extract text from student's submitted file (if PDF)
+          let studentAnswer = '';
+          const studentFileName = submission.fileName || '';
+          const isStudentPDF = studentFileName.toLowerCase().endsWith('.pdf');
+          
+          if (isStudentPDF && (submission.fileUrl || submission.s3Key)) {
+            try {
+              const { extractTextFromPDFUrl } = await import('./pdfService');
+              studentAnswer = await extractTextFromPDFUrl(
+                submission.fileUrl || '',
+                submission.s3Key || null
+              );
+              
+              if (studentAnswer && studentAnswer.trim()) {
+                console.log(`[ASSIGNMENT GRADING] Extracted ${studentAnswer.length} characters from student's PDF`);
+              } else {
+                studentAnswer = `นักเรียนส่งไฟล์ PDF: ${studentFileName}`;
+              }
+            } catch (pdfError: any) {
+              console.warn(`[ASSIGNMENT GRADING] Could not read student's PDF file: ${pdfError.message}`);
+              studentAnswer = `นักเรียนส่งไฟล์ PDF: ${studentFileName}\n(ไม่สามารถอ่านเนื้อหาจากไฟล์ได้: ${pdfError.message})`;
+            }
+          } else {
+            // Not a PDF or no file
+            studentAnswer = `นักเรียนส่งไฟล์: ${studentFileName || 'ไฟล์การบ้าน'}`;
+          }
           
           const aiResult = await getAIGradingSuggestion(
-            `การบ้าน: ${assignmentTitle}${assignmentDescription ? `\nคำอธิบาย: ${assignmentDescription}` : ''}`,
-            studentNotes,
+            assignmentContext,
+            studentAnswer,
             submission.assignment.maxScore,
             schoolId
           );
@@ -144,6 +200,7 @@ export const getAssignmentGradingTasks = async (user: AuthUser): Promise<Assignm
         courseTitle: submission.assignment.course.title,
         assignmentId: submission.assignmentId,
         assignmentTitle: submission.assignment.title,
+        assignmentDescription: submission.assignment.description || undefined,
         studentId: submission.studentId,
         studentName: submission.student.name,
         studentAvatar: submission.student.avatar || undefined,
@@ -151,6 +208,10 @@ export const getAssignmentGradingTasks = async (user: AuthUser): Promise<Assignm
         fileUrl: fileUrl || undefined,
         fileName: submission.fileName || undefined,
         fileSize: submission.fileSize || undefined,
+        s3Key: submission.s3Key || undefined,
+        teacherFileUrl: submission.assignment.fileUrl || undefined,
+        teacherFileName: submission.assignment.fileName || undefined,
+        teacherS3Key: submission.assignment.s3Key || undefined,
         score: submission.score || undefined,
         feedback: submission.feedback || undefined,
         gradedAt: submission.gradedAt?.toISOString() || undefined,

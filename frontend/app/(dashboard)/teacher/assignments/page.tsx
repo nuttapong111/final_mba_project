@@ -71,6 +71,12 @@ export default function TeacherAssignmentsPage() {
                 assignmentDescription: task.assignmentDescription,
                 studentNotes: `นักเรียนส่งไฟล์: ${task.fileName || 'ไฟล์การบ้าน'}`,
                 maxScore: task.maxScore,
+                studentFileUrl: task.fileUrl,
+                studentS3Key: task.s3Key,
+                studentFileName: task.fileName,
+                teacherFileUrl: task.teacherFileUrl,
+                teacherS3Key: task.teacherS3Key,
+                teacherFileName: task.teacherFileName,
               });
               
               if (aiResponse.success && aiResponse.data) {

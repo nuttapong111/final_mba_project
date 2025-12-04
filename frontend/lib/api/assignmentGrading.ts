@@ -14,6 +14,10 @@ export interface AssignmentGradingTask {
   fileUrl?: string;
   fileName?: string;
   fileSize?: number;
+  s3Key?: string;
+  teacherFileUrl?: string;
+  teacherFileName?: string;
+  teacherS3Key?: string;
   score?: number;
   feedback?: string;
   gradedAt?: string;
@@ -50,6 +54,12 @@ export const assignmentGradingApi = {
     assignmentDescription?: string;
     studentNotes?: string;
     maxScore: number;
+    studentFileUrl?: string;
+    studentS3Key?: string;
+    studentFileName?: string;
+    teacherFileUrl?: string;
+    teacherS3Key?: string;
+    teacherFileName?: string;
   }): Promise<{
     success: boolean;
     data?: { score: number; feedback: string };
