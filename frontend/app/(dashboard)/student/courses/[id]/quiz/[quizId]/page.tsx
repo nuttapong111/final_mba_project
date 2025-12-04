@@ -161,37 +161,48 @@ export default function StudentQuizPage() {
         const passingPercentage = quizSettings?.passingPercentage || 70;
         const totalScore = submission.totalScore || questions.reduce((sum, q) => sum + q.points, 0);
 
-        setScore(percentage);
+        // Don't set score if there are essay questions (waiting for teacher grading)
+        if (!hasEssayQuestions) {
+          setScore(percentage);
+        }
 
-        // Show result with AI feedback info if essay questions exist
-        let resultHtml = `
-        <div class="text-center">
-            <p class="text-3xl font-bold mb-2">${percentage.toFixed(1)}%</p>
-            <p>คุณได้ ${finalScore} จาก ${totalScore} คะแนน</p>
-        `;
-
+        // Show result - hide score if essay questions exist
+        let resultHtml = '';
+        
         if (hasEssayQuestions) {
-          resultHtml += `
-            <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p class="text-sm text-yellow-800 font-semibold mb-1">⚠️ มีข้อสอบอัตนัยที่รอการตรวจสอบ</p>
-              <p class="text-xs text-yellow-700">AI ได้ให้คำแนะนำเบื้องต้นแล้ว อาจารย์จะตรวจสอบและให้คะแนนสุดท้ายในภายหลัง</p>
+          // Don't show score if there are essay questions waiting for teacher grading
+          resultHtml = `
+            <div class="text-center">
+              <div class="mb-4">
+                <p class="text-2xl font-bold text-blue-600 mb-2">ส่งข้อสอบสำเร็จ</p>
+                <p class="text-gray-600">ข้อสอบของคุณได้รับการบันทึกแล้ว</p>
+              </div>
+              <div class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p class="text-sm text-yellow-800 font-semibold mb-2">⚠️ มีข้อสอบอัตนัยที่รอการตรวจสอบ</p>
+                <p class="text-xs text-yellow-700">AI ได้ให้คำแนะนำเบื้องต้นแล้ว อาจารย์จะตรวจสอบและให้คะแนนสุดท้ายในภายหลัง</p>
+                <p class="text-xs text-yellow-700 mt-2">คุณจะเห็นคะแนนเมื่ออาจารย์ตรวจสอบเสร็จแล้ว</p>
+              </div>
+            </div>
+          `;
+        } else {
+          // Show score for non-essay exams
+          resultHtml = `
+            <div class="text-center">
+              <p class="text-3xl font-bold mb-2">${percentage.toFixed(1)}%</p>
+              <p>คุณได้ ${finalScore} จาก ${totalScore} คะแนน</p>
+              ${!passed && percentage < passingPercentage ? `<p class="mt-2 text-sm text-red-600">คะแนนขั้นต่ำ: ${passingPercentage}%</p>` : ''}
             </div>
           `;
         }
 
-        resultHtml += `
-            ${!passed && percentage < passingPercentage ? `<p class="mt-2 text-sm text-red-600">คะแนนขั้นต่ำ: ${passingPercentage}%</p>` : ''}
-        </div>
-        `;
-
         Swal.fire({
-          icon: passed ? 'success' : (hasEssayQuestions ? 'info' : 'warning'),
-          title: passed ? 'สอบผ่าน!' : (hasEssayQuestions ? 'ส่งข้อสอบสำเร็จ' : 'สอบไม่ผ่าน'),
+          icon: hasEssayQuestions ? 'info' : (passed ? 'success' : 'warning'),
+          title: hasEssayQuestions ? 'ส่งข้อสอบสำเร็จ' : (passed ? 'สอบผ่าน!' : 'สอบไม่ผ่าน'),
           html: resultHtml,
-      confirmButtonText: 'ตกลง',
-    }).then(() => {
-      router.push(`/student/courses/${courseId}`);
-    });
+          confirmButtonText: 'ตกลง',
+        }).then(() => {
+          router.push(`/student/courses/${courseId}`);
+        });
       } else {
         throw new Error(response.error || 'ไม่สามารถส่งข้อสอบได้');
       }

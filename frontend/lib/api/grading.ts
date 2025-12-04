@@ -114,6 +114,7 @@ export interface StudentGradeReport {
     passed: boolean;
     submittedAt: string;
     status: string;
+    hasPendingGrading?: boolean;
   }>;
   assignments: Array<{
     id: string;

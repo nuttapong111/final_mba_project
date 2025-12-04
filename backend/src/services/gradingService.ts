@@ -718,24 +718,60 @@ export const getStudentGradeReport = async (courseId: string, studentId: string,
   });
 
   // Map quiz submissions to include content info
-  const quizSubmissionsWithContent = quizSubmissions.map((submission) => {
-    const content = quizContents.find(c => c.examId === submission.examId);
-    const totalScore = submission.exam.examQuestions.reduce((sum, eq) => sum + (eq.question.points || 0), 0);
-    const percentage = submission.percentage || 0;
-    const passingScore = content?.quizSettings?.passingPercentage || submission.exam.passingScore || 70;
-    const passed = percentage >= passingScore;
+  const quizSubmissionsWithContent = await Promise.all(
+    quizSubmissions.map(async (submission) => {
+      const content = quizContents.find(c => c.examId === submission.examId);
+      const totalScore = submission.exam.examQuestions.reduce((sum, eq) => sum + (eq.question.points || 0), 0);
+      const percentage = submission.percentage || 0;
+      const passingScore = content?.quizSettings?.passingPercentage || submission.exam.passingScore || 70;
+      const passed = percentage >= passingScore;
 
-    return {
-      id: content?.id || submission.examId,
-      title: content?.title || submission.exam.title,
-      score: submission.score || 0,
-      maxScore: totalScore || 100,
-      percentage: percentage,
-      passed: passed,
-      submittedAt: submission.submittedAt.toISOString(),
-      status: 'graded',
-    };
-  });
+      // Check if there are pending grading tasks (essay questions waiting for teacher grading)
+      const gradingTasks = await prisma.gradingTask.findMany({
+        where: {
+          submissionId: submission.id,
+        },
+        include: {
+          submission: {
+            include: {
+              exam: {
+                include: {
+                  examQuestions: {
+                    include: {
+                      question: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // Check if any grading tasks are pending (essay questions not yet graded by teacher)
+      const hasPendingGrading = gradingTasks.some(
+        (task) => {
+          const question = task.submission.exam.examQuestions.find(
+            (eq) => eq.questionId === task.questionId
+          )?.question;
+          return question?.type === 'ESSAY' && 
+                 (task.teacherScore === null || task.teacherScore === undefined);
+        }
+      );
+
+      return {
+        id: content?.id || submission.examId,
+        title: content?.title || submission.exam.title,
+        score: submission.score || 0,
+        maxScore: totalScore || 100,
+        percentage: percentage,
+        passed: passed,
+        submittedAt: submission.submittedAt.toISOString(),
+        status: hasPendingGrading ? 'pending' : 'graded',
+        hasPendingGrading: hasPendingGrading,
+      };
+    })
+  );
 
   // Get assignment submissions
   const assignmentSubmissions = await prisma.assignmentSubmission.findMany({
