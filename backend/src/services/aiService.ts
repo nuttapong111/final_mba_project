@@ -65,64 +65,102 @@ export const getAIGradingSuggestion = async (
 
     console.log('[GEMINI] Calling REST API with prompt length:', prompt.length);
     
-    // Use v1 API with gemini-1.5-pro which is supported in v1
-    // gemini-1.5-flash may not be available in v1, so use gemini-1.5-pro instead
-    const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
+    // Try multiple models with fallback mechanism
+    const modelsToTry = [
+      'gemini-1.5-flash-002',
+      'gemini-1.5-pro-002',
+      'gemini-pro',
+    ];
     
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt,
-          }],
-        }],
-      }),
-    });
+    let lastError: Error | null = null;
+    
+    for (const model of modelsToTry) {
+      try {
+        const apiUrl = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
+        
+        console.log(`[GEMINI] Trying model: ${model}`);
+        
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: prompt,
+              }],
+            }],
+          }),
+        });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`);
-    }
-
-    const result = await response.json() as {
-      candidates?: Array<{
-        content?: {
-          parts?: Array<{
-            text?: string;
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          const errorMessage = `Gemini API error with ${model}: ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`;
+          console.log(`[GEMINI] ${errorMessage}`);
+          lastError = new Error(errorMessage);
+          
+          // If it's a 404, try next model
+          if (response.status === 404 && modelsToTry.indexOf(model) < modelsToTry.length - 1) {
+            continue;
+          }
+          
+          throw lastError;
+        }
+        
+        // Success - break out of loop
+        const result = await response.json() as {
+          candidates?: Array<{
+            content?: {
+              parts?: Array<{
+                text?: string;
+              }>;
+            };
           }>;
         };
-      }>;
-    };
-    const text = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    
-    console.log('[GEMINI] Received response (first 200 chars):', text.substring(0, 200));
+        const text = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        
+        console.log(`[GEMINI] Success with model: ${model}`);
+        console.log('[GEMINI] Received response (first 200 chars):', text.substring(0, 200));
 
-    // Parse JSON from response
-    // Try to extract JSON from markdown code blocks if present
-    let jsonText = text.trim();
-    if (jsonText.includes('```json')) {
-      jsonText = jsonText.split('```json')[1].split('```')[0].trim();
-    } else if (jsonText.includes('```')) {
-      jsonText = jsonText.split('```')[1].split('```')[0].trim();
+        // Parse JSON from response
+        // Try to extract JSON from markdown code blocks if present
+        let jsonText = text.trim();
+        if (jsonText.includes('```json')) {
+          jsonText = jsonText.split('```json')[1].split('```')[0].trim();
+        } else if (jsonText.includes('```')) {
+          jsonText = jsonText.split('```')[1].split('```')[0].trim();
+        }
+
+        console.log('[GEMINI] Parsing JSON (first 200 chars):', jsonText.substring(0, 200));
+        const parsed = JSON.parse(jsonText);
+        
+        // Validate score range
+        const score = Math.max(0, Math.min(maxScore, Math.round(parsed.score || 0)));
+        const feedback = parsed.feedback || 'ไม่สามารถให้คำแนะนำได้';
+
+        console.log('[GEMINI] Successfully parsed result:', { score, feedbackLength: feedback.length });
+
+        return {
+          score,
+          feedback,
+        };
+      } catch (error: any) {
+        // If this is the last model, throw the error
+        if (modelsToTry.indexOf(model) === modelsToTry.length - 1) {
+          throw error;
+        }
+        // Otherwise, continue to next model
+        lastError = error;
+        continue;
+      }
     }
-
-    console.log('[GEMINI] Parsing JSON (first 200 chars):', jsonText.substring(0, 200));
-    const parsed = JSON.parse(jsonText);
     
-    // Validate score range
-    const score = Math.max(0, Math.min(maxScore, Math.round(parsed.score || 0)));
-    const feedback = parsed.feedback || 'ไม่สามารถให้คำแนะนำได้';
-
-    console.log('[GEMINI] Successfully parsed result:', { score, feedbackLength: feedback.length });
-
-    return {
-      score,
-      feedback,
-    };
+    // If we get here, all models failed
+    if (lastError) {
+      throw lastError;
+    }
+    throw new Error('All Gemini models failed');
   } catch (error: any) {
     console.error('Error calling Gemini AI:', error);
     

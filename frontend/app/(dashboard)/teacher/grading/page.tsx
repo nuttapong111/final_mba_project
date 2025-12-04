@@ -65,6 +65,12 @@ export default function TeacherGradingPage() {
 
           // Generate AI feedback for tasks that need it
           for (const task of tasksNeedingAI) {
+            // Skip if question or answer is missing
+            if (!task.question || !task.answer) {
+              console.warn(`Skipping AI feedback for task ${task.id}: missing question or answer`);
+              continue;
+            }
+            
             try {
               const aiResponse = await gradingApi.generateAIFeedback({
                 question: task.question,
@@ -386,6 +392,16 @@ function GradingTaskCard({
             <Button
               variant="outline"
               onClick={async () => {
+                // Validate question and answer before calling API
+                if (!task.question || !task.answer) {
+                  Swal.fire({
+                    icon: 'error',
+                    title: 'ข้อมูลไม่ครบถ้วน',
+                    text: 'ไม่พบคำถามหรือคำตอบ กรุณาตรวจสอบข้อมูล',
+                  });
+                  return;
+                }
+                
                 setGeneratingAI(true);
                 try {
                   const response = await gradingApi.generateAIFeedback({
