@@ -87,7 +87,15 @@ export const getAIGradingSuggestion = async (
       throw new Error(`Gemini API error: ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`);
     }
 
-    const result = await response.json();
+    const result = await response.json() as {
+      candidates?: Array<{
+        content?: {
+          parts?: Array<{
+            text?: string;
+          }>;
+        };
+      }>;
+    };
     const text = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
     
     console.log('[GEMINI] Received response (first 200 chars):', text.substring(0, 200));
