@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 def extract_features(df):
     """
     Extract features from training data
+    Includes AI feedback as features to help model learn from AI suggestions
     """
     features = []
     for _, row in df.iterrows():
@@ -35,12 +36,23 @@ def extract_features(df):
         common_words = set(answer.lower().split()) & set(question.lower().split())
         similarity = len(common_words) / max(len(question.split()), 1)
         
+        # AI feedback features (if available)
+        ai_score = row.get('aiScore', None)
+        ai_feedback = str(row.get('aiFeedback', ''))
+        ai_feedback_length = len(ai_feedback)
+        
+        # Use AI score as a feature (helps model learn from AI suggestions)
+        # If AI score is not available, use 0 (will be normalized during training)
+        ai_score_feature = float(ai_score) if ai_score is not None and not pd.isna(ai_score) else 0.0
+        
         features.append([
             answer_length,
             word_count,
             sentence_count,
             avg_word_length,
             similarity,
+            ai_score_feature,  # AI score as feature
+            ai_feedback_length,  # AI feedback length as feature
         ])
     return np.array(features)
 
@@ -130,11 +142,14 @@ def train_from_database():
     conn = psycopg2.connect(DATABASE_URL)
     cursor = conn.cursor(cursor_factory=RealDictCursor)
     
-    # Fetch graded tasks
+    # Fetch graded tasks with both AI and teacher feedback
     query = """
         SELECT 
             gt.answer,
+            gt."aiScore",
+            gt."aiFeedback",
             gt."teacherScore",
+            gt."teacherFeedback",
             q.question as question_text
         FROM "GradingTask" gt
         JOIN "ExamSubmission" es ON gt."submissionId" = es.id
@@ -153,13 +168,22 @@ def train_from_database():
     cursor.close()
     conn.close()
     
-    # Format data
+    # Format data - include both AI and teacher feedback
     grading_tasks = []
     for task in tasks:
+        # Handle case-insensitive column names from PostgreSQL
+        ai_score = task.get('aiscore') or task.get('aiScore') or None
+        ai_feedback = task.get('aifeedback') or task.get('aiFeedback') or ''
+        teacher_score = task.get('teacherscore') or task.get('teacherScore')
+        teacher_feedback = task.get('teacherfeedback') or task.get('teacherFeedback') or ''
+        
         grading_tasks.append({
-            'question': task['question_text'] or '',
-            'answer': task['answer'],
-            'teacherScore': float(task['teacherscore'])
+            'question': task.get('question_text', '') or '',
+            'answer': task.get('answer', ''),
+            'aiScore': float(ai_score) if ai_score is not None else None,
+            'aiFeedback': ai_feedback,
+            'teacherScore': float(teacher_score),
+            'teacherFeedback': teacher_feedback
         })
     
     if len(grading_tasks) < 10:

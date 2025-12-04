@@ -219,13 +219,16 @@ def fetch_training_data():
         
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
-        # Fetch graded tasks with teacher scores
+        # Fetch graded tasks with teacher scores AND AI feedback
+        # Include both AI feedback and teacher feedback for training
         query = """
             SELECT 
                 gt.id,
                 gt.answer,
-                gt.teacherScore,
-                gt.teacherFeedback,
+                gt."aiScore",
+                gt."aiFeedback",
+                gt."teacherScore",
+                gt."teacherFeedback",
                 q.question as question_text
             FROM "GradingTask" gt
             JOIN "ExamSubmission" es ON gt."submissionId" = es.id
@@ -245,14 +248,22 @@ def fetch_training_data():
         cursor.close()
         conn.close()
         
-        # Format data
+        # Format data - include both AI and teacher feedback
         training_data = []
         for task in tasks:
+            # Handle case-insensitive column names from PostgreSQL
+            ai_score = task.get('aiscore') or task.get('aiScore') or None
+            ai_feedback = task.get('aifeedback') or task.get('aiFeedback') or ''
+            teacher_score = task.get('teacherscore') or task.get('teacherScore')
+            teacher_feedback = task.get('teacherfeedback') or task.get('teacherFeedback') or ''
+            
             training_data.append({
-                'question': task['question_text'] or '',
-                'answer': task['answer'],
-                'teacherScore': float(task['teacherscore']),
-                'teacherFeedback': task['teacherfeedback'] or ''
+                'question': task.get('question_text', '') or '',
+                'answer': task.get('answer', ''),
+                'aiScore': float(ai_score) if ai_score is not None else None,
+                'aiFeedback': ai_feedback,
+                'teacherScore': float(teacher_score),
+                'teacherFeedback': teacher_feedback
             })
         
         return jsonify({
