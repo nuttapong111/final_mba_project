@@ -67,10 +67,12 @@ export const getAIGradingSuggestion = async (
     
     // Try multiple models with fallback mechanism
     // Use officially recommended models from Gemini API documentation
+    // Note: gemini-pro is an alias that automatically points to the most stable Pro version
     const modelsToTry = [
       'gemini-2.5-flash',  // Latest recommended - fastest and most efficient
       'gemini-2.5-pro',    // Latest recommended - most powerful
-      'gemini-1.0-pro',    // Stable original model
+      'gemini-pro',        // Alias - automatically points to most stable Pro version
+      'gemini-1.0-pro',    // Stable original model (fallback)
     ];
     
     let lastError: Error | null = null;
