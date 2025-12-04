@@ -30,6 +30,16 @@ export default function TeacherGradingPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
+      
+      // Show loading indicator
+      Swal.fire({
+        title: 'กำลังโหลดข้อมูล...',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
       const [tasksResponse, coursesResponse] = await Promise.all([
         gradingApi.getGradingTasks(),
         coursesApi.getCourses(),
@@ -37,6 +47,50 @@ export default function TeacherGradingPage() {
 
       if (tasksResponse.success && tasksResponse.data) {
         setGradingTasks(tasksResponse.data);
+        
+        // Check if any tasks need AI feedback
+        const tasksNeedingAI = tasksResponse.data.filter(
+          (task) => task.status === 'pending' && (!task.aiScore || !task.aiFeedback)
+        );
+
+        if (tasksNeedingAI.length > 0) {
+          // Update loading message
+          Swal.fire({
+            title: `กำลังสร้างคำแนะนำจาก AI... (${tasksNeedingAI.length} งาน)`,
+            allowOutsideClick: false,
+            didOpen: () => {
+              Swal.showLoading();
+            },
+          });
+
+          // Generate AI feedback for tasks that need it
+          for (const task of tasksNeedingAI) {
+            try {
+              const aiResponse = await gradingApi.generateAIFeedback({
+                question: task.question,
+                answer: task.answer,
+                maxScore: task.maxScore,
+              });
+              
+              if (aiResponse.success && aiResponse.data) {
+                // Update task with AI feedback
+                setGradingTasks((prev) =>
+                  prev.map((t) =>
+                    t.id === task.id
+                      ? { ...t, aiScore: aiResponse.data!.score, aiFeedback: aiResponse.data!.feedback }
+                      : t
+                  )
+                );
+              }
+            } catch (error) {
+              console.error(`Error generating AI feedback for task ${task.id}:`, error);
+            }
+          }
+          
+          Swal.close();
+        } else {
+          Swal.close();
+        }
       }
 
       if (coursesResponse.success && coursesResponse.data) {
@@ -44,6 +98,7 @@ export default function TeacherGradingPage() {
       }
     } catch (error) {
       console.error('Error fetching grading data:', error);
+      Swal.close();
       Swal.fire({
         icon: 'error',
         title: 'เกิดข้อผิดพลาด',

@@ -65,8 +65,9 @@ export const getAIGradingSuggestion = async (
 
     console.log('[GEMINI] Calling REST API with prompt length:', prompt.length);
     
-    // Use v1 API instead of v1beta to support newer models
-    const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // Use v1 API with gemini-1.5-pro which is supported in v1
+    // gemini-1.5-flash may not be available in v1, so use gemini-1.5-pro instead
+    const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
     
     const response = await fetch(apiUrl, {
       method: 'POST',
