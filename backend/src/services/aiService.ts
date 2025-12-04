@@ -66,10 +66,11 @@ export const getAIGradingSuggestion = async (
     console.log('[GEMINI] Calling REST API with prompt length:', prompt.length);
     
     // Try multiple models with fallback mechanism
+    // Use models that are confirmed to work with v1 API
     const modelsToTry = [
-      'gemini-1.5-flash-002',
-      'gemini-1.5-pro-002',
-      'gemini-pro',
+      'gemini-2.0-flash-exp',  // Latest experimental model
+      'gemini-1.5-flash-002',  // Stable flash model
+      'gemini-1.5-pro-002',    // Stable pro model
     ];
     
     let lastError: Error | null = null;
@@ -100,11 +101,16 @@ export const getAIGradingSuggestion = async (
           console.log(`[GEMINI] ${errorMessage}`);
           lastError = new Error(errorMessage);
           
-          // If it's a 404, try next model
-          if (response.status === 404 && modelsToTry.indexOf(model) < modelsToTry.length - 1) {
-            continue;
+          // If it's a 404, try next model (don't throw yet)
+          if (response.status === 404) {
+            const nextModelIndex = modelsToTry.indexOf(model) + 1;
+            if (nextModelIndex < modelsToTry.length) {
+              console.log(`[GEMINI] Model ${model} not found (404), trying next model: ${modelsToTry[nextModelIndex]}`);
+              continue;
+            }
           }
           
+          // If it's not 404 or it's the last model, throw the error
           throw lastError;
         }
         
