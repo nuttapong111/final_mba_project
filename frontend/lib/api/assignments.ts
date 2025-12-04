@@ -34,6 +34,8 @@ export interface AssignmentSubmission {
   feedback?: string;
   gradedAt?: string;
   gradedBy?: string;
+  aiScore?: number;
+  aiFeedback?: string;
   createdAt: string;
   updatedAt: string;
   student?: {

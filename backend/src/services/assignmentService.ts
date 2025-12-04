@@ -130,6 +130,8 @@ export const getAssignmentsByCourse = async (courseId: string, user: AuthUser) =
           return {
             ...submission,
             fileUrl: submissionFileUrl,
+            aiScore: submission.aiScore || undefined,
+            aiFeedback: submission.aiFeedback || undefined,
           };
         })
       );

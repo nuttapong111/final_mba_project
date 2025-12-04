@@ -421,27 +421,47 @@ export default function StudentAssignmentsPage() {
                       </div>
                     ) : null}
                     {submission.score !== null && submission.score !== undefined && (
-                      <div className="pt-3 border-t border-gray-200">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-gray-700">คะแนน:</span>
-                          <span className="text-xl font-bold text-green-600">
-                            {submission.score} / {assignment.maxScore}
-                          </span>
-                        </div>
-                        <div className="mt-2">
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div
-                              className="bg-green-600 h-2 rounded-full transition-all"
-                              style={{
-                                width: `${(submission.score / assignment.maxScore) * 100}%`,
-                              }}
-                            />
+                      <div className="pt-3 border-t border-gray-200 space-y-4">
+                        {/* Score Section */}
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-700">คะแนน:</span>
+                            <span className="text-xl font-bold text-green-600">
+                              {submission.score} / {assignment.maxScore}
+                            </span>
+                          </div>
+                          <div className="mt-2">
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div
+                                className="bg-green-600 h-2 rounded-full transition-all"
+                                style={{
+                                  width: `${(submission.score / assignment.maxScore) * 100}%`,
+                                }}
+                              />
+                            </div>
                           </div>
                         </div>
+
+                        {/* AI Feedback Section - Only show if graded */}
+                        {submission.aiFeedback && (
+                          <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <span className="text-sm font-semibold text-purple-900">💡 คำแนะนำจาก AI:</span>
+                              {submission.aiScore !== null && submission.aiScore !== undefined && (
+                                <span className="text-xs px-2 py-1 bg-purple-200 text-purple-800 rounded">
+                                  คะแนนแนะนำ: {submission.aiScore}/{assignment.maxScore}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-purple-800 whitespace-pre-wrap">{submission.aiFeedback}</p>
+                          </div>
+                        )}
+
+                        {/* Teacher Feedback Section - Only show if graded */}
                         {submission.feedback && (
-                          <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                            <span className="text-sm font-medium text-gray-700 block mb-1">ความคิดเห็นจากอาจารย์:</span>
-                            <p className="text-sm text-gray-700">{submission.feedback}</p>
+                          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <span className="text-sm font-semibold text-blue-900 block mb-2">👨‍🏫 ข้อเสนอแนะจากอาจารย์:</span>
+                            <p className="text-sm text-blue-800 whitespace-pre-wrap">{submission.feedback}</p>
                           </div>
                         )}
                       </div>
