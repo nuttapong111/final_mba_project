@@ -66,11 +66,11 @@ export const getAIGradingSuggestion = async (
     console.log('[GEMINI] Calling REST API with prompt length:', prompt.length);
     
     // Try multiple models with fallback mechanism
-    // Use models that are confirmed to work with v1 API
+    // Use officially recommended models from Gemini API documentation
     const modelsToTry = [
-      'gemini-2.0-flash-exp',  // Latest experimental model
-      'gemini-1.5-flash-002',  // Stable flash model
-      'gemini-1.5-pro-002',    // Stable pro model
+      'gemini-2.5-flash',  // Latest recommended - fastest and most efficient
+      'gemini-2.5-pro',    // Latest recommended - most powerful
+      'gemini-1.0-pro',    // Stable original model
     ];
     
     let lastError: Error | null = null;
