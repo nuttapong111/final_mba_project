@@ -106,8 +106,32 @@ export const getAssignmentGradingTasks = async (user: AuthUser): Promise<Assignm
       let aiScore: number | undefined = submission.aiScore || undefined;
       let aiFeedback: string | undefined = submission.aiFeedback || undefined;
 
-      // Generate AI feedback if not exists and not graded yet
-      if (!aiScore && !aiFeedback && !submission.score && submission.submittedAt) {
+      // Check if feedback is mock data that should be regenerated
+      const isMockFeedback = aiFeedback === 'คำตอบได้รับการตรวจสอบแล้ว' ||
+                            aiFeedback === 'ไม่พบคำสำคัญที่เกี่ยวข้อง' ||
+                            (aiFeedback && aiFeedback.includes('พบคำสำคัญที่เกี่ยวข้อง'));
+
+      // Generate AI feedback if:
+      // 1. No AI feedback exists, OR
+      // 2. Feedback is mock data that should be regenerated, AND
+      // 3. Not graded yet, AND
+      // 4. Submitted
+      if (!submission.score && submission.submittedAt && (!aiScore && !aiFeedback || isMockFeedback)) {
+        // Clear mock data before generating new feedback
+        if (isMockFeedback) {
+          console.log('[ASSIGNMENT GRADING] Detected mock feedback, clearing and regenerating:', submission.id);
+          aiScore = undefined;
+          aiFeedback = undefined;
+          
+          // Clear mock data from database
+          await prisma.assignmentSubmission.update({
+            where: { id: submission.id },
+            data: {
+              aiScore: null,
+              aiFeedback: null,
+            },
+          });
+        }
         try {
           console.log('[ASSIGNMENT GRADING] Generating AI feedback for submission:', submission.id);
           

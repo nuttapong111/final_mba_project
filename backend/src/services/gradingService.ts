@@ -988,7 +988,32 @@ export const getGradingTasks = async (user: AuthUser) => {
       let aiScore = task.aiScore;
       let aiFeedback = task.aiFeedback;
 
-      if (!aiScore && !aiFeedback && task.status === 'pending' && question) {
+      // Check if feedback is mock data that should be regenerated
+      const isMockFeedback = aiFeedback === 'คำตอบได้รับการตรวจสอบแล้ว' ||
+                            aiFeedback === 'ไม่พบคำสำคัญที่เกี่ยวข้อง' ||
+                            (aiFeedback && aiFeedback.includes('พบคำสำคัญที่เกี่ยวข้อง'));
+
+      // Generate AI feedback if:
+      // 1. No AI feedback exists, OR
+      // 2. Feedback is mock data that should be regenerated, AND
+      // 3. Task is pending, AND
+      // 4. Question exists
+      if (task.status === 'pending' && question && (!aiScore && !aiFeedback || isMockFeedback)) {
+        // Clear mock data before generating new feedback
+        if (isMockFeedback) {
+          console.log('[GRADING SERVICE] Detected mock feedback, clearing and regenerating:', task.id);
+          aiScore = null;
+          aiFeedback = null;
+          
+          // Clear mock data from database
+          await prisma.gradingTask.update({
+            where: { id: task.id },
+            data: {
+              aiScore: null,
+              aiFeedback: null,
+            },
+          });
+        }
         try {
           console.log('[GRADING SERVICE] Generating AI feedback for task:', task.id);
           console.log('[GRADING SERVICE] Question:', questionText.substring(0, 100) + '...');
