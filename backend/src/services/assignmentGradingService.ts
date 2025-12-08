@@ -143,12 +143,49 @@ export const getAssignmentGradingTasks = async (user: AuthUser): Promise<Assignm
             }
           }
           
-          // Use existing AI feedback from database if available
-          // Don't auto-generate here to save tokens - let user request it manually
-          aiScore = submission.aiScore ?? undefined;
-          aiFeedback = submission.aiFeedback ?? undefined;
+          // Generate AI feedback for student's answer
+          const studentFileName = submission.fileName || '';
+          const isStudentPDF = studentFileName.toLowerCase().endsWith('.pdf');
+          
+          let aiResult;
+          if (isStudentPDF && (submission.fileUrl || submission.s3Key)) {
+            // Use Gemini File API for PDF files
+            const { getAIGradingSuggestionWithPDF } = await import('./aiService');
+            aiResult = await getAIGradingSuggestionWithPDF(
+              assignmentContext,
+              submission.fileUrl || '',
+              submission.s3Key || null,
+              submission.assignment.maxScore,
+              schoolId
+            );
+          } else {
+            // Use text-based method
+            let studentAnswer = 'นักเรียนส่งไฟล์';
+            if (submission.fileName) {
+              studentAnswer = `นักเรียนส่งไฟล์: ${submission.fileName}`;
+            }
+            
+            aiResult = await getAIGradingSuggestion(
+              assignmentContext,
+              studentAnswer,
+              submission.assignment.maxScore,
+              schoolId
+            );
+          }
+          
+          aiScore = aiResult.score;
+          aiFeedback = aiResult.feedback;
+
+          // Save AI feedback to database
+          await prisma.assignmentSubmission.update({
+            where: { id: submission.id },
+            data: {
+              aiScore: aiResult.score,
+              aiFeedback: aiResult.feedback,
+            },
+          });
         } catch (error: any) {
-          console.error('[ASSIGNMENT GRADING] Error:', error);
+          console.error('[ASSIGNMENT GRADING] Error generating AI feedback:', error);
           // Continue without AI feedback
         }
       }

@@ -984,9 +984,32 @@ export const getGradingTasks = async (user: AuthUser) => {
       const maxScore = question?.points || 100;
 
       // Use existing AI feedback from database if available
-      // Don't auto-generate here to save tokens - let user request it manually or generate on-demand
+      // If no AI feedback exists and task is pending, generate it automatically
       let aiScore = task.aiScore;
       let aiFeedback = task.aiFeedback;
+
+      if (!aiScore && !aiFeedback && task.status === 'pending' && question) {
+        try {
+          // Get schoolId from course
+          const schoolId = task.submission.exam.course.schoolId;
+          const aiResult = await getAIGradingSuggestion(questionText, task.answer, maxScore, schoolId);
+          aiScore = aiResult.score;
+          aiFeedback = aiResult.feedback;
+
+          // Save AI feedback to database
+          await prisma.gradingTask.update({
+            where: { id: task.id },
+            data: {
+              aiScore: aiResult.score,
+              aiFeedback: aiResult.feedback,
+            },
+          });
+        } catch (error: any) {
+          console.error('Error generating AI feedback:', error);
+          // Log the error but continue without AI feedback
+          // The error will be shown when user manually requests AI feedback
+        }
+      }
 
       return {
         id: task.id,
