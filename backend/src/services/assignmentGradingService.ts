@@ -145,8 +145,8 @@ export const getAssignmentGradingTasks = async (user: AuthUser): Promise<Assignm
           
           // Use existing AI feedback from database if available
           // Don't auto-generate here to save tokens - let user request it manually
-          aiScore = submission.aiScore;
-          aiFeedback = submission.aiFeedback;
+          aiScore = submission.aiScore ?? undefined;
+          aiFeedback = submission.aiFeedback ?? undefined;
         } catch (error: any) {
           console.error('[ASSIGNMENT GRADING] Error:', error);
           // Continue without AI feedback
@@ -251,6 +251,7 @@ export const gradeAssignmentSubmission = async (
             select: {
               id: true,
               title: true,
+              schoolId: true,
             },
           },
         },

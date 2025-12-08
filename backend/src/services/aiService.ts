@@ -214,15 +214,6 @@ export const getAIGradingSuggestionWithPDF = async (
     
     console.log('[GEMINI FILE API] PDF file loaded, size:', pdfBuffer.length, 'bytes');
 
-    if (!uploadResponse.ok) {
-      const errorData = await uploadResponse.json().catch(() => ({}));
-      console.error('[GEMINI FILE API] Upload failed:', errorData);
-      throw new Error(`ไม่สามารถอัปโหลดไฟล์ PDF ได้: ${uploadResponse.statusText}`);
-    }
-
-    // Use inline file data with base64 encoding
-    // This is simpler and doesn't require file upload API
-
     // Use Gemini API with file
     const prompt = `คุณเป็นผู้ช่วยตรวจการบ้านอัตนัย ให้คะแนนและให้คำแนะนำสำหรับการบ้านของนักเรียน
 
