@@ -1,6 +1,6 @@
 import { Context } from 'hono';
 import { getAssignmentGradingTasks, gradeAssignmentSubmission } from '../services/assignmentGradingService';
-import { getAIGradingSuggestion } from '../services/aiService';
+import { getAIGradingSuggestion, getAIGradingSuggestionWithPDF } from '../services/aiService';
 
 export const getAssignmentGradingTasksController = async (c: Context) => {
   try {
@@ -80,43 +80,40 @@ export const generateAssignmentAIFeedbackController = async (c: Context) => {
       }
     }
     
-    // Try to extract text from student's submitted file (if PDF)
-    let studentAnswer = studentNotes || '';
-    const isStudentPDF = studentFileName?.toLowerCase().endsWith('.pdf');
-    
-    if (isStudentPDF && (studentFileUrl || studentS3Key)) {
-      try {
-        const { extractTextFromPDFUrl } = await import('../services/pdfService');
-        const pdfText = await extractTextFromPDFUrl(
-          studentFileUrl || '',
-          studentS3Key || null
-        );
-        
-        if (pdfText && pdfText.trim()) {
-          studentAnswer = pdfText;
-          console.log(`[ASSIGNMENT AI FEEDBACK] Extracted ${pdfText.length} characters from student's PDF`);
-        } else {
-          studentAnswer = `นักเรียนส่งไฟล์ PDF: ${studentFileName}`;
-        }
-      } catch (pdfError: any) {
-        console.warn(`[ASSIGNMENT AI FEEDBACK] Could not read student's PDF file: ${pdfError.message}`);
-        studentAnswer = `นักเรียนส่งไฟล์ PDF: ${studentFileName}\n(ไม่สามารถอ่านเนื้อหาจากไฟล์ได้: ${pdfError.message})`;
-      }
-    } else if (!studentAnswer) {
-      studentAnswer = `นักเรียนส่งไฟล์: ${studentFileName || 'ไฟล์การบ้าน'}`;
-    }
-
     // Get schoolId from user
     const schoolId = user.schoolId || null;
     
-    console.log('[ASSIGNMENT AI FEEDBACK] Generating feedback with:', {
-      assignmentTitle,
-      studentAnswerLength: studentAnswer.length,
-      maxScore,
-      schoolId,
-    });
-
-    const result = await getAIGradingSuggestion(assignmentContext, studentAnswer, maxScore || 100, schoolId);
+    // Check if student submitted a PDF file
+    const isStudentPDF = studentFileName?.toLowerCase().endsWith('.pdf');
+    
+    let result;
+    
+    if (isStudentPDF && (studentFileUrl || studentS3Key)) {
+      // Use Gemini File API for PDF files
+      console.log('[ASSIGNMENT AI FEEDBACK] Using Gemini File API for PDF');
+      result = await getAIGradingSuggestionWithPDF(
+        assignmentContext,
+        studentFileUrl || '',
+        studentS3Key || null,
+        maxScore || 100,
+        schoolId
+      );
+    } else {
+      // Use text-based method for non-PDF files or text notes
+      let studentAnswer = studentNotes || '';
+      if (!studentAnswer) {
+        studentAnswer = `นักเรียนส่งไฟล์: ${studentFileName || 'ไฟล์การบ้าน'}`;
+      }
+      
+      console.log('[ASSIGNMENT AI FEEDBACK] Generating feedback with text:', {
+        assignmentTitle,
+        studentAnswerLength: studentAnswer.length,
+        maxScore,
+        schoolId,
+      });
+      
+      result = await getAIGradingSuggestion(assignmentContext, studentAnswer, maxScore || 100, schoolId);
+    }
     
     console.log('[ASSIGNMENT AI FEEDBACK] Success:', {
       score: result.score,

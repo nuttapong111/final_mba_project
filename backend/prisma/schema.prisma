@@ -816,3 +816,26 @@ model AISettings {
   @@index([schoolId])
 }
 
+// ML Training Data - สำหรับเก็บข้อมูลคำถาม-คำตอบเพื่อใช้ในการเทรน ML Model
+model MLTrainingData {
+  id            String   @id @default(uuid())
+  question      String   @db.Text
+  answer         String   @db.Text
+  aiScore        Float?
+  aiFeedback     String?  @db.Text
+  teacherScore   Float?
+  teacherFeedback String? @db.Text
+  maxScore       Float    @default(100)
+  sourceType     String   // 'exam' or 'assignment'
+  sourceId       String?  // ID ของ GradingTask หรือ AssignmentSubmission
+  schoolId       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  usedForTraining Boolean @default(false) // ระบุว่าข้อมูลนี้ถูกใช้ในการเทรนแล้วหรือยัง
+
+  @@index([schoolId])
+  @@index([sourceType, sourceId])
+  @@index([usedForTraining])
+  @@index([createdAt])
+}
+

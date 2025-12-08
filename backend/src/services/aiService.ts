@@ -188,6 +188,170 @@ export const getAIGradingSuggestion = async (
 };
 
 /**
+ * Get AI grading suggestion with PDF file support using Gemini File API
+ */
+export const getAIGradingSuggestionWithPDF = async (
+  question: string,
+  pdfFileUrl: string,
+  pdfS3Key: string | null,
+  maxScore: number = 100,
+  schoolId?: string | null,
+  geminiApiKey?: string
+): Promise<AIGradingResult> => {
+  try {
+    const apiKey = geminiApiKey || await getGeminiApiKey(schoolId || null) || process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error('Gemini API Key ไม่พบ กรุณาตั้งค่าในหน้าตั้งค่า AI หรือตั้งค่า GEMINI_API_KEY ใน environment variables');
+    }
+
+    // Download PDF file
+    const { downloadFile } = await import('./pdfService');
+    const pdfBuffer = await downloadFile(pdfFileUrl, pdfS3Key);
+    
+    // Convert PDF to base64 for inline embedding
+    // Note: Gemini API supports inline file data with base64 encoding
+    const base64Pdf = pdfBuffer.toString('base64');
+    
+    console.log('[GEMINI FILE API] PDF file loaded, size:', pdfBuffer.length, 'bytes');
+
+    if (!uploadResponse.ok) {
+      const errorData = await uploadResponse.json().catch(() => ({}));
+      console.error('[GEMINI FILE API] Upload failed:', errorData);
+      throw new Error(`ไม่สามารถอัปโหลดไฟล์ PDF ได้: ${uploadResponse.statusText}`);
+    }
+
+    // Use inline file data with base64 encoding
+    // This is simpler and doesn't require file upload API
+
+    // Use Gemini API with file
+    const prompt = `คุณเป็นผู้ช่วยตรวจการบ้านอัตนัย ให้คะแนนและให้คำแนะนำสำหรับการบ้านของนักเรียน
+
+คำถาม/โจทย์: ${question}
+
+กรุณาตรวจสอบไฟล์ PDF ที่แนบมาและให้:
+1. คะแนน (0-${maxScore}) โดยพิจารณาจากความถูกต้อง ความสมบูรณ์ และความชัดเจน
+2. คำแนะนำที่เป็นประโยชน์สำหรับนักเรียน
+
+ตอบในรูปแบบ JSON:
+{
+  "score": <คะแนน>,
+  "feedback": "<คำแนะนำ>"
+}
+
+คำแนะนำควรเป็นภาษาไทยและให้คำแนะนำที่เป็นประโยชน์`;
+
+    const modelsToTry = [
+      'gemini-2.0-flash-exp',
+      'gemini-1.5-pro',
+      'gemini-1.5-flash',
+    ];
+
+    let lastError: Error | null = null;
+
+    for (const model of modelsToTry) {
+      try {
+        const apiUrl = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
+        
+        console.log(`[GEMINI FILE API] Trying model: ${model}`);
+        
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  {
+                    text: prompt,
+                  },
+                  {
+                    inlineData: {
+                      mimeType: 'application/pdf',
+                      data: base64Pdf,
+                    },
+                  },
+                ],
+              }],
+            }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          const errorMessage = `Gemini API error with ${model}: ${response.status} ${response.statusText}`;
+          console.log(`[GEMINI FILE API] ${errorMessage}`);
+          lastError = new Error(errorMessage);
+          
+          if (response.status === 404) {
+            const nextModelIndex = modelsToTry.indexOf(model) + 1;
+            if (nextModelIndex < modelsToTry.length) {
+              console.log(`[GEMINI FILE API] Model ${model} not found, trying next model`);
+              continue;
+            }
+          }
+          
+          throw lastError;
+        }
+
+        const result = await response.json() as {
+          candidates?: Array<{
+            content?: {
+              parts?: Array<{
+                text?: string;
+              }>;
+            };
+          }>;
+        };
+        const text = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        
+        console.log(`[GEMINI FILE API] Success with model: ${model}`);
+
+        // Parse JSON from response
+        let jsonText = text.trim();
+        if (jsonText.includes('```json')) {
+          jsonText = jsonText.split('```json')[1].split('```')[0].trim();
+        } else if (jsonText.includes('```')) {
+          jsonText = jsonText.split('```')[1].split('```')[0].trim();
+        }
+
+        const parsed = JSON.parse(jsonText);
+        
+        const score = Math.max(0, Math.min(maxScore, Math.round(parsed.score || 0)));
+        const feedback = parsed.feedback || 'ไม่สามารถให้คำแนะนำได้';
+
+        return {
+          score,
+          feedback,
+        };
+      } catch (error: any) {
+        if (modelsToTry.indexOf(model) === modelsToTry.length - 1) {
+          throw error;
+        }
+        lastError = error;
+        continue;
+      }
+    }
+
+    if (lastError) {
+      throw lastError;
+    }
+    throw new Error('All Gemini models failed');
+  } catch (error: any) {
+    console.error('[GEMINI FILE API] Error:', error);
+    
+    // Fallback to text extraction method
+    console.log('[GEMINI FILE API] Falling back to text extraction method');
+    try {
+      const { extractTextFromPDFUrl } = await import('./pdfService');
+      const extractedText = await extractTextFromPDFUrl(pdfFileUrl, pdfS3Key);
+      return await getAIGradingSuggestion(question, extractedText, maxScore, schoolId, geminiApiKey);
+    } catch (fallbackError: any) {
+      throw new Error(`ไม่สามารถตรวจไฟล์ PDF ได้: ${error.message}. Fallback failed: ${fallbackError.message}`);
+    }
+  }
+};
+
+/**
  * Get AI grading suggestion using Python ML API (for future use)
  */
 export const getMLGradingSuggestion = async (

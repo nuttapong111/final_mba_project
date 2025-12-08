@@ -62,44 +62,6 @@ export default function TeacherAssignmentsPage() {
             },
           });
           
-          // Generate AI feedback for tasks that need it
-          for (const task of tasksNeedingAI) {
-            setGeneratingAI((prev) => new Set(prev).add(task.id));
-            try {
-              const aiResponse = await assignmentGradingApi.generateAIFeedback({
-                assignmentTitle: task.assignmentTitle,
-                assignmentDescription: task.assignmentDescription,
-                studentNotes: `นักเรียนส่งไฟล์: ${task.fileName || 'ไฟล์การบ้าน'}`,
-                maxScore: task.maxScore,
-                studentFileUrl: task.fileUrl,
-                studentS3Key: task.s3Key,
-                studentFileName: task.fileName,
-                teacherFileUrl: task.teacherFileUrl,
-                teacherS3Key: task.teacherS3Key,
-                teacherFileName: task.teacherFileName,
-              });
-              
-              if (aiResponse.success && aiResponse.data) {
-                // Update task with AI feedback
-                setGradingTasks((prev) =>
-                  prev.map((t) =>
-                    t.id === task.id
-                      ? { ...t, aiScore: aiResponse.data!.score, aiFeedback: aiResponse.data!.feedback }
-                      : t
-                  )
-                );
-              }
-            } catch (error) {
-              console.error(`Error generating AI feedback for task ${task.id}:`, error);
-            } finally {
-              setGeneratingAI((prev) => {
-                const next = new Set(prev);
-                next.delete(task.id);
-                return next;
-              });
-            }
-          }
-          
           Swal.close();
         }
       }

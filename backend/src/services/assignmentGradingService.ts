@@ -143,53 +143,12 @@ export const getAssignmentGradingTasks = async (user: AuthUser): Promise<Assignm
             }
           }
           
-          // Try to extract text from student's submitted file (if PDF)
-          let studentAnswer = '';
-          const studentFileName = submission.fileName || '';
-          const isStudentPDF = studentFileName.toLowerCase().endsWith('.pdf');
-          
-          if (isStudentPDF && (submission.fileUrl || submission.s3Key)) {
-            try {
-              const { extractTextFromPDFUrl } = await import('./pdfService');
-              studentAnswer = await extractTextFromPDFUrl(
-                submission.fileUrl || '',
-                submission.s3Key || null
-              );
-              
-              if (studentAnswer && studentAnswer.trim()) {
-                console.log(`[ASSIGNMENT GRADING] Extracted ${studentAnswer.length} characters from student's PDF`);
-              } else {
-                studentAnswer = `นักเรียนส่งไฟล์ PDF: ${studentFileName}`;
-              }
-            } catch (pdfError: any) {
-              console.warn(`[ASSIGNMENT GRADING] Could not read student's PDF file: ${pdfError.message}`);
-              studentAnswer = `นักเรียนส่งไฟล์ PDF: ${studentFileName}\n(ไม่สามารถอ่านเนื้อหาจากไฟล์ได้: ${pdfError.message})`;
-            }
-          } else {
-            // Not a PDF or no file
-            studentAnswer = `นักเรียนส่งไฟล์: ${studentFileName || 'ไฟล์การบ้าน'}`;
-          }
-          
-          const aiResult = await getAIGradingSuggestion(
-            assignmentContext,
-            studentAnswer,
-            submission.assignment.maxScore,
-            schoolId
-          );
-          
-          aiScore = aiResult.score;
-          aiFeedback = aiResult.feedback;
-
-          // Save AI feedback to database
-          await prisma.assignmentSubmission.update({
-            where: { id: submission.id },
-            data: {
-              aiScore: aiResult.score,
-              aiFeedback: aiResult.feedback,
-            },
-          });
+          // Use existing AI feedback from database if available
+          // Don't auto-generate here to save tokens - let user request it manually
+          aiScore = submission.aiScore;
+          aiFeedback = submission.aiFeedback;
         } catch (error: any) {
-          console.error('[ASSIGNMENT GRADING] Error generating AI feedback:', error);
+          console.error('[ASSIGNMENT GRADING] Error:', error);
           // Continue without AI feedback
         }
       }
@@ -305,6 +264,38 @@ export const gradeAssignmentSubmission = async (
       },
     },
   });
+
+  // Save to ML training data
+  try {
+    const { saveMLTrainingData } = await import('./mlTrainingDataService');
+    // Build assignment context as question
+    let assignmentContext = `การบ้าน: ${updated.assignment.title}`;
+    if (updated.assignment.description) {
+      assignmentContext += `\nคำอธิบาย: ${updated.assignment.description}`;
+    }
+    
+    // Get student answer (from file or notes)
+    let studentAnswer = 'นักเรียนส่งไฟล์';
+    if (updated.fileName) {
+      studentAnswer = `นักเรียนส่งไฟล์: ${updated.fileName}`;
+    }
+    
+    await saveMLTrainingData(
+      assignmentContext,
+      studentAnswer,
+      updated.aiScore,
+      updated.aiFeedback,
+      updated.score,
+      updated.feedback,
+      updated.assignment.maxScore,
+      'assignment',
+      updated.id,
+      updated.assignment.course.schoolId
+    );
+  } catch (error: any) {
+    console.error('[ASSIGNMENT GRADING] Error saving ML training data:', error);
+    // Don't throw - this is not critical
+  }
 
   // Generate presigned URL if needed
   let fileUrl = updated.fileUrl;
