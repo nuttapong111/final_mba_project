@@ -1,6 +1,5 @@
 import prisma from '../config/database';
 import { AuthUser } from '../middleware/auth';
-import { gradeWithAI } from './gradingService';
 
 export interface SubmitExamData {
   examId: string;
@@ -178,29 +177,16 @@ export const submitExam = async (
         },
       });
 
-      // For essay questions, create grading task and call AI
+      // For essay questions, create grading task without AI feedback
+      // AI feedback will be generated automatically when teacher views the grading page
       if (questionType === 'ESSAY') {
-        // Get correct answer if exists (from question options or explanation)
-        const correctAnswer =
-          question.options.length > 0
-            ? question.options[0].text
-            : question.explanation || undefined;
-
-        // Call AI grading
-        const aiResult = await gradeWithAI(
-          question.question,
-          answerData.answer,
-          correctAnswer,
-          question.points
-        );
-
         gradingTasksToCreate.push({
           submissionId: examSubmission.id,
           questionId: answerData.questionId,
           studentId: user.id,
           answer: answerData.answer,
-          aiScore: aiResult.score,
-          aiFeedback: aiResult.feedback,
+          // Don't set aiScore and aiFeedback here - let getGradingTasks generate it
+          // This prevents mock data from being saved
         });
       }
     }
