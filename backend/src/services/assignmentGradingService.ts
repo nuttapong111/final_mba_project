@@ -109,9 +109,14 @@ export const getAssignmentGradingTasks = async (user: AuthUser): Promise<Assignm
       // Generate AI feedback if not exists and not graded yet
       if (!aiScore && !aiFeedback && !submission.score && submission.submittedAt) {
         try {
+          console.log('[ASSIGNMENT GRADING] Generating AI feedback for submission:', submission.id);
+          
           const schoolId = submission.assignment.course.schoolId;
           const assignmentTitle = submission.assignment.title;
           const assignmentDescription = submission.assignment.description || '';
+          
+          console.log('[ASSIGNMENT GRADING] Assignment:', assignmentTitle);
+          console.log('[ASSIGNMENT GRADING] SchoolId:', schoolId);
           
           // Build assignment context (question + description + teacher's file if exists)
           let assignmentContext = `การบ้าน: ${assignmentTitle}`;
@@ -173,6 +178,12 @@ export const getAssignmentGradingTasks = async (user: AuthUser): Promise<Assignm
             );
           }
           
+          console.log('[ASSIGNMENT GRADING] AI result received:', {
+            score: aiResult.score,
+            feedbackLength: aiResult.feedback.length,
+            feedbackPreview: aiResult.feedback.substring(0, 100) + '...',
+          });
+          
           aiScore = aiResult.score;
           aiFeedback = aiResult.feedback;
 
@@ -184,9 +195,17 @@ export const getAssignmentGradingTasks = async (user: AuthUser): Promise<Assignm
               aiFeedback: aiResult.feedback,
             },
           });
+          console.log('[ASSIGNMENT GRADING] AI feedback saved to database for submission:', submission.id);
         } catch (error: any) {
-          console.error('[ASSIGNMENT GRADING] Error generating AI feedback:', error);
+          console.error('[ASSIGNMENT GRADING] Error generating AI feedback for submission:', submission.id, error);
+          console.error('[ASSIGNMENT GRADING] Error details:', {
+            message: error.message,
+            stack: error.stack,
+            assignmentTitle: submission.assignment.title,
+            fileName: submission.fileName,
+          });
           // Continue without AI feedback
+          // Don't set aiScore/aiFeedback so frontend knows there's no AI feedback
         }
       }
 

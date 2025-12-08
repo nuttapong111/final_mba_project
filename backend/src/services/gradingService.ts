@@ -990,9 +990,21 @@ export const getGradingTasks = async (user: AuthUser) => {
 
       if (!aiScore && !aiFeedback && task.status === 'pending' && question) {
         try {
+          console.log('[GRADING SERVICE] Generating AI feedback for task:', task.id);
+          console.log('[GRADING SERVICE] Question:', questionText.substring(0, 100) + '...');
+          console.log('[GRADING SERVICE] Answer:', task.answer.substring(0, 100) + '...');
+          
           // Get schoolId from course
           const schoolId = task.submission.exam.course.schoolId;
+          console.log('[GRADING SERVICE] SchoolId:', schoolId);
+          
           const aiResult = await getAIGradingSuggestion(questionText, task.answer, maxScore, schoolId);
+          console.log('[GRADING SERVICE] AI result received:', {
+            score: aiResult.score,
+            feedbackLength: aiResult.feedback.length,
+            feedbackPreview: aiResult.feedback.substring(0, 100) + '...',
+          });
+          
           aiScore = aiResult.score;
           aiFeedback = aiResult.feedback;
 
@@ -1004,10 +1016,18 @@ export const getGradingTasks = async (user: AuthUser) => {
               aiFeedback: aiResult.feedback,
             },
           });
+          console.log('[GRADING SERVICE] AI feedback saved to database for task:', task.id);
         } catch (error: any) {
-          console.error('Error generating AI feedback:', error);
+          console.error('[GRADING SERVICE] Error generating AI feedback for task:', task.id, error);
+          console.error('[GRADING SERVICE] Error details:', {
+            message: error.message,
+            stack: error.stack,
+            questionLength: questionText.length,
+            answerLength: task.answer.length,
+          });
           // Log the error but continue without AI feedback
           // The error will be shown when user manually requests AI feedback
+          // Don't set aiScore/aiFeedback so frontend knows there's no AI feedback
         }
       }
 
