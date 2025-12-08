@@ -47,7 +47,7 @@ export default function TeacherGradingPage() {
 
       if (tasksResponse.success && tasksResponse.data) {
         setGradingTasks(tasksResponse.data);
-        Swal.close();
+          Swal.close();
       }
 
       if (coursesResponse.success && coursesResponse.data) {

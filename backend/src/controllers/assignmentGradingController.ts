@@ -93,25 +93,25 @@ export const generateAssignmentAIFeedbackController = async (c: Context) => {
       console.log('[ASSIGNMENT AI FEEDBACK] Using Gemini File API for PDF');
       result = await getAIGradingSuggestionWithPDF(
         assignmentContext,
-        studentFileUrl || '',
+          studentFileUrl || '',
         studentS3Key || null,
         maxScore || 100,
         schoolId
-      );
-    } else {
+        );
+        } else {
       // Use text-based method for non-PDF files or text notes
       let studentAnswer = studentNotes || '';
       if (!studentAnswer) {
-        studentAnswer = `นักเรียนส่งไฟล์: ${studentFileName || 'ไฟล์การบ้าน'}`;
-      }
-      
+      studentAnswer = `นักเรียนส่งไฟล์: ${studentFileName || 'ไฟล์การบ้าน'}`;
+    }
+
       console.log('[ASSIGNMENT AI FEEDBACK] Generating feedback with text:', {
-        assignmentTitle,
-        studentAnswerLength: studentAnswer.length,
-        maxScore,
-        schoolId,
-      });
-      
+      assignmentTitle,
+      studentAnswerLength: studentAnswer.length,
+      maxScore,
+      schoolId,
+    });
+
       result = await getAIGradingSuggestion(assignmentContext, studentAnswer, maxScore || 100, schoolId);
     }
     
