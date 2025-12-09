@@ -249,7 +249,14 @@ export const trainMLModel = async (
       throw new Error(errorData.error || `HTTP ${response.status}`);
     }
 
-    const result = await response.json();
+    const result = await response.json() as {
+      success: boolean;
+      accuracy?: number;
+      mse?: number;
+      mae?: number;
+      samples?: number;
+      error?: string;
+    };
 
     if (!result.success) {
       throw new Error(result.error || 'การเทรนโมเดลล้มเหลว');
@@ -259,10 +266,10 @@ export const trainMLModel = async (
     await prisma.mLTrainingHistory.create({
       data: {
         schoolId: targetSchoolId || null,
-        accuracy: result.accuracy || null,
-        mse: result.mse || null,
-        mae: result.mae || null,
-        samples: result.samples || weightedTrainingData.length,
+        accuracy: result.accuracy ?? null,
+        mse: result.mse ?? null,
+        mae: result.mae ?? null,
+        samples: result.samples ?? weightedTrainingData.length,
         aiWeight: settings.aiWeight,
         teacherWeight: settings.teacherWeight,
         status: 'completed',
@@ -297,11 +304,11 @@ export const trainMLModel = async (
       accuracy: result.accuracy,
       mse: result.mse,
       mae: result.mae,
-      samples: result.samples || weightedTrainingData.length,
+      samples: result.samples ?? weightedTrainingData.length,
     };
   } catch (error: any) {
     // Save failed training history
-    const settings = await getMLTrainingSettings(targetSchoolId, user).catch(() => ({
+    const settings = await getMLTrainingSettings(targetSchoolId || null, user).catch(() => ({
       aiWeight: 0.3,
       teacherWeight: 0.7,
     }));
@@ -360,7 +367,7 @@ export const getMLTrainingHistory = async (
     take: limit,
   });
 
-  return history.map((h) => ({
+  return history.map((h: any) => ({
     id: h.id,
     accuracy: h.accuracy,
     mse: h.mse,
