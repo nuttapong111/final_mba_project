@@ -16,6 +16,7 @@ import {
   TrophyIcon,
   TagIcon,
   DocumentArrowUpIcon,
+  CpuChipIcon,
 } from '@heroicons/react/24/outline';
 
 export interface NavItem {
@@ -29,6 +30,7 @@ export const roleNavigation: Record<string, NavItem[]> = {
     { name: 'แดชบอร์ด', href: '/admin/dashboard', icon: HomeIcon },
     { name: 'จัดการสถาบัน', href: '/admin/schools', icon: BuildingOfficeIcon },
     { name: 'ผู้ใช้งานทั้งหมด', href: '/admin/users', icon: UsersIcon },
+    { name: 'การเทรนโมเดล ML', href: '/admin/ml-training', icon: CpuChipIcon },
     { name: 'รายงานระบบ', href: '/admin/analytics', icon: ChartBarIcon },
     { name: 'ตั้งค่าระบบ', href: '/admin/settings', icon: Cog6ToothIcon },
   ],
@@ -37,6 +39,7 @@ export const roleNavigation: Record<string, NavItem[]> = {
     { name: 'หลักสูตร', href: '/school/courses', icon: AcademicCapIcon },
     { name: 'หมวดหมู่หลักสูตร', href: '/school/course-categories', icon: TagIcon },
     { name: 'ผู้ใช้งาน', href: '/users', icon: UsersIcon },
+    { name: 'การเทรนโมเดล ML', href: '/admin/ml-training', icon: CpuChipIcon },
     { name: 'ตั้งค่า', href: '/settings', icon: Cog6ToothIcon },
   ],
   teacher: [

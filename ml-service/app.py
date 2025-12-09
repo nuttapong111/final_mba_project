@@ -197,6 +197,8 @@ def train():
             'success': True,
             'message': 'Model trained successfully',
             'accuracy': result.get('accuracy', 0),
+            'mse': result.get('mse', 0),
+            'mae': result.get('mae', 0),
             'samples': len(grading_tasks)
         })
     except Exception as e:

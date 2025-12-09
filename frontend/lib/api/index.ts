@@ -14,5 +14,6 @@ export * from './assignments';
 export * from './grading';
 export * from './aiSettings';
 export * from './assignmentGrading';
+export * from './mlTraining';
 export { default as apiClient } from './client';
 

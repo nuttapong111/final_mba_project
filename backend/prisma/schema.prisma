@@ -114,6 +114,8 @@ model School {
   certificates  Certificate[]
   courseCategories CourseCategory[]
   aiSettings    AISettings?  @relation("SchoolAISettings")
+  mlTrainingSettings MLTrainingSettings? @relation("SchoolMLTrainingSettings")
+  mlTrainingHistory MLTrainingHistory[] @relation("SchoolMLTrainingHistory")
 }
 
 // Users
@@ -837,5 +839,41 @@ model MLTrainingData {
   @@index([sourceType, sourceId])
   @@index([usedForTraining])
   @@index([createdAt])
+}
+
+// ML Training Settings - สำหรับตั้งค่า weight ของแหล่งข้อมูลในการเทรน
+model MLTrainingSettings {
+  id            String   @id @default(uuid())
+  schoolId      String?  // null = global setting
+  aiWeight      Float    @default(0.3) // Weight ของข้อมูลจาก AI (0-1)
+  teacherWeight Float    @default(0.7) // Weight ของข้อมูลจากอาจารย์ (0-1)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  school        School?  @relation("SchoolMLTrainingSettings", fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId])
+  @@index([schoolId])
+}
+
+// ML Training History - สำหรับเก็บประวัติการเทรนโมเดล
+model MLTrainingHistory {
+  id            String   @id @default(uuid())
+  schoolId      String?
+  accuracy      Float?   // ความแม่นยำ (R² score)
+  mse           Float?   // Mean Squared Error
+  mae           Float?   // Mean Absolute Error
+  samples       Int      // จำนวนข้อมูลที่ใช้เทรน
+  aiWeight      Float    // Weight ของ AI ที่ใช้ในการเทรน
+  teacherWeight Float    // Weight ของ Teacher ที่ใช้ในการเทรน
+  status        String   @default("completed") // completed, failed
+  errorMessage  String?  @db.Text
+  createdAt     DateTime @default(now())
+
+  school        School?  @relation("SchoolMLTrainingHistory", fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([createdAt])
+  @@index([status])
 }
 
