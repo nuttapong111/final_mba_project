@@ -188,7 +188,7 @@ export default function MLTrainingPage() {
             <div>
               <p className="text-sm font-medium text-gray-600">ข้อมูลทั้งหมด</p>
               <p className="text-3xl font-bold text-gray-900 mt-2">
-                {stats?.totalSamples.toLocaleString('th-TH') || 0}
+                {(stats?.totalSamples ?? 0).toLocaleString('th-TH')}
               </p>
             </div>
             <div className="bg-blue-500 p-3 rounded-lg">
@@ -202,7 +202,7 @@ export default function MLTrainingPage() {
             <div>
               <p className="text-sm font-medium text-gray-600">มี AI Feedback</p>
               <p className="text-3xl font-bold text-gray-900 mt-2">
-                {stats?.samplesWithAI.toLocaleString('th-TH') || 0}
+                {(stats?.samplesWithAI ?? 0).toLocaleString('th-TH')}
               </p>
             </div>
             <div className="bg-purple-500 p-3 rounded-lg">
@@ -216,7 +216,7 @@ export default function MLTrainingPage() {
             <div>
               <p className="text-sm font-medium text-gray-600">ใช้ในการเทรนแล้ว</p>
               <p className="text-3xl font-bold text-gray-900 mt-2">
-                {stats?.samplesUsedForTraining.toLocaleString('th-TH') || 0}
+                {(stats?.samplesUsedForTraining ?? 0).toLocaleString('th-TH')}
               </p>
             </div>
             <div className="bg-green-500 p-3 rounded-lg">
@@ -230,7 +230,7 @@ export default function MLTrainingPage() {
             <div>
               <p className="text-sm font-medium text-gray-600">ความแม่นยำล่าสุด</p>
               <p className="text-3xl font-bold text-gray-900 mt-2">
-                {stats?.lastTrainingAccuracy !== null
+                {stats && stats.lastTrainingAccuracy !== null
                   ? `${(stats.lastTrainingAccuracy * 100).toFixed(1)}%`
                   : '-'}
               </p>
@@ -336,15 +336,15 @@ export default function MLTrainingPage() {
             <PlayIcon className="h-6 w-6 text-green-600" />
             <h2 className="text-xl font-bold text-gray-900">เทรนโมเดล</h2>
           </div>
-          <Button onClick={handleTrain} disabled={training || (stats?.totalSamples || 0) < 10}>
+          <Button onClick={handleTrain} disabled={training || (stats?.totalSamples ?? 0) < 10}>
             {training ? 'กำลังเทรน...' : 'เริ่มเทรนโมเดล'}
           </Button>
         </div>
         <div className="bg-yellow-50 p-4 rounded-lg">
           <p className="text-sm text-gray-700">
-            {stats && stats.totalSamples < 10 ? (
+            {stats && (stats.totalSamples ?? 0) < 10 ? (
               <span className="text-red-600">
-                ⚠️ ข้อมูลไม่เพียงพอสำหรับเทรนโมเดล (พบ {stats.totalSamples} ตัวอย่าง ต้องการอย่างน้อย 10)
+                ⚠️ ข้อมูลไม่เพียงพอสำหรับเทรนโมเดล (พบ {stats.totalSamples ?? 0} ตัวอย่าง ต้องการอย่างน้อย 10)
               </span>
             ) : (
               <>

@@ -198,13 +198,13 @@ export const trainMLModel = async (
 
   try {
     // Get ML API URL
-    const mlApiUrl = await getMLApiUrl(targetSchoolId);
+    const mlApiUrl = await getMLApiUrl(targetSchoolId || null);
     if (!mlApiUrl) {
       throw new Error('ไม่พบ ML API URL กรุณาตั้งค่าในหน้า Settings');
     }
 
     // Get training settings
-    const settings = await getMLTrainingSettings(targetSchoolId, user);
+    const settings = await getMLTrainingSettings(targetSchoolId || null, user);
 
     // Get training data
     const trainingData = await getMLTrainingData(1000, targetSchoolId);
@@ -245,7 +245,7 @@ export const trainMLModel = async (
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' })) as { error?: string };
       throw new Error(errorData.error || `HTTP ${response.status}`);
     }
 
