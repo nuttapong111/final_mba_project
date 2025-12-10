@@ -42,27 +42,33 @@ export const getMLTrainingStats = async (
 
   const targetSchoolId = user.role === 'SUPER_ADMIN' ? schoolId : user.schoolId;
 
-  // Get total samples
+  // Get total samples - include all records with AI feedback OR teacher feedback
   const totalSamples = await prisma.mLTrainingData.count({
     where: {
       schoolId: targetSchoolId || undefined,
-      teacherScore: { not: null },
-      teacherFeedback: { not: null },
+      OR: [
+        {
+          aiScore: { not: null },
+          aiFeedback: { not: null },
+        },
+        {
+          teacherScore: { not: null },
+          teacherFeedback: { not: null },
+        },
+      ],
     },
   });
 
-  // Get samples with AI feedback
+  // Get samples with AI feedback (may or may not have teacher feedback)
   const samplesWithAI = await prisma.mLTrainingData.count({
     where: {
       schoolId: targetSchoolId || undefined,
       aiScore: { not: null },
       aiFeedback: { not: null },
-      teacherScore: { not: null },
-      teacherFeedback: { not: null },
     },
   });
 
-  // Get samples with teacher feedback
+  // Get samples with teacher feedback (must have both score and feedback)
   const samplesWithTeacher = await prisma.mLTrainingData.count({
     where: {
       schoolId: targetSchoolId || undefined,

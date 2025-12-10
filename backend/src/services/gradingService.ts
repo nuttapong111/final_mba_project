@@ -1042,6 +1042,27 @@ export const getGradingTasks = async (user: AuthUser) => {
             },
           });
           console.log('[GRADING SERVICE] AI feedback saved to database for task:', task.id);
+
+          // Save to ML training data (even without teacher feedback yet)
+          try {
+            const { saveMLTrainingData } = await import('./mlTrainingDataService');
+            await saveMLTrainingData(
+              questionText,
+              task.answer,
+              aiResult.score,
+              aiResult.feedback,
+              task.teacherScore,
+              task.teacherFeedback,
+              maxScore,
+              'exam',
+              task.id,
+              task.submission.exam.course.schoolId
+            );
+            console.log('[GRADING SERVICE] ML training data saved for task:', task.id);
+          } catch (error: any) {
+            console.error('[GRADING SERVICE] Error saving ML training data:', error);
+            // Don't throw - this is not critical
+          }
         } catch (error: any) {
           console.error('[GRADING SERVICE] Error generating AI feedback for task:', task.id, error);
           console.error('[GRADING SERVICE] Error details:', {

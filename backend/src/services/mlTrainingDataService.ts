@@ -18,22 +18,49 @@ export const saveMLTrainingData = async (
   schoolId?: string | null
 ): Promise<void> => {
   try {
-    await prisma.mLTrainingData.create({
-      data: {
-        question,
-        answer,
-        aiScore,
-        aiFeedback,
-        teacherScore,
-        teacherFeedback,
-        maxScore,
+    // Check if record already exists
+    const existing = await prisma.mLTrainingData.findFirst({
+      where: {
         sourceType,
         sourceId,
-        schoolId: schoolId || null,
-        usedForTraining: false,
       },
     });
-    console.log(`[ML TRAINING DATA] Saved training data for ${sourceType}:${sourceId}`);
+
+    if (existing) {
+      // Update existing record - merge AI and teacher feedback
+      await prisma.mLTrainingData.update({
+        where: { id: existing.id },
+        data: {
+          question,
+          answer,
+          aiScore: aiScore ?? existing.aiScore,
+          aiFeedback: aiFeedback ?? existing.aiFeedback,
+          teacherScore: teacherScore ?? existing.teacherScore,
+          teacherFeedback: teacherFeedback ?? existing.teacherFeedback,
+          maxScore,
+          schoolId: schoolId ?? existing.schoolId,
+        },
+      });
+      console.log(`[ML TRAINING DATA] Updated training data for ${sourceType}:${sourceId}`);
+    } else {
+      // Create new record
+      await prisma.mLTrainingData.create({
+        data: {
+          question,
+          answer,
+          aiScore,
+          aiFeedback,
+          teacherScore,
+          teacherFeedback,
+          maxScore,
+          sourceType,
+          sourceId,
+          schoolId: schoolId || null,
+          usedForTraining: false,
+        },
+      });
+      console.log(`[ML TRAINING DATA] Created training data for ${sourceType}:${sourceId}`);
+    }
   } catch (error: any) {
     console.error('[ML TRAINING DATA] Error saving training data:', error);
     // Don't throw error - this is not critical for the main flow
