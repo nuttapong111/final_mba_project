@@ -13,6 +13,7 @@ import {
   ClockIcon,
   CheckCircleIcon,
   XCircleIcon,
+  ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 import Swal from 'sweetalert2';
 
@@ -30,42 +31,78 @@ export default function MLTrainingPage() {
 
   useEffect(() => {
     if (user) {
+      console.log('[ML Training] Fetching data for user:', user.id, 'schoolId:', user.schoolId);
       fetchData();
+    } else {
+      console.log('[ML Training] User not ready yet');
     }
   }, [user]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
+      console.log('[ML Training] Starting API calls...');
+      
       const [statsResponse, settingsResponse, historyResponse] = await Promise.all([
         mlTrainingApi.getStats(user?.schoolId || null),
         mlTrainingApi.getSettings(user?.schoolId || null),
         mlTrainingApi.getHistory(user?.schoolId || null, 10),
       ]);
 
+      console.log('[ML Training] API Responses:', {
+        stats: statsResponse,
+        settings: settingsResponse,
+        history: historyResponse,
+      });
+
       // Check for errors in responses
       const errors: string[] = [];
       
       if (!statsResponse.success) {
         errors.push(`สถิติ: ${statsResponse.error || 'ไม่สามารถโหลดข้อมูลได้'}`);
+        console.error('[ML Training] Stats API error:', statsResponse.error);
       } else if (statsResponse.data) {
         setStats(statsResponse.data);
+        console.log('[ML Training] Stats loaded:', statsResponse.data);
+      } else {
+        console.warn('[ML Training] Stats response success but no data');
+        // Set default stats if no data
+        setStats({
+          totalSamples: 0,
+          samplesWithAI: 0,
+          samplesWithTeacher: 0,
+          samplesUsedForTraining: 0,
+          lastTrainingDate: null,
+          lastTrainingAccuracy: null,
+          lastTrainingMSE: null,
+          lastTrainingMAE: null,
+        });
       }
 
       if (!settingsResponse.success) {
         errors.push(`การตั้งค่า: ${settingsResponse.error || 'ไม่สามารถโหลดข้อมูลได้'}`);
+        console.error('[ML Training] Settings API error:', settingsResponse.error);
       } else if (settingsResponse.data) {
         setSettings(settingsResponse.data);
+        console.log('[ML Training] Settings loaded:', settingsResponse.data);
+      } else {
+        console.warn('[ML Training] Settings response success but no data');
       }
 
       if (!historyResponse.success) {
         errors.push(`ประวัติ: ${historyResponse.error || 'ไม่สามารถโหลดข้อมูลได้'}`);
+        console.error('[ML Training] History API error:', historyResponse.error);
       } else if (historyResponse.data) {
         setHistory(historyResponse.data);
+        console.log('[ML Training] History loaded:', historyResponse.data);
+      } else {
+        console.warn('[ML Training] History response success but no data');
+        setHistory([]);
       }
 
       // Show error if any API call failed
       if (errors.length > 0) {
+        console.error('[ML Training] API errors:', errors);
         Swal.fire({
           icon: 'error',
           title: 'เกิดข้อผิดพลาด',
@@ -73,9 +110,11 @@ export default function MLTrainingPage() {
             ? `<p>${errors[0]}</p>`
             : `<ul style="text-align: left; margin-top: 10px;">${errors.map(e => `<li>${e}</li>`).join('')}</ul>`,
         });
+      } else {
+        console.log('[ML Training] All data loaded successfully');
       }
     } catch (error: any) {
-      console.error('Error fetching ML training data:', error);
+      console.error('[ML Training] Error fetching ML training data:', error);
       const errorMessage = error.response?.data?.error || error.message || 'ไม่สามารถโหลดข้อมูลได้';
       Swal.fire({
         icon: 'error',
@@ -84,6 +123,7 @@ export default function MLTrainingPage() {
       });
     } finally {
       setLoading(false);
+      console.log('[ML Training] Fetch completed');
     }
   };
 
@@ -201,10 +241,40 @@ export default function MLTrainingPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">การเทรนโมเดล ML</h1>
-        <p className="text-gray-600 mt-1">จัดการและตรวจสอบการเทรนโมเดล Machine Learning</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">การเทรนโมเดล ML</h1>
+          <p className="text-gray-600 mt-1">จัดการและตรวจสอบการเทรนโมเดล Machine Learning</p>
+        </div>
+        <Button
+          onClick={fetchData}
+          disabled={loading}
+          className="flex items-center space-x-2"
+        >
+          <ArrowPathIcon className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+          <span>รีเฟรชข้อมูล</span>
+        </Button>
       </div>
+
+      {/* Info Alert when no data */}
+      {stats && stats.totalSamples === 0 && (
+        <Card>
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <ChartBarIcon className="h-5 w-5 text-blue-500" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-blue-700">
+                  <strong>หมายเหตุ:</strong> ยังไม่มีข้อมูลสำหรับการเทรนโมเดล ML 
+                  ข้อมูลจะถูกสร้างขึ้นอัตโนมัติเมื่อมีการให้คะแนนงานที่นักเรียนส่งมา 
+                  โดยระบบจะเก็บข้อมูลที่มีทั้ง AI Feedback และ Teacher Feedback เพื่อใช้ในการเทรนโมเดล
+                </p>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
