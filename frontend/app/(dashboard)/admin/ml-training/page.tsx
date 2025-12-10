@@ -203,7 +203,8 @@ export default function MLTrainingPage() {
   const handleTrain = async () => {
     // Check if there's enough data
     const totalSamples = stats?.totalSamples ?? 0;
-    if (totalSamples < 10) {
+    const MIN_SAMPLES = 5; // Minimum samples required for training
+    if (totalSamples < MIN_SAMPLES) {
       Swal.fire({
         icon: 'warning',
         title: 'ข้อมูลไม่เพียงพอ',
@@ -211,7 +212,7 @@ export default function MLTrainingPage() {
           <div class="text-left">
             <p>ไม่สามารถเทรนโมเดลได้เนื่องจากข้อมูลไม่เพียงพอ</p>
             <p><strong>ข้อมูลที่มี:</strong> ${totalSamples} ตัวอย่าง</p>
-            <p><strong>ข้อมูลที่ต้องการ:</strong> อย่างน้อย 10 ตัวอย่าง</p>
+            <p><strong>ข้อมูลที่ต้องการ:</strong> อย่างน้อย ${MIN_SAMPLES} ตัวอย่าง</p>
             <p class="mt-3">กรุณารอให้มีข้อมูลเพิ่มเติมก่อน หรือใช้ปุ่ม "Sync ข้อมูล" เพื่อ sync ข้อมูลเก่าที่มี AI feedback แล้ว</p>
           </div>
         `,
@@ -515,17 +516,17 @@ export default function MLTrainingPage() {
           </div>
           <Button 
             onClick={handleTrain} 
-            disabled={training || (stats?.totalSamples ?? 0) < 10}
-            title={(stats?.totalSamples ?? 0) < 10 ? `ข้อมูลไม่เพียงพอ (${stats?.totalSamples ?? 0}/10)` : undefined}
+            disabled={training || (stats?.totalSamples ?? 0) < 5}
+            title={(stats?.totalSamples ?? 0) < 5 ? `ข้อมูลไม่เพียงพอ (${stats?.totalSamples ?? 0}/5)` : undefined}
           >
             {training ? 'กำลังเทรน...' : 'เริ่มเทรนโมเดล'}
           </Button>
         </div>
         <div className="bg-yellow-50 p-4 rounded-lg">
           <p className="text-sm text-gray-700">
-            {stats && (stats.totalSamples ?? 0) < 10 ? (
+            {stats && (stats.totalSamples ?? 0) < 5 ? (
               <span className="text-red-600">
-                ⚠️ ข้อมูลไม่เพียงพอสำหรับเทรนโมเดล (พบ {stats.totalSamples ?? 0} ตัวอย่าง ต้องการอย่างน้อย 10)
+                ⚠️ ข้อมูลไม่เพียงพอสำหรับเทรนโมเดล (พบ {stats.totalSamples ?? 0} ตัวอย่าง ต้องการอย่างน้อย 5)
               </span>
             ) : (
               <>

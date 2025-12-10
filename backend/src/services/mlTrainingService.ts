@@ -247,8 +247,9 @@ export const trainMLModel = async (
     // Get training data
     const trainingData = await getMLTrainingData(1000, targetSchoolId);
 
-    if (trainingData.length < 10) {
-      throw new Error(`ข้อมูลไม่เพียงพอสำหรับเทรนโมเดล (พบ ${trainingData.length} ตัวอย่าง ต้องการอย่างน้อย 10)`);
+    const MIN_SAMPLES = 5; // Minimum samples required for training (reduced for testing)
+    if (trainingData.length < MIN_SAMPLES) {
+      throw new Error(`ข้อมูลไม่เพียงพอสำหรับเทรนโมเดล (พบ ${trainingData.length} ตัวอย่าง ต้องการอย่างน้อย ${MIN_SAMPLES})`);
     }
 
     // Prepare training data with weights
