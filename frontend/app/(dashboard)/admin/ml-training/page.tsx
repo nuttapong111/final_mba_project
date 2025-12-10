@@ -201,9 +201,35 @@ export default function MLTrainingPage() {
   };
 
   const handleTrain = async () => {
+    // Check if there's enough data
+    const totalSamples = stats?.totalSamples ?? 0;
+    if (totalSamples < 10) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'ข้อมูลไม่เพียงพอ',
+        html: `
+          <div class="text-left">
+            <p>ไม่สามารถเทรนโมเดลได้เนื่องจากข้อมูลไม่เพียงพอ</p>
+            <p><strong>ข้อมูลที่มี:</strong> ${totalSamples} ตัวอย่าง</p>
+            <p><strong>ข้อมูลที่ต้องการ:</strong> อย่างน้อย 10 ตัวอย่าง</p>
+            <p class="mt-3">กรุณารอให้มีข้อมูลเพิ่มเติมก่อน หรือใช้ปุ่ม "Sync ข้อมูล" เพื่อ sync ข้อมูลเก่าที่มี AI feedback แล้ว</p>
+          </div>
+        `,
+        confirmButtonText: 'ตกลง',
+      });
+      return;
+    }
+
     const result = await Swal.fire({
       title: 'ยืนยันการเทรนโมเดล',
-      text: 'คุณต้องการเทรนโมเดล ML ด้วยข้อมูลปัจจุบันหรือไม่?',
+      html: `
+        <div class="text-left">
+          <p>คุณต้องการเทรนโมเดล ML ด้วยข้อมูลปัจจุบันหรือไม่?</p>
+          <p class="mt-2"><strong>จำนวนข้อมูล:</strong> ${totalSamples} ตัวอย่าง</p>
+          <p><strong>AI Weight:</strong> ${settings.aiWeight}</p>
+          <p><strong>Teacher Weight:</strong> ${settings.teacherWeight}</p>
+        </div>
+      `,
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'เทรน',
@@ -215,7 +241,9 @@ export default function MLTrainingPage() {
 
     try {
       setTraining(true);
+      console.log('[ML Training] Starting model training...');
       const response = await mlTrainingApi.train(user?.schoolId || null);
+      console.log('[ML Training] Training response:', response);
 
       if (response.success && response.data) {
         await Swal.fire({
@@ -236,10 +264,18 @@ export default function MLTrainingPage() {
         throw new Error(response.error || 'การเทรนโมเดลล้มเหลว');
       }
     } catch (error: any) {
+      console.error('[ML Training] Training error:', error);
       Swal.fire({
         icon: 'error',
         title: 'เกิดข้อผิดพลาด',
-        text: error.message || 'ไม่สามารถเทรนโมเดลได้',
+        html: `
+          <div class="text-left">
+            <p><strong>ไม่สามารถเทรนโมเดลได้</strong></p>
+            <p>${error.message || 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ'}</p>
+            <p class="mt-2 text-sm text-gray-600">กรุณาตรวจสอบ Console สำหรับรายละเอียดเพิ่มเติม</p>
+          </div>
+        `,
+        confirmButtonText: 'ตกลง',
       });
     } finally {
       setTraining(false);
@@ -477,7 +513,11 @@ export default function MLTrainingPage() {
             <PlayIcon className="h-6 w-6 text-green-600" />
             <h2 className="text-xl font-bold text-gray-900">เทรนโมเดล</h2>
           </div>
-          <Button onClick={handleTrain} disabled={training || (stats?.totalSamples ?? 0) < 10}>
+          <Button 
+            onClick={handleTrain} 
+            disabled={training || (stats?.totalSamples ?? 0) < 10}
+            title={(stats?.totalSamples ?? 0) < 10 ? `ข้อมูลไม่เพียงพอ (${stats?.totalSamples ?? 0}/10)` : undefined}
+          >
             {training ? 'กำลังเทรน...' : 'เริ่มเทรนโมเดล'}
           </Button>
         </div>
