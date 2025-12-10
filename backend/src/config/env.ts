@@ -8,7 +8,10 @@ const envSchema = z.object({
   JWT_SECRET: z.string().default('your-secret-key-change-in-production'),
   JWT_EXPIRES_IN: z.string().default('7d'),
   PORT: z.string().default('3001'),
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z
+    .string()
+    .transform((val) => (val === '' ? undefined : val))
+    .pipe(z.enum(['development', 'production', 'test']).default('development')),
   CORS_ORIGIN: z.string().default('http://localhost:3000'),
   // Railway automatically sets PORT, but we use our own for consistency
   RAILWAY_ENVIRONMENT: z.string().optional(),
