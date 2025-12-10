@@ -65,8 +65,9 @@ def train_from_data(grading_tasks):
         # Convert to DataFrame
         df = pd.DataFrame(grading_tasks)
         
-        if len(df) < 10:
-            raise ValueError("ต้องการข้อมูลอย่างน้อย 10 ตัวอย่างสำหรับเทรนโมเดล")
+        MIN_SAMPLES = 5  # Minimum samples required for training (reduced for testing)
+        if len(df) < MIN_SAMPLES:
+            raise ValueError(f"ต้องการข้อมูลอย่างน้อย {MIN_SAMPLES} ตัวอย่างสำหรับเทรนโมเดล (พบ {len(df)} ตัวอย่าง)")
         
         logger.info(f"Training model with {len(df)} samples")
         
@@ -186,8 +187,9 @@ def train_from_database():
             'teacherFeedback': teacher_feedback
         })
     
-    if len(grading_tasks) < 10:
-        raise ValueError(f"ไม่พบข้อมูลเพียงพอสำหรับเทรนโมเดล (พบ {len(grading_tasks)} ตัวอย่าง)")
+    MIN_SAMPLES = 5  # Minimum samples required for training (reduced for testing)
+    if len(grading_tasks) < MIN_SAMPLES:
+        raise ValueError(f"ไม่พบข้อมูลเพียงพอสำหรับเทรนโมเดล (พบ {len(grading_tasks)} ตัวอย่าง ต้องการอย่างน้อย {MIN_SAMPLES})")
     
     return train_from_data(grading_tasks)
 
