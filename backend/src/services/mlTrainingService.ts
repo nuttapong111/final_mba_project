@@ -1,7 +1,6 @@
 import prisma from '../config/database';
 import { AuthUser } from '../middleware/auth';
 import { getMLApiUrl } from './aiSettingsService';
-import { getMLTrainingData } from './mlTrainingDataService';
 
 export interface MLTrainingStats {
   totalSamples: number;
@@ -244,22 +243,61 @@ export const trainMLModel = async (
     // Get training settings
     const settings = await getMLTrainingSettings(targetSchoolId || null, user);
 
-    // Get training data
-    const trainingData = await getMLTrainingData(1000, targetSchoolId);
+    // Get training data with IDs for marking as used later
+    const trainingDataWithIds = await prisma.mLTrainingData.findMany({
+      where: {
+        schoolId: targetSchoolId || undefined,
+        OR: [
+          {
+            teacherScore: { not: null },
+            teacherFeedback: { not: null },
+          },
+          {
+            aiScore: { not: null },
+            aiFeedback: { not: null },
+          },
+        ],
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 1000,
+    });
 
     const MIN_SAMPLES = 5; // Minimum samples required for training (reduced for testing)
-    if (trainingData.length < MIN_SAMPLES) {
-      throw new Error(`ข้อมูลไม่เพียงพอสำหรับเทรนโมเดล (พบ ${trainingData.length} ตัวอย่าง ต้องการอย่างน้อย ${MIN_SAMPLES})`);
+    if (trainingDataWithIds.length < MIN_SAMPLES) {
+      throw new Error(`ข้อมูลไม่เพียงพอสำหรับเทรนโมเดล (พบ ${trainingDataWithIds.length} ตัวอย่าง ต้องการอย่างน้อย ${MIN_SAMPLES})`);
     }
+
+    // Transform to format expected for training
+    const trainingData = trainingDataWithIds.map((item) => ({
+      question: item.question,
+      answer: item.answer,
+      aiScore: item.aiScore,
+      aiFeedback: item.aiFeedback,
+      teacherScore: item.teacherScore ?? item.aiScore ?? 0,
+      teacherFeedback: item.teacherFeedback,
+      maxScore: item.maxScore,
+    }));
 
     // Prepare training data with weights
     // Apply weights to scores: weighted_score = aiWeight * aiScore + teacherWeight * teacherScore
     const weightedTrainingData = trainingData.map((item) => {
-      let targetScore = item.teacherScore;
+      let targetScore: number;
 
-      // If both AI and teacher scores exist, apply weights
-      if (item.aiScore !== null && item.teacherScore !== null) {
+      // Determine target score based on available data
+      if (item.aiScore !== null && item.teacherScore !== null && item.teacherScore !== item.aiScore) {
+        // Both AI and teacher scores exist and are different - apply weights
         targetScore = settings.aiWeight * item.aiScore + settings.teacherWeight * item.teacherScore;
+      } else if (item.teacherScore !== null && item.teacherScore !== 0) {
+        // Only teacher score exists (or teacher score is different from AI score)
+        targetScore = item.teacherScore;
+      } else if (item.aiScore !== null) {
+        // Only AI score exists - use it directly
+        targetScore = item.aiScore;
+      } else {
+        // Fallback (should not happen due to query filter, but just in case)
+        targetScore = 0;
       }
 
       return {
@@ -315,22 +353,11 @@ export const trainMLModel = async (
       },
     });
 
-    // Mark training data as used
-    const trainingDataIds = await prisma.mLTrainingData.findMany({
-      where: {
-        schoolId: targetSchoolId || undefined,
-        teacherScore: { not: null },
-        teacherFeedback: { not: null },
-      },
-      select: { id: true },
-      take: 1000,
-      orderBy: { createdAt: 'desc' },
-    });
-
-    if (trainingDataIds.length > 0) {
+    // Mark training data as used (mark the actual data that was used for training)
+    if (trainingDataWithIds.length > 0) {
       await prisma.mLTrainingData.updateMany({
         where: {
-          id: { in: trainingDataIds.map((d) => d.id) },
+          id: { in: trainingDataWithIds.map((d) => d.id) },
         },
         data: {
           usedForTraining: true,

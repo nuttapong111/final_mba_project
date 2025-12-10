@@ -83,11 +83,24 @@ export const getMLTrainingData = async (
   try {
     const where = schoolId ? { schoolId } : {};
     
+    // Get data that has either:
+    // 1. Both teacherScore and teacherFeedback (preferred)
+    // 2. Or at least AI feedback (aiScore and aiFeedback)
     const data = await prisma.mLTrainingData.findMany({
       where: {
         ...where,
-        teacherScore: { not: null },
-        teacherFeedback: { not: null },
+        OR: [
+          // Has teacher feedback (preferred)
+          {
+            teacherScore: { not: null },
+            teacherFeedback: { not: null },
+          },
+          // Or has AI feedback (can be used for training)
+          {
+            aiScore: { not: null },
+            aiFeedback: { not: null },
+          },
+        ],
       },
       orderBy: {
         createdAt: 'desc',
@@ -100,7 +113,8 @@ export const getMLTrainingData = async (
       answer: item.answer,
       aiScore: item.aiScore,
       aiFeedback: item.aiFeedback,
-      teacherScore: item.teacherScore!,
+      // Use teacherScore if available, otherwise use aiScore (will be handled in training service)
+      teacherScore: item.teacherScore ?? item.aiScore ?? 0,
       teacherFeedback: item.teacherFeedback,
       maxScore: item.maxScore,
     }));
