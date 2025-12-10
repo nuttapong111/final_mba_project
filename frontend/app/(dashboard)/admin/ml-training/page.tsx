@@ -29,8 +29,10 @@ export default function MLTrainingPage() {
   const [savingSettings, setSavingSettings] = useState(false);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
 
   const fetchData = async () => {
     try {
@@ -41,21 +43,44 @@ export default function MLTrainingPage() {
         mlTrainingApi.getHistory(user?.schoolId || null, 10),
       ]);
 
-      if (statsResponse.success && statsResponse.data) {
+      // Check for errors in responses
+      const errors: string[] = [];
+      
+      if (!statsResponse.success) {
+        errors.push(`สถิติ: ${statsResponse.error || 'ไม่สามารถโหลดข้อมูลได้'}`);
+      } else if (statsResponse.data) {
         setStats(statsResponse.data);
       }
-      if (settingsResponse.success && settingsResponse.data) {
+
+      if (!settingsResponse.success) {
+        errors.push(`การตั้งค่า: ${settingsResponse.error || 'ไม่สามารถโหลดข้อมูลได้'}`);
+      } else if (settingsResponse.data) {
         setSettings(settingsResponse.data);
       }
-      if (historyResponse.success && historyResponse.data) {
+
+      if (!historyResponse.success) {
+        errors.push(`ประวัติ: ${historyResponse.error || 'ไม่สามารถโหลดข้อมูลได้'}`);
+      } else if (historyResponse.data) {
         setHistory(historyResponse.data);
       }
-    } catch (error) {
+
+      // Show error if any API call failed
+      if (errors.length > 0) {
+        Swal.fire({
+          icon: 'error',
+          title: 'เกิดข้อผิดพลาด',
+          html: errors.length === 1 
+            ? `<p>${errors[0]}</p>`
+            : `<ul style="text-align: left; margin-top: 10px;">${errors.map(e => `<li>${e}</li>`).join('')}</ul>`,
+        });
+      }
+    } catch (error: any) {
       console.error('Error fetching ML training data:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'ไม่สามารถโหลดข้อมูลได้';
       Swal.fire({
         icon: 'error',
         title: 'เกิดข้อผิดพลาด',
-        text: 'ไม่สามารถโหลดข้อมูลได้',
+        text: errorMessage,
       });
     } finally {
       setLoading(false);

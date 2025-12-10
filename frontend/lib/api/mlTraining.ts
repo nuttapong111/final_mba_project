@@ -42,9 +42,16 @@ export const mlTrainingApi = {
     data?: MLTrainingStats;
     error?: string;
   }> => {
-    const params = schoolId ? `?schoolId=${schoolId}` : '';
-    const response = await apiClient.get(`/ml-training/stats${params}`);
-    return response.data;
+    try {
+      const params = schoolId ? `?schoolId=${schoolId}` : '';
+      const response = await apiClient.get(`/ml-training/stats${params}`);
+      return response.data;
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'ไม่สามารถดึงสถิติได้',
+      };
+    }
   },
 
   getSettings: async (schoolId?: string | null): Promise<{
@@ -52,9 +59,16 @@ export const mlTrainingApi = {
     data?: MLTrainingSettings;
     error?: string;
   }> => {
-    const params = schoolId ? `?schoolId=${schoolId}` : '';
-    const response = await apiClient.get(`/ml-training/settings${params}`);
-    return response.data;
+    try {
+      const params = schoolId ? `?schoolId=${schoolId}` : '';
+      const response = await apiClient.get(`/ml-training/settings${params}`);
+      return response.data;
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'ไม่สามารถดึงการตั้งค่าได้',
+      };
+    }
   },
 
   updateSettings: async (
@@ -65,9 +79,16 @@ export const mlTrainingApi = {
     data?: MLTrainingSettings;
     error?: string;
   }> => {
-    const params = schoolId ? `?schoolId=${schoolId}` : '';
-    const response = await apiClient.put(`/ml-training/settings${params}`, data);
-    return response.data;
+    try {
+      const params = schoolId ? `?schoolId=${schoolId}` : '';
+      const response = await apiClient.put(`/ml-training/settings${params}`, data);
+      return response.data;
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'ไม่สามารถอัพเดตการตั้งค่าได้',
+      };
+    }
   },
 
   train: async (schoolId?: string | null): Promise<{
@@ -75,9 +96,16 @@ export const mlTrainingApi = {
     data?: MLTrainingResult;
     error?: string;
   }> => {
-    const params = schoolId ? `?schoolId=${schoolId}` : '';
-    const response = await apiClient.post(`/ml-training/train${params}`);
-    return response.data;
+    try {
+      const params = schoolId ? `?schoolId=${schoolId}` : '';
+      const response = await apiClient.post(`/ml-training/train${params}`);
+      return response.data;
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'ไม่สามารถเทรนโมเดลได้',
+      };
+    }
   },
 
   getHistory: async (
@@ -88,10 +116,17 @@ export const mlTrainingApi = {
     data?: MLTrainingHistory[];
     error?: string;
   }> => {
-    const params = new URLSearchParams();
-    if (schoolId) params.append('schoolId', schoolId);
-    params.append('limit', limit.toString());
-    const response = await apiClient.get(`/ml-training/history?${params.toString()}`);
-    return response.data;
+    try {
+      const params = new URLSearchParams();
+      if (schoolId) params.append('schoolId', schoolId);
+      params.append('limit', limit.toString());
+      const response = await apiClient.get(`/ml-training/history?${params.toString()}`);
+      return response.data;
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'ไม่สามารถดึงประวัติได้',
+      };
+    }
   },
 };
