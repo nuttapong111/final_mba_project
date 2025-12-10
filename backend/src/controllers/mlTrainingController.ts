@@ -6,6 +6,7 @@ import {
   trainMLModel,
   getMLTrainingHistory,
 } from '../services/mlTrainingService';
+import { syncExistingGradingData } from '../services/mlTrainingDataService';
 
 /**
  * Get ML training statistics
@@ -15,6 +16,12 @@ export const getStats = async (c: Context) => {
   try {
     const user = c.get('user');
     const schoolId = c.req.query('schoolId') || undefined;
+    const targetSchoolId = user.role === 'SUPER_ADMIN' ? schoolId : user.schoolId;
+
+    // Sync existing data in background (don't wait for it)
+    syncExistingGradingData(targetSchoolId || null).catch((error) => {
+      console.error('[ML TRAINING] Error syncing data in background:', error);
+    });
 
     const stats = await getMLTrainingStats(schoolId || null, user);
 
@@ -27,6 +34,35 @@ export const getStats = async (c: Context) => {
     return c.json({
       success: false,
       error: error.message || 'ไม่สามารถดึงสถิติได้',
+    }, 400);
+  }
+};
+
+/**
+ * Sync existing grading data to MLTrainingData
+ * POST /api/ml-training/sync?schoolId=xxx
+ */
+export const syncData = async (c: Context) => {
+  try {
+    const user = c.get('user');
+    const schoolId = c.req.query('schoolId') || undefined;
+    const targetSchoolId = user.role === 'SUPER_ADMIN' ? schoolId : user.schoolId;
+
+    const result = await syncExistingGradingData(targetSchoolId || null);
+
+    return c.json({
+      success: true,
+      data: {
+        examTasksSynced: result.examTasksSynced,
+        assignmentSubmissionsSynced: result.assignmentSubmissionsSynced,
+        totalSynced: result.examTasksSynced + result.assignmentSubmissionsSynced,
+      },
+    });
+  } catch (error: any) {
+    console.error('[ML TRAINING] Error syncing data:', error);
+    return c.json({
+      success: false,
+      error: error.message || 'ไม่สามารถ sync ข้อมูลได้',
     }, 400);
   }
 };

@@ -129,4 +129,25 @@ export const mlTrainingApi = {
       };
     }
   },
+
+  syncData: async (schoolId?: string | null): Promise<{
+    success: boolean;
+    data?: {
+      examTasksSynced: number;
+      assignmentSubmissionsSynced: number;
+      totalSynced: number;
+    };
+    error?: string;
+  }> => {
+    try {
+      const params = schoolId ? `?schoolId=${schoolId}` : '';
+      const response = await apiClient.post(`/ml-training/sync${params}`);
+      return response.data;
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'ไม่สามารถ sync ข้อมูลได้',
+      };
+    }
+  },
 };

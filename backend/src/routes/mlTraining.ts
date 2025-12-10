@@ -6,6 +6,7 @@ import {
   updateSettings,
   train,
   getHistory,
+  syncData,
 } from '../controllers/mlTrainingController';
 
 const mlTraining = new Hono();
@@ -28,5 +29,8 @@ mlTraining.post('/train', train);
 
 // Get ML training history
 mlTraining.get('/history', getHistory);
+
+// Sync existing grading data to MLTrainingData
+mlTraining.post('/sync', syncData);
 
 export default mlTraining;

@@ -28,6 +28,7 @@ export default function MLTrainingPage() {
   });
   const [history, setHistory] = useState<MLTrainingHistory[]>([]);
   const [savingSettings, setSavingSettings] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -165,6 +166,40 @@ export default function MLTrainingPage() {
     }
   };
 
+  const handleSync = async () => {
+    try {
+      setSyncing(true);
+      const response = await mlTrainingApi.syncData(user?.schoolId || null);
+
+      if (response.success && response.data) {
+        await Swal.fire({
+          icon: 'success',
+          title: 'Sync สำเร็จ!',
+          html: `
+            <div class="text-left">
+              <p><strong>ข้อสอบที่ sync:</strong> ${response.data.examTasksSynced} รายการ</p>
+              <p><strong>การบ้านที่ sync:</strong> ${response.data.assignmentSubmissionsSynced} รายการ</p>
+              <p><strong>รวมทั้งหมด:</strong> ${response.data.totalSynced} รายการ</p>
+            </div>
+          `,
+          confirmButtonText: 'ตกลง',
+        });
+        // Refresh data after sync
+        await fetchData();
+      } else {
+        throw new Error(response.error || 'ไม่สามารถ sync ข้อมูลได้');
+      }
+    } catch (error: any) {
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: error.message || 'ไม่สามารถ sync ข้อมูลได้',
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleTrain = async () => {
     const result = await Swal.fire({
       title: 'ยืนยันการเทรนโมเดล',
@@ -246,14 +281,25 @@ export default function MLTrainingPage() {
           <h1 className="text-3xl font-bold text-gray-900">การเทรนโมเดล ML</h1>
           <p className="text-gray-600 mt-1">จัดการและตรวจสอบการเทรนโมเดล Machine Learning</p>
         </div>
-        <Button
-          onClick={fetchData}
-          disabled={loading}
-          className="flex items-center space-x-2"
-        >
-          <ArrowPathIcon className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-          <span>รีเฟรชข้อมูล</span>
-        </Button>
+        <div className="flex items-center space-x-3">
+          <Button
+            onClick={handleSync}
+            disabled={syncing || loading}
+            className="flex items-center space-x-2"
+            variant="outline"
+          >
+            <ArrowPathIcon className={`h-5 w-5 ${syncing ? 'animate-spin' : ''}`} />
+            <span>{syncing ? 'กำลัง Sync...' : 'Sync ข้อมูล'}</span>
+          </Button>
+          <Button
+            onClick={fetchData}
+            disabled={loading}
+            className="flex items-center space-x-2"
+          >
+            <ArrowPathIcon className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+            <span>รีเฟรชข้อมูล</span>
+          </Button>
+        </div>
       </div>
 
       {/* Info Alert when no data */}
