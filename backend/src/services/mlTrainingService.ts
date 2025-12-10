@@ -116,9 +116,14 @@ export const getMLTrainingSettings = async (
 
   const targetSchoolId = user.role === 'SUPER_ADMIN' ? schoolId : user.schoolId;
 
-  let settings = await prisma.mLTrainingSettings.findUnique({
-    where: { schoolId: targetSchoolId || undefined },
-  });
+  // Use findUnique when schoolId is provided, otherwise use findFirst for null
+  let settings = targetSchoolId
+    ? await prisma.mLTrainingSettings.findUnique({
+        where: { schoolId: targetSchoolId },
+      })
+    : await prisma.mLTrainingSettings.findFirst({
+        where: { schoolId: null },
+      });
 
   // If no settings exist, create default
   if (!settings) {
@@ -163,18 +168,45 @@ export const updateMLTrainingSettings = async (
     throw new Error('Weight ต้องอยู่ระหว่าง 0 ถึง 1');
   }
 
-  const settings = await prisma.mLTrainingSettings.upsert({
-    where: { schoolId: targetSchoolId || undefined },
-    create: {
-      schoolId: targetSchoolId || null,
-      aiWeight: data.aiWeight,
-      teacherWeight: data.teacherWeight,
-    },
-    update: {
-      aiWeight: data.aiWeight,
-      teacherWeight: data.teacherWeight,
-    },
-  });
+  // Use upsert when schoolId is provided, otherwise use findFirst + create/update
+  let settings;
+  if (targetSchoolId) {
+    settings = await prisma.mLTrainingSettings.upsert({
+      where: { schoolId: targetSchoolId },
+      create: {
+        schoolId: targetSchoolId,
+        aiWeight: data.aiWeight,
+        teacherWeight: data.teacherWeight,
+      },
+      update: {
+        aiWeight: data.aiWeight,
+        teacherWeight: data.teacherWeight,
+      },
+    });
+  } else {
+    // For null schoolId (global settings), use findFirst + create/update
+    const existing = await prisma.mLTrainingSettings.findFirst({
+      where: { schoolId: null },
+    });
+
+    if (existing) {
+      settings = await prisma.mLTrainingSettings.update({
+        where: { id: existing.id },
+        data: {
+          aiWeight: data.aiWeight,
+          teacherWeight: data.teacherWeight,
+        },
+      });
+    } else {
+      settings = await prisma.mLTrainingSettings.create({
+        data: {
+          schoolId: null,
+          aiWeight: data.aiWeight,
+          teacherWeight: data.teacherWeight,
+        },
+      });
+    }
+  }
 
   return {
     aiWeight: settings.aiWeight,
