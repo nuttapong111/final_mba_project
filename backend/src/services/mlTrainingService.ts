@@ -101,9 +101,9 @@ export const getMLTrainingStats = async (
     samplesWithTeacher,
     samplesUsedForTraining,
     lastTrainingDate: lastTraining?.createdAt || null,
-    lastTrainingAccuracy: lastTraining?.accuracy || null,
-    lastTrainingMSE: lastTraining?.mse || null,
-    lastTrainingMAE: lastTraining?.mae || null,
+    lastTrainingAccuracy: lastTraining?.accuracy !== null && lastTraining?.accuracy !== undefined ? lastTraining.accuracy : null,
+    lastTrainingMSE: lastTraining?.mse !== null && lastTraining?.mse !== undefined ? lastTraining.mse : null,
+    lastTrainingMAE: lastTraining?.mae !== null && lastTraining?.mae !== undefined ? lastTraining.mae : null,
   };
 };
 
