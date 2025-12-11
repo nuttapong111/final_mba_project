@@ -106,24 +106,31 @@ export const getAssignmentGradingTasks = async (user: AuthUser): Promise<Assignm
       let aiScore: number | undefined = submission.aiScore || undefined;
       let aiFeedback: string | undefined = submission.aiFeedback || undefined;
 
-      // Check if feedback is mock data that should be regenerated
+      // Check if feedback is mock data or error message that should be regenerated
       const isMockFeedback = aiFeedback === 'คำตอบได้รับการตรวจสอบแล้ว' ||
                             aiFeedback === 'ไม่พบคำสำคัญที่เกี่ยวข้อง' ||
                             (aiFeedback && aiFeedback.includes('พบคำสำคัญที่เกี่ยวข้อง'));
+      
+      // Check if feedback is PDF error message that should be regenerated
+      const isPDFError = aiFeedback && (
+        aiFeedback.includes('ไม่สามารถตรวจไฟล์ PDF') ||
+        aiFeedback.includes('ไม่สามารถเข้าถึงหรืออ่านเนื้อหาจากไฟล์ภายนอก') ||
+        aiFeedback.includes('Cannot') && aiFeedback.includes('PDF')
+      );
 
       // Generate AI feedback if:
       // 1. No AI feedback exists, OR
-      // 2. Feedback is mock data that should be regenerated, AND
+      // 2. Feedback is mock data or PDF error that should be regenerated, AND
       // 3. Not graded yet, AND
       // 4. Submitted
-      if (!submission.score && submission.submittedAt && (!aiScore && !aiFeedback || isMockFeedback)) {
-        // Clear mock data before generating new feedback
-        if (isMockFeedback) {
-          console.log('[ASSIGNMENT GRADING] Detected mock feedback, clearing and regenerating:', submission.id);
+      if (!submission.score && submission.submittedAt && (!aiScore && !aiFeedback || isMockFeedback || isPDFError)) {
+        // Clear mock data or error messages before generating new feedback
+        if (isMockFeedback || isPDFError) {
+          console.log('[ASSIGNMENT GRADING] Detected mock/error feedback, clearing and regenerating:', submission.id, isPDFError ? '(PDF error)' : '(mock data)');
           aiScore = undefined;
           aiFeedback = undefined;
           
-          // Clear mock data from database
+          // Clear mock data or error from database
           await prisma.assignmentSubmission.update({
             where: { id: submission.id },
             data: {
@@ -177,29 +184,59 @@ export const getAssignmentGradingTasks = async (user: AuthUser): Promise<Assignm
           const isStudentPDF = studentFileName.toLowerCase().endsWith('.pdf');
           
           let aiResult;
-          if (isStudentPDF && (submission.fileUrl || submission.s3Key)) {
-            // Use Gemini File API for PDF files
-            const { getAIGradingSuggestionWithPDF } = await import('./aiService');
-            aiResult = await getAIGradingSuggestionWithPDF(
-              assignmentContext,
-              submission.fileUrl || '',
-              submission.s3Key || null,
-              submission.assignment.maxScore,
-              schoolId
-            );
-          } else {
-            // Use text-based method
-            let studentAnswer = 'นักเรียนส่งไฟล์';
-            if (submission.fileName) {
-              studentAnswer = `นักเรียนส่งไฟล์: ${submission.fileName}`;
+          try {
+            if (isStudentPDF && (submission.fileUrl || submission.s3Key)) {
+              // Use Gemini File API for PDF files
+              console.log('[ASSIGNMENT GRADING] Attempting to grade PDF file:', studentFileName);
+              const { getAIGradingSuggestionWithPDF } = await import('./aiService');
+              aiResult = await getAIGradingSuggestionWithPDF(
+                assignmentContext,
+                submission.fileUrl || '',
+                submission.s3Key || null,
+                submission.assignment.maxScore,
+                schoolId
+              );
+              console.log('[ASSIGNMENT GRADING] PDF grading successful');
+            } else {
+              // Use text-based method
+              let studentAnswer = 'นักเรียนส่งไฟล์';
+              if (submission.fileName) {
+                studentAnswer = `นักเรียนส่งไฟล์: ${submission.fileName}`;
+              }
+              
+              aiResult = await getAIGradingSuggestion(
+                assignmentContext,
+                studentAnswer,
+                submission.assignment.maxScore,
+                schoolId
+              );
             }
-            
-            aiResult = await getAIGradingSuggestion(
-              assignmentContext,
-              studentAnswer,
-              submission.assignment.maxScore,
-              schoolId
-            );
+          } catch (aiError: any) {
+            console.error('[ASSIGNMENT GRADING] AI grading error:', aiError);
+            // If it's a PDF and error, try fallback to text extraction
+            if (isStudentPDF && (submission.fileUrl || submission.s3Key)) {
+              console.log('[ASSIGNMENT GRADING] Trying fallback: extract text from PDF');
+              try {
+                const { extractTextFromPDFUrl } = await import('./pdfService');
+                const extractedText = await extractTextFromPDFUrl(
+                  submission.fileUrl || '',
+                  submission.s3Key || null
+                );
+                console.log('[ASSIGNMENT GRADING] Extracted text length:', extractedText.length);
+                aiResult = await getAIGradingSuggestion(
+                  assignmentContext,
+                  extractedText,
+                  submission.assignment.maxScore,
+                  schoolId
+                );
+                console.log('[ASSIGNMENT GRADING] Fallback text extraction successful');
+              } catch (fallbackError: any) {
+                console.error('[ASSIGNMENT GRADING] Fallback also failed:', fallbackError);
+                throw new Error(`ไม่สามารถตรวจไฟล์ PDF ได้: ${aiError.message}`);
+              }
+            } else {
+              throw aiError;
+            }
           }
           
           console.log('[ASSIGNMENT GRADING] AI result received:', {
