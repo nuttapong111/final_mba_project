@@ -450,9 +450,9 @@ export const getAIGradingSuggestionWithPDF = async (
                   };
                 } else {
                   // If retry also fails, check if still overloaded
-                  const retryErrorData = await retryResponse.json().catch(() => ({}));
-                  const retryErrorStatus = retryErrorData.error?.status || '';
-                  const retryErrorMessage = retryErrorData.error?.message || '';
+                  const retryErrorData = (await retryResponse.json().catch(() => ({}))) as any;
+                  const retryErrorStatus = retryErrorData?.error?.status || '';
+                  const retryErrorMessage = retryErrorData?.error?.message || '';
                   
                   if (retryErrorStatus !== 'UNAVAILABLE' && !retryErrorMessage?.toLowerCase().includes('overloaded')) {
                     // Not overloaded anymore, but different error - try next model
