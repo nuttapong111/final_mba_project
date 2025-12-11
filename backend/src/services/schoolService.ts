@@ -45,31 +45,38 @@ export const getAllSchools = async (user: AuthUser): Promise<SchoolData[]> => {
     return [];
   }
 
-  // Get admin counts separately using aggregation for better performance
+  // Get admin counts separately using findMany for better performance
   const schoolIds = schools.map((s) => s.id);
-  let adminCounts: Array<{ schoolId: string | null; _count: { id: number } }> = [];
+  const adminCountMap = new Map<string, number>();
   
   if (schoolIds.length > 0) {
     try {
-      adminCounts = await prisma.user.groupBy({
-        by: ['schoolId'],
+      // Initialize all schools with 0 admin count
+      schoolIds.forEach((id) => adminCountMap.set(id, 0));
+      
+      // Get all school admins for these schools
+      const schoolAdmins = await prisma.user.findMany({
         where: {
           schoolId: { in: schoolIds },
           role: 'SCHOOL_ADMIN',
         },
-        _count: {
-          id: true,
+        select: {
+          schoolId: true,
         },
+      });
+      
+      // Count admins per school
+      schoolAdmins.forEach((admin) => {
+        if (admin.schoolId) {
+          const currentCount = adminCountMap.get(admin.schoolId) || 0;
+          adminCountMap.set(admin.schoolId, currentCount + 1);
+        }
       });
     } catch (error) {
       console.error('[SCHOOL SERVICE] Error getting admin counts:', error);
-      // Continue without admin counts
+      // Continue without admin counts (all will be 0)
     }
   }
-
-  const adminCountMap = new Map(
-    adminCounts.map((item) => [item.schoolId || '', item._count.id])
-  );
 
   const result = schools.map((school) => ({
     id: school.id,
