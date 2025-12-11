@@ -193,7 +193,45 @@ export const getAssignmentById = async (assignmentId: string, user: AuthUser) =>
     throw new Error('ไม่มีสิทธิ์เข้าถึงการบ้านนี้');
   }
 
-  return assignment;
+  // Generate presigned URL for assignment file
+  let fileUrl = assignment.fileUrl;
+  if (assignment.s3Key) {
+    try {
+      const { getPresignedUrl } = await import('./s3Service');
+      fileUrl = await getPresignedUrl(assignment.s3Key, 3600);
+    } catch (error) {
+      console.error(`[ASSIGNMENT] Failed to generate presigned URL for ${assignment.s3Key}:`, error);
+    }
+  }
+
+  // Generate presigned URLs for submission files and include AI feedback
+  const submissionsWithUrls = await Promise.all(
+    (assignment.submissions || []).map(async (submission) => {
+      let submissionFileUrl = submission.fileUrl;
+      
+      if (submission.s3Key) {
+        try {
+          const { getPresignedUrl } = await import('./s3Service');
+          submissionFileUrl = await getPresignedUrl(submission.s3Key, 3600);
+        } catch (error) {
+          console.error(`[ASSIGNMENT] Failed to generate presigned URL for submission ${submission.s3Key}:`, error);
+        }
+      }
+
+      return {
+        ...submission,
+        fileUrl: submissionFileUrl,
+        aiScore: submission.aiScore || undefined,
+        aiFeedback: submission.aiFeedback || undefined,
+      };
+    })
+  );
+
+  return {
+    ...assignment,
+    fileUrl,
+    submissions: submissionsWithUrls,
+  };
 };
 
 export const createAssignment = async (data: CreateAssignmentData, user: AuthUser) => {

@@ -59,8 +59,14 @@ export default function AssignmentGradingPage() {
 
   const handleGrade = (submission: AssignmentSubmission) => {
     setGradingSubmission(submission);
-    setScore(submission.score || 0);
-    setFeedback(submission.feedback || '');
+    // Use AI score/feedback if available and not yet graded
+    if (!submission.score && submission.aiScore !== undefined && submission.aiFeedback) {
+      setScore(submission.aiScore);
+      setFeedback(submission.aiFeedback);
+    } else {
+      setScore(submission.score || 0);
+      setFeedback(submission.feedback || '');
+    }
   };
 
   const handleSubmitGrade = async () => {
@@ -207,7 +213,7 @@ export default function AssignmentGradingPage() {
                       </div>
                     )}
                     {submission.fileName && (
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2 mb-3">
                         <DocumentArrowUpIcon className="h-5 w-5 text-gray-400" />
                         <a
                           href={submission.fileUrl}
@@ -217,6 +223,23 @@ export default function AssignmentGradingPage() {
                         >
                           {submission.fileName} ({formatFileSize(submission.fileSize)})
                         </a>
+                      </div>
+                    )}
+                    {/* AI Feedback Preview */}
+                    {submission.aiScore !== undefined && submission.aiFeedback && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <h5 className="font-medium text-blue-900 text-sm flex items-center">
+                            <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                            คำแนะนำจาก AI:
+                          </h5>
+                          <span className="px-2 py-0.5 bg-blue-200 text-blue-900 rounded text-xs font-medium">
+                            {submission.aiScore}/{assignment.maxScore}
+                          </span>
+                        </div>
+                        <p className="text-blue-800 text-xs line-clamp-2">{submission.aiFeedback}</p>
                       </div>
                     )}
                   </div>
@@ -323,6 +346,24 @@ export default function AssignmentGradingPage() {
                   >
                     {gradingSubmission.fileName} ({formatFileSize(gradingSubmission.fileSize)})
                   </a>
+                </div>
+              )}
+
+              {/* AI Feedback */}
+              {gradingSubmission.aiScore !== undefined && gradingSubmission.aiFeedback && !gradingSubmission.score && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium text-blue-900 flex items-center">
+                      <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      </svg>
+                      คำแนะนำจาก AI:
+                    </h4>
+                    <span className="px-2 py-1 bg-blue-200 text-blue-900 rounded text-sm font-medium">
+                      คะแนนแนะนำ: {gradingSubmission.aiScore}/{assignment.maxScore}
+                    </span>
+                  </div>
+                  <p className="text-blue-800 text-sm whitespace-pre-wrap">{gradingSubmission.aiFeedback}</p>
                 </div>
               )}
 
