@@ -19,10 +19,23 @@ const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME || '';
  */
 export const extractTextFromPDF = async (buffer: Buffer): Promise<string> => {
   try {
+    // Check if pdf-parse is available and working
+    if (typeof pdfParse !== 'function') {
+      throw new Error('PDF parsing library is not available');
+    }
+    
     const data = await pdfParse(buffer);
     return data.text || '';
   } catch (error: any) {
     console.error('[PDF] Error extracting text from PDF:', error);
+    
+    // Check for browser-specific errors
+    if (error.message?.includes('DOMMatrix') || 
+        error.message?.includes('canvas') ||
+        error.message?.includes('browser')) {
+      throw new Error(`PDF parsing library requires browser environment: ${error.message}`);
+    }
+    
     throw new Error(`ไม่สามารถอ่านไฟล์ PDF ได้: ${error.message}`);
   }
 };

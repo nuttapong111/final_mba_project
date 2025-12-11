@@ -232,6 +232,13 @@ export const getAssignmentGradingTasks = async (user: AuthUser): Promise<Assignm
                 console.log('[ASSIGNMENT GRADING] Fallback text extraction successful');
               } catch (fallbackError: any) {
                 console.error('[ASSIGNMENT GRADING] Fallback also failed:', fallbackError);
+                // Check if fallback error is PDF processing related
+                const isPDFProcessingError = fallbackError.message?.includes('DOMMatrix') || 
+                                           fallbackError.message?.includes('canvas') ||
+                                           fallbackError.message?.includes('browser');
+                if (isPDFProcessingError) {
+                  throw new Error(`ไม่สามารถตรวจไฟล์ PDF ได้: PDF processing library error. กรุณาตรวจสอบว่า Gemini API รองรับไฟล์ PDF หรือไม่`);
+                }
                 throw new Error(`ไม่สามารถตรวจไฟล์ PDF ได้: ${aiError.message}`);
               }
             } else {
