@@ -293,8 +293,25 @@ function AssignmentGradingCard({
   setGeneratingAI: React.Dispatch<React.SetStateAction<Set<string>>>;
   onUpdateTask: (task: AssignmentGradingTask) => void;
 }) {
-  const [score, setScore] = useState(task.score?.toString() || task.aiScore?.toString() || '');
-  const [feedback, setFeedback] = useState(task.feedback || task.aiFeedback || '');
+  // Initialize with AI feedback if available, otherwise use graded feedback
+  const [score, setScore] = useState(() => {
+    if (task.score !== undefined && task.score !== null) {
+      return task.score.toString();
+    }
+    if (task.aiScore !== undefined && task.aiScore !== null) {
+      return task.aiScore.toString();
+    }
+    return '';
+  });
+  const [feedback, setFeedback] = useState(() => {
+    if (task.feedback && task.feedback.trim() !== '') {
+      return task.feedback;
+    }
+    if (task.aiFeedback && task.aiFeedback.trim() !== '') {
+      return task.aiFeedback;
+    }
+    return '';
+  });
   const [isEditing, setIsEditing] = useState(task.status === 'pending');
 
   // Update score and feedback when AI feedback is generated or when task changes

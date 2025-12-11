@@ -103,8 +103,9 @@ export const getAssignmentGradingTasks = async (user: AuthUser): Promise<Assignm
       }
 
       // Use existing AI feedback from database, or generate if not exists
-      let aiScore: number | undefined = submission.aiScore || undefined;
-      let aiFeedback: string | undefined = submission.aiFeedback || undefined;
+      // Use nullish coalescing (??) instead of || to handle 0 score correctly
+      let aiScore: number | undefined = submission.aiScore ?? undefined;
+      let aiFeedback: string | undefined = submission.aiFeedback ?? undefined;
 
       // Check if feedback is mock data or error message that should be regenerated
       const isMockFeedback = aiFeedback === 'คำตอบได้รับการตรวจสอบแล้ว' ||
