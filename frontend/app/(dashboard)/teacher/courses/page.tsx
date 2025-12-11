@@ -95,8 +95,8 @@ export default function TeacherCoursesPage() {
                 variant="primary" 
                 size="sm"
                 onClick={() => {
-                  // Navigate to course detail page (school admin view)
-                  router.push(`/school/courses/${course.id}`);
+                  // Navigate to course content page for teacher
+                  router.push(`/school/courses/${course.id}/content`);
                 }}
               >
                 จัดการ
