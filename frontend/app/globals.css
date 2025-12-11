@@ -35,16 +35,14 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-error: var(--error);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-sarabun: var(--font-sarabun);
-  --font-kanit: var(--font-kanit);
+  --font-sans: 'Sukhumvit Set', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Sukhumvit Set', monospace;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  font-family: 'Sukhumvit Set', system-ui, -apple-system, sans-serif;
 }
 
 /* Card Styles */
