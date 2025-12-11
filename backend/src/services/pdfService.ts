@@ -1,4 +1,5 @@
-const pdfParse = require('pdf-parse');
+// Don't require pdf-parse at top level to avoid DOMMatrix errors
+// Will use dynamic import only when needed
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
@@ -19,7 +20,10 @@ const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME || '';
  */
 export const extractTextFromPDF = async (buffer: Buffer): Promise<string> => {
   try {
-    // Check if pdf-parse is available and working
+    // Use dynamic import to avoid loading pdf-parse at module load time
+    // This prevents DOMMatrix errors when the module is imported
+    const pdfParse = (await import('pdf-parse')).default || require('pdf-parse');
+    
     if (typeof pdfParse !== 'function') {
       throw new Error('PDF parsing library is not available');
     }
