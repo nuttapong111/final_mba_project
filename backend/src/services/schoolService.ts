@@ -1,11 +1,12 @@
 import prisma from '../config/database';
 import { AuthUser } from '../middleware/auth';
+import { SubscriptionTier } from '@prisma/client';
 
 export interface SchoolData {
   id: string;
   name: string;
   domain?: string;
-  subscription?: string;
+  subscription?: SubscriptionTier;
   createdAt: Date;
   adminCount?: number;
   userCount?: number;
@@ -36,9 +37,9 @@ export const getAllSchools = async (user: AuthUser): Promise<SchoolData[]> => {
     id: school.id,
     name: school.name,
     domain: school.domain || undefined,
-    subscription: school.subscription || undefined,
+    subscription: school.subscription,
     createdAt: school.createdAt,
-    adminCount: school.users.filter((u) => u.role === 'SCHOOL_ADMIN').length,
+    adminCount: school.users.filter((u: { role: string }) => u.role === 'SCHOOL_ADMIN').length,
     userCount: school.users.length,
   }));
 };
@@ -68,9 +69,9 @@ export const getSchoolById = async (schoolId: string, user: AuthUser): Promise<S
     id: school.id,
     name: school.name,
     domain: school.domain || undefined,
-    subscription: school.subscription || undefined,
+    subscription: school.subscription,
     createdAt: school.createdAt,
-    adminCount: school.users.filter((u) => u.role === 'SCHOOL_ADMIN').length,
+    adminCount: school.users.filter((u: { role: string }) => u.role === 'SCHOOL_ADMIN').length,
     userCount: school.users.length,
   };
 };
@@ -82,7 +83,7 @@ export const createSchool = async (
   data: {
     name: string;
     domain?: string;
-    subscription?: string;
+    subscription?: SubscriptionTier | string;
   },
   user: AuthUser
 ): Promise<SchoolData> => {
@@ -90,11 +91,27 @@ export const createSchool = async (
     throw new Error('ไม่มีสิทธิ์สร้างสถาบันใหม่');
   }
 
+  // Validate and convert subscription to SubscriptionTier enum
+  let subscription: SubscriptionTier = SubscriptionTier.BASIC;
+  if (data.subscription) {
+    const validTiers = Object.values(SubscriptionTier);
+    if (typeof data.subscription === 'string' && validTiers.includes(data.subscription as SubscriptionTier)) {
+      subscription = data.subscription as SubscriptionTier;
+    } else if (data.subscription in SubscriptionTier) {
+      subscription = data.subscription as SubscriptionTier;
+    }
+  }
+
+  // Domain is required in schema, but we'll make it optional by generating a unique one if not provided
+  // Use UUID to ensure uniqueness
+  const { randomUUID } = await import('crypto');
+  const domain = data.domain || `school-${randomUUID()}.example.com`;
+
   const school = await prisma.school.create({
     data: {
       name: data.name,
-      domain: data.domain || null,
-      subscription: data.subscription || 'FREE',
+      domain: domain,
+      subscription: subscription,
     },
     include: {
       users: {
@@ -109,9 +126,9 @@ export const createSchool = async (
     id: school.id,
     name: school.name,
     domain: school.domain || undefined,
-    subscription: school.subscription || undefined,
+    subscription: school.subscription,
     createdAt: school.createdAt,
-    adminCount: school.users.filter((u) => u.role === 'SCHOOL_ADMIN').length,
+    adminCount: school.users.filter((u: { role: string }) => u.role === 'SCHOOL_ADMIN').length,
     userCount: school.users.length,
   };
 };
