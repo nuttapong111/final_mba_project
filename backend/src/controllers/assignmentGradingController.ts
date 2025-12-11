@@ -57,26 +57,13 @@ export const generateAssignmentAIFeedbackController = async (c: Context) => {
       assignmentContext += `\nคำอธิบาย: ${assignmentDescription}`;
     }
     
-    // Try to extract text from teacher's attached file (if PDF)
+    // Note: Skip extracting text from teacher's PDF file to avoid DOMMatrix errors
+    // Teacher's PDF file URL will be passed to Gemini File API if needed
     if (teacherFileUrl || teacherS3Key) {
-      const isTeacherPDF = teacherFileName?.toLowerCase().endsWith('.pdf');
-      
-      if (isTeacherPDF) {
-        try {
-          const { extractTextFromPDFUrl } = await import('../services/pdfService');
-          const teacherFileText = await extractTextFromPDFUrl(
-            teacherFileUrl || '',
-            teacherS3Key || null
-          );
-          
-          if (teacherFileText && teacherFileText.trim()) {
-            assignmentContext += `\n\nไฟล์แนบจากอาจารย์ (${teacherFileName}):\n${teacherFileText}`;
-            console.log(`[ASSIGNMENT AI FEEDBACK] Extracted ${teacherFileText.length} characters from teacher's PDF`);
-          }
-        } catch (pdfError: any) {
-          console.warn(`[ASSIGNMENT AI FEEDBACK] Could not read teacher's PDF file: ${pdfError.message}`);
-          // Continue without teacher's file content
-        }
+      const teacherFileName = teacherFileName || '';
+      if (teacherFileName) {
+        assignmentContext += `\n\nอาจารย์ได้แนบไฟล์: ${teacherFileName}`;
+        console.log(`[ASSIGNMENT AI FEEDBACK] Teacher attached file: ${teacherFileName}`);
       }
     }
     

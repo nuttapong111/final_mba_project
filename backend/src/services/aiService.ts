@@ -337,30 +337,18 @@ export const getAIGradingSuggestionWithPDF = async (
   } catch (error: any) {
     console.error('[GEMINI FILE API] Error:', error);
     
-    // Check if error is related to PDF processing or API
+    // Don't try fallback for PDF files - it will fail with DOMMatrix error
+    // Just throw a clear error message
     const isPDFProcessingError = error.message?.includes('DOMMatrix') || 
                                  error.message?.includes('canvas') ||
                                  error.message?.includes('browser');
     
     if (isPDFProcessingError) {
-      // If it's a PDF processing error, don't try fallback (will fail again)
-      throw new Error(`ไม่สามารถตรวจไฟล์ PDF ได้: ${error.message}. กรุณาตรวจสอบว่า Gemini API รองรับไฟล์ PDF หรือไม่`);
+      throw new Error(`ไม่สามารถตรวจไฟล์ PDF ได้: PDF processing library error. กรุณาตรวจสอบว่า Gemini API รองรับไฟล์ PDF หรือไม่`);
     }
     
-    // Fallback to text extraction method only if it's not a PDF processing error
-    console.log('[GEMINI FILE API] Falling back to text extraction method');
-    try {
-      const { extractTextFromPDFUrl } = await import('./pdfService');
-      const extractedText = await extractTextFromPDFUrl(pdfFileUrl, pdfS3Key);
-      return await getAIGradingSuggestion(question, extractedText, maxScore, schoolId, geminiApiKey);
-    } catch (fallbackError: any) {
-      // If fallback also fails, provide a clear error message
-      const fallbackErrorMsg = fallbackError.message?.includes('DOMMatrix') || 
-                               fallbackError.message?.includes('canvas')
-        ? 'ไม่สามารถอ่านไฟล์ PDF ได้ (PDF processing library error)'
-        : fallbackError.message;
-      throw new Error(`ไม่สามารถตรวจไฟล์ PDF ได้: ${error.message}. Fallback failed: ${fallbackErrorMsg}`);
-    }
+    // For other errors, provide a clear message
+    throw new Error(`ไม่สามารถตรวจไฟล์ PDF ได้: ${error.message}. กรุณาตรวจสอบว่า Gemini API รองรับไฟล์ PDF หรือไม่`);
   }
 };
 

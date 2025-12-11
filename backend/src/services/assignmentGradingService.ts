@@ -155,27 +155,14 @@ export const getAssignmentGradingTasks = async (user: AuthUser): Promise<Assignm
             assignmentContext += `\nคำอธิบาย: ${assignmentDescription}`;
           }
           
-          // Try to extract text from teacher's attached file (if PDF)
+          // Note: Skip extracting text from teacher's PDF file to avoid DOMMatrix errors
+          // Teacher's PDF file URL will be passed to Gemini File API if needed
+          // For now, just mention that teacher has attached a file
           if (submission.assignment.fileUrl || submission.assignment.s3Key) {
             const teacherFileName = submission.assignment.fileName || '';
-            const isTeacherPDF = teacherFileName.toLowerCase().endsWith('.pdf');
-            
-            if (isTeacherPDF) {
-              try {
-                const { extractTextFromPDFUrl } = await import('./pdfService');
-                const teacherFileText = await extractTextFromPDFUrl(
-                  submission.assignment.fileUrl || '',
-                  submission.assignment.s3Key || null
-                );
-                
-                if (teacherFileText && teacherFileText.trim()) {
-                  assignmentContext += `\n\nไฟล์แนบจากอาจารย์ (${teacherFileName}):\n${teacherFileText}`;
-                  console.log(`[ASSIGNMENT GRADING] Extracted ${teacherFileText.length} characters from teacher's PDF`);
-                }
-              } catch (pdfError: any) {
-                console.warn(`[ASSIGNMENT GRADING] Could not read teacher's PDF file: ${pdfError.message}`);
-                // Continue without teacher's file content
-              }
+            if (teacherFileName) {
+              assignmentContext += `\n\nอาจารย์ได้แนบไฟล์: ${teacherFileName}`;
+              console.log(`[ASSIGNMENT GRADING] Teacher attached file: ${teacherFileName}`);
             }
           }
           
@@ -213,34 +200,14 @@ export const getAssignmentGradingTasks = async (user: AuthUser): Promise<Assignm
             }
           } catch (aiError: any) {
             console.error('[ASSIGNMENT GRADING] AI grading error:', aiError);
-            // If it's a PDF and error, try fallback to text extraction
+            // For PDF files, don't try fallback (will fail with DOMMatrix error)
+            // Just throw the error with a clear message
             if (isStudentPDF && (submission.fileUrl || submission.s3Key)) {
-              console.log('[ASSIGNMENT GRADING] Trying fallback: extract text from PDF');
-              try {
-                const { extractTextFromPDFUrl } = await import('./pdfService');
-                const extractedText = await extractTextFromPDFUrl(
-                  submission.fileUrl || '',
-                  submission.s3Key || null
-                );
-                console.log('[ASSIGNMENT GRADING] Extracted text length:', extractedText.length);
-                aiResult = await getAIGradingSuggestion(
-                  assignmentContext,
-                  extractedText,
-                  submission.assignment.maxScore,
-                  schoolId
-                );
-                console.log('[ASSIGNMENT GRADING] Fallback text extraction successful');
-              } catch (fallbackError: any) {
-                console.error('[ASSIGNMENT GRADING] Fallback also failed:', fallbackError);
-                // Check if fallback error is PDF processing related
-                const isPDFProcessingError = fallbackError.message?.includes('DOMMatrix') || 
-                                           fallbackError.message?.includes('canvas') ||
-                                           fallbackError.message?.includes('browser');
-                if (isPDFProcessingError) {
-                  throw new Error(`ไม่สามารถตรวจไฟล์ PDF ได้: PDF processing library error. กรุณาตรวจสอบว่า Gemini API รองรับไฟล์ PDF หรือไม่`);
-                }
-                throw new Error(`ไม่สามารถตรวจไฟล์ PDF ได้: ${aiError.message}`);
-              }
+              const errorMsg = aiError.message?.includes('DOMMatrix') || 
+                              aiError.message?.includes('PDF processing')
+                ? 'ไม่สามารถตรวจไฟล์ PDF ได้: PDF processing error. กรุณาตรวจสอบว่า Gemini API รองรับไฟล์ PDF หรือไม่'
+                : `ไม่สามารถตรวจไฟล์ PDF ได้: ${aiError.message}`;
+              throw new Error(errorMsg);
             } else {
               throw aiError;
             }
@@ -367,26 +334,13 @@ export const regenerateAIFeedbackForSubmission = async (
     assignmentContext += `\nคำอธิบาย: ${assignmentDescription}`;
   }
 
-  // Try to extract text from teacher's attached file (if PDF)
+  // Note: Skip extracting text from teacher's PDF file to avoid DOMMatrix errors
+  // Teacher's PDF file URL will be passed to Gemini File API if needed
   if (submission.assignment.fileUrl || submission.assignment.s3Key) {
     const teacherFileName = submission.assignment.fileName || '';
-    const isTeacherPDF = teacherFileName.toLowerCase().endsWith('.pdf');
-
-    if (isTeacherPDF) {
-      try {
-        const { extractTextFromPDFUrl } = await import('./pdfService');
-        const teacherFileText = await extractTextFromPDFUrl(
-          submission.assignment.fileUrl || '',
-          submission.assignment.s3Key || null
-        );
-
-        if (teacherFileText && teacherFileText.trim()) {
-          assignmentContext += `\n\nไฟล์แนบจากอาจารย์ (${teacherFileName}):\n${teacherFileText}`;
-          console.log(`[REGENERATE AI FEEDBACK] Extracted ${teacherFileText.length} characters from teacher's PDF`);
-        }
-      } catch (pdfError: any) {
-        console.warn(`[REGENERATE AI FEEDBACK] Could not read teacher's PDF file: ${pdfError.message}`);
-      }
+    if (teacherFileName) {
+      assignmentContext += `\n\nอาจารย์ได้แนบไฟล์: ${teacherFileName}`;
+      console.log(`[REGENERATE AI FEEDBACK] Teacher attached file: ${teacherFileName}`);
     }
   }
 
