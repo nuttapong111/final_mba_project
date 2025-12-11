@@ -22,8 +22,10 @@ export const extractTextFromPDF = async (buffer: Buffer): Promise<string> => {
   try {
     // Use dynamic import to avoid loading pdf-parse at module load time
     // This prevents DOMMatrix errors when the module is imported
+    // pdf-parse uses CommonJS, so we need to handle it differently
     const pdfParseModule = await import('pdf-parse');
-    const pdfParse = (pdfParseModule.default || pdfParseModule) as (buffer: Buffer) => Promise<{ text: string }>;
+    // pdf-parse exports the function directly, not as default
+    const pdfParse = (pdfParseModule as any).default || pdfParseModule as (buffer: Buffer) => Promise<{ text: string }>;
     
     if (typeof pdfParse !== 'function') {
       throw new Error('PDF parsing library is not available');
