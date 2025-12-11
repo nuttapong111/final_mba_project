@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
 import { schoolsApi, type School } from '@/lib/api';
 import { BuildingOfficeIcon, PlusIcon } from '@heroicons/react/24/outline';
 import Swal from 'sweetalert2';
