@@ -226,15 +226,24 @@ export const getAIGradingSuggestionWithPDF = async (
     let teacherBase64Pdf: string | null = null;
     if (teacherPdfFileUrl || teacherPdfS3Key) {
       try {
-        console.log('[GEMINI FILE API] Downloading teacher PDF file...', { teacherPdfFileUrl: teacherPdfFileUrl?.substring(0, 50), teacherPdfS3Key });
+        console.log('[GEMINI FILE API] Downloading teacher PDF file...', { 
+          teacherPdfFileUrl: teacherPdfFileUrl?.substring(0, 50), 
+          teacherPdfS3Key,
+          hasUrl: !!teacherPdfFileUrl,
+          hasS3Key: !!teacherPdfS3Key
+        });
         const { downloadFile } = await import('./pdfService');
         const teacherPdfBuffer = await downloadFile(teacherPdfFileUrl || '', teacherPdfS3Key || null);
         teacherBase64Pdf = teacherPdfBuffer.toString('base64');
         console.log('[GEMINI FILE API] Teacher PDF file downloaded successfully, size:', teacherPdfBuffer.length, 'bytes');
+        console.log('[GEMINI FILE API] Teacher PDF converted to base64, length:', teacherBase64Pdf.length);
       } catch (downloadError: any) {
+        console.error('[GEMINI FILE API] Error downloading teacher PDF file:', downloadError);
         console.warn('[GEMINI FILE API] Could not download teacher PDF file, continuing without it:', downloadError.message);
         // Continue without teacher's file if download fails
       }
+    } else {
+      console.log('[GEMINI FILE API] No teacher PDF file provided (teacherPdfFileUrl:', !!teacherPdfFileUrl, ', teacherPdfS3Key:', !!teacherPdfS3Key, ')');
     }
 
     // Use Gemini API with file(s)
@@ -244,7 +253,7 @@ export const getAIGradingSuggestionWithPDF = async (
     const prompt = teacherBase64Pdf 
       ? `คุณเป็นผู้ช่วยตรวจการบ้านอัตนัย ให้คะแนนและให้คำแนะนำสำหรับการบ้านของนักเรียน
 
-คำถาม/โจทย์: ${question}
+**คำถาม/โจทย์:** ${question}
 
 **ไฟล์ที่แนบมา (2 ไฟล์):**
 1. **ไฟล์แรก (ไฟล์โจทย์):** ไฟล์ PDF ที่เป็นโจทย์/คำถามที่อาจารย์สร้างขึ้น - ใช้เป็นข้อมูลอ้างอิงเพื่อดูว่ามีโจทย์อะไรบ้างที่นักเรียนต้องทำ
@@ -254,6 +263,13 @@ export const getAIGradingSuggestionWithPDF = async (
 - ไฟล์แรกเป็นโจทย์ ไฟล์ที่สองเป็นคำตอบ
 - กรุณาตรวจสอบว่าไฟล์ที่สอง (คำตอบ) มีการตอบโจทย์จากไฟล์แรกหรือไม่
 - ถ้าไฟล์ที่สองเป็นเพียงโจทย์หรือเอกสารประกอบการเรียน (ไม่มีคำตอบ) ให้แจ้งว่าไม่สามารถให้คะแนนได้
+- กรุณาอ่านเนื้อหาในไฟล์ PDF ทั้งสองไฟล์อย่างละเอียดและเปรียบเทียบกัน
+
+**ขั้นตอนการตรวจ:**
+1. อ่านไฟล์แรก (โจทย์) เพื่อเข้าใจว่ามีโจทย์อะไรบ้าง
+2. อ่านไฟล์ที่สอง (คำตอบ) เพื่อดูว่านักเรียนตอบโจทย์ครบถ้วนหรือไม่
+3. เปรียบเทียบคำตอบกับโจทย์เพื่อประเมินความถูกต้อง
+4. ให้คะแนนตามความถูกต้อง ความสมบูรณ์ และความชัดเจน
 
 กรุณาตรวจสอบไฟล์ PDF ทั้งสองไฟล์และให้:
 1. คะแนน (0-${maxScore}) โดยพิจารณาจากความถูกต้อง ความสมบูรณ์ และความชัดเจนของคำตอบเมื่อเทียบกับโจทย์
@@ -263,8 +279,9 @@ export const getAIGradingSuggestionWithPDF = async (
 - PDF จะถูกประมวลผลเป็นภาพ (แต่ละหน้า = 1 ภาพ)
 - อาจไม่สามารถระบุตำแหน่งของข้อความหรือวัตถุได้อย่างแม่นยำ
 - ข้อความที่เขียนด้วยมืออาจทำให้เกิดความผิดพลาดในการตีความ
+- ถ้าไม่สามารถอ่านเนื้อหาในไฟล์ได้ ให้ระบุใน feedback ว่า "ไม่สามารถอ่านเนื้อหาในไฟล์ PDF ได้ กรุณาตรวจสอบว่าไฟล์ไม่เสียหาย"
 
-ตอบในรูปแบบ JSON:
+ตอบในรูปแบบ JSON เท่านั้น (ไม่มีข้อความอื่น):
 {
   "score": <คะแนน>,
   "feedback": "<คำแนะนำ>"
@@ -307,7 +324,13 @@ export const getAIGradingSuggestionWithPDF = async (
         const apiUrl = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
         
         console.log(`[GEMINI FILE API] Trying model: ${model}`);
-        console.log(`[GEMINI FILE API] PDF size: ${base64Pdf.length} characters (base64)`);
+        console.log(`[GEMINI FILE API] Student PDF size: ${base64Pdf.length} characters (base64)`);
+        if (teacherBase64Pdf) {
+          console.log(`[GEMINI FILE API] Teacher PDF size: ${teacherBase64Pdf.length} characters (base64)`);
+          console.log(`[GEMINI FILE API] Total PDFs to send: 2 (teacher + student)`);
+        } else {
+          console.log(`[GEMINI FILE API] Total PDFs to send: 1 (student only)`);
+        }
         
     // Check PDF size limit
     // For inline data: max 20MB
@@ -321,34 +344,45 @@ export const getAIGradingSuggestionWithPDF = async (
       throw new Error(`ไฟล์ PDF ใหญ่เกินไป (${pdfSizeMB.toFixed(2)} MB). สำหรับไฟล์ที่ใหญ่กว่า 20 MB กรุณาใช้ Files API (ยังไม่รองรับในเวอร์ชันนี้)`);
     }
         
+        const parts = [
+          {
+            text: prompt,
+          },
+          // Include teacher's PDF file first if available
+          ...(teacherBase64Pdf ? [{
+            inlineData: {
+              mimeType: 'application/pdf',
+              data: teacherBase64Pdf,
+            },
+          }] : []),
+          // Then student's PDF file
+          {
+            inlineData: {
+              mimeType: 'application/pdf',
+              data: base64Pdf,
+            },
+          },
+        ];
+        
+        console.log(`[GEMINI FILE API] Sending request with ${parts.length} parts:`, {
+          hasText: true,
+          hasTeacherPdf: !!teacherBase64Pdf,
+          hasStudentPdf: true,
+        });
+        
+        const body = JSON.stringify({
+          contents: [{
+            parts,
+          }],
+        });
+        
         const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-            body: JSON.stringify({
-              contents: [{
-                parts: [
-                  {
-                    text: prompt,
-                  },
-                  // Include teacher's PDF file first if available
-                  ...(teacherBase64Pdf ? [{
-                    inlineData: {
-                      mimeType: 'application/pdf',
-                      data: teacherBase64Pdf,
-                    },
-                  }] : []),
-                  // Then student's PDF file
-                  {
-                    inlineData: {
-                      mimeType: 'application/pdf',
-                      data: base64Pdf,
-                    },
-                  },
-                ],
-              }],
-            }),
+          body,
+        });
         });
 
         if (!response.ok) {
