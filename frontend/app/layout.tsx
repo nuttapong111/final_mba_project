@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-// Import Sukhumvit Set font (fallback to Sarabun/Kanit)
+// Import Thai fonts - direct import should work in Next.js 16
 import { Sarabun, Kanit } from "next/font/google";
 
 const sarabun = Sarabun({
