@@ -355,12 +355,125 @@ export const getAIGradingSuggestionWithPDF = async (
           }
           
           const errorMessage = errorData.error?.message || errorData.error || `Gemini API error with ${model}: ${response.status} ${response.statusText}`;
+          const errorStatus = errorData.error?.status || '';
+          
           console.error(`[GEMINI FILE API] ${errorMessage}`, { 
             status: response.status, 
             statusText: response.statusText,
+            errorStatus,
             errorData 
           });
-          lastError = new Error(errorMessage);
+          
+          // Check if model is overloaded (UNAVAILABLE status or overloaded message)
+          const isOverloaded = errorStatus === 'UNAVAILABLE' || 
+                              errorMessage?.toLowerCase().includes('overloaded') ||
+                              response.status === 503;
+          
+          if (isOverloaded) {
+            // Retry with exponential backoff
+            const retryAttempts = 3;
+            const baseDelay = 2000; // 2 seconds
+            
+            for (let attempt = 1; attempt <= retryAttempts; attempt++) {
+              const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff: 2s, 4s, 8s
+              console.log(`[GEMINI FILE API] Model ${model} is overloaded, retrying in ${delay}ms (attempt ${attempt}/${retryAttempts})...`);
+              
+              await new Promise(resolve => setTimeout(resolve, delay));
+              
+              // Retry the same request
+              try {
+                const retryResponse = await fetch(apiUrl, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    contents: [{
+                      parts: [
+                        {
+                          text: prompt,
+                        },
+                        ...(teacherBase64Pdf ? [{
+                          inlineData: {
+                            mimeType: 'application/pdf',
+                            data: teacherBase64Pdf,
+                          },
+                        }] : []),
+                        {
+                          inlineData: {
+                            mimeType: 'application/pdf',
+                            data: base64Pdf,
+                          },
+                        },
+                      ],
+                    }],
+                  }),
+                });
+                
+                if (retryResponse.ok) {
+                  console.log(`[GEMINI FILE API] Retry successful after ${attempt} attempt(s)`);
+                  // Process successful response
+                  const result = await retryResponse.json() as {
+                    candidates?: Array<{
+                      content?: {
+                        parts?: Array<{
+                          text?: string;
+                        }>;
+                      };
+                    }>;
+                  };
+                  const text = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                  
+                  console.log(`[GEMINI FILE API] Success with model: ${model} (after retry)`);
+                  
+                  // Parse JSON from response
+                  let jsonText = text.trim();
+                  if (jsonText.includes('```json')) {
+                    jsonText = jsonText.split('```json')[1].split('```')[0].trim();
+                  } else if (jsonText.includes('```')) {
+                    jsonText = jsonText.split('```')[1].split('```')[0].trim();
+                  }
+
+                  const parsed = JSON.parse(jsonText);
+                  
+                  const score = Math.max(0, Math.min(maxScore, Math.round(parsed.score || 0)));
+                  const feedback = parsed.feedback || 'ไม่สามารถให้คำแนะนำได้';
+
+                  return {
+                    score,
+                    feedback,
+                  };
+                } else {
+                  // If retry also fails, check if still overloaded
+                  const retryErrorData = await retryResponse.json().catch(() => ({}));
+                  const retryErrorStatus = retryErrorData.error?.status || '';
+                  const retryErrorMessage = retryErrorData.error?.message || '';
+                  
+                  if (retryErrorStatus !== 'UNAVAILABLE' && !retryErrorMessage?.toLowerCase().includes('overloaded')) {
+                    // Not overloaded anymore, but different error - try next model
+                    break;
+                  }
+                  
+                  // Still overloaded, continue to next retry attempt
+                  if (attempt === retryAttempts) {
+                    lastError = new Error(`Model ${model} is still overloaded after ${retryAttempts} retry attempts`);
+                  }
+                }
+              } catch (retryError: any) {
+                console.error(`[GEMINI FILE API] Retry attempt ${attempt} failed:`, retryError);
+                if (attempt === retryAttempts) {
+                  lastError = retryError;
+                }
+              }
+            }
+            
+            // If all retries failed, try next model
+            const nextModelIndex = modelsToTry.indexOf(model) + 1;
+            if (nextModelIndex < modelsToTry.length) {
+              console.log(`[GEMINI FILE API] Model ${model} still overloaded after retries, trying next model`);
+              continue;
+            }
+          }
           
           if (response.status === 404) {
             const nextModelIndex = modelsToTry.indexOf(model) + 1;
@@ -379,6 +492,7 @@ export const getAIGradingSuggestionWithPDF = async (
             }
           }
           
+          lastError = new Error(errorMessage);
           throw lastError;
         }
 
