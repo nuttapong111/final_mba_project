@@ -35,6 +35,7 @@ export const generateAssignmentAIFeedbackController = async (c: Context) => {
   try {
     const user = c.get('user');
     const { 
+      submissionId,
       assignmentTitle, 
       assignmentDescription, 
       studentNotes, 
@@ -46,6 +47,7 @@ export const generateAssignmentAIFeedbackController = async (c: Context) => {
       teacherS3Key,
       teacherFileName: teacherFileNameParam
     } = await c.req.json() as {
+      submissionId?: string;
       assignmentTitle: string;
       assignmentDescription?: string;
       studentNotes?: string;
@@ -122,6 +124,24 @@ export const generateAssignmentAIFeedbackController = async (c: Context) => {
       score: result.score,
       feedback: result.feedback.substring(0, 50) + '...',
     });
+    
+    // Save AI feedback to database if submissionId is provided
+    if (submissionId) {
+      try {
+        const prisma = (await import('../config/database')).default;
+        await prisma.assignmentSubmission.update({
+          where: { id: submissionId },
+          data: {
+            aiScore: result.score,
+            aiFeedback: result.feedback,
+          },
+        });
+        console.log('[ASSIGNMENT AI FEEDBACK] AI feedback saved to database for submission:', submissionId);
+      } catch (dbError: any) {
+        console.error('[ASSIGNMENT AI FEEDBACK] Error saving to database:', dbError);
+        // Continue even if database save fails - return the result anyway
+      }
+    }
     
     return c.json({ success: true, data: result });
   } catch (error: any) {

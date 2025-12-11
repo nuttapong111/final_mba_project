@@ -50,6 +50,7 @@ export const assignmentGradingApi = {
   },
 
   generateAIFeedback: async (data: {
+    submissionId?: string;
     assignmentTitle: string;
     assignmentDescription?: string;
     studentNotes?: string;

@@ -420,6 +420,14 @@ function AssignmentGradingCard({
                     if (response.success && response.data) {
                       setScore(response.data.score.toString());
                       setFeedback(response.data.feedback);
+                      // Update local state immediately
+                      setGradingTasks(prevTasks => 
+                        prevTasks.map(t => 
+                          t.id === task.id 
+                            ? { ...t, aiScore: response.data!.score, aiFeedback: response.data!.feedback }
+                            : t
+                        )
+                      );
                       await Swal.fire({
                         icon: 'success',
                         title: 'สร้างคำแนะนำสำเร็จ!',
@@ -427,8 +435,8 @@ function AssignmentGradingCard({
                         timer: 2000,
                         showConfirmButton: false,
                       });
-                      // Refresh data
-                      window.location.reload();
+                      // Refresh data to get latest from database
+                      fetchData();
                     } else {
                       throw new Error(response.error || 'ไม่สามารถสร้างคำแนะนำได้');
                     }
@@ -470,6 +478,7 @@ function AssignmentGradingCard({
                   });
 
                   const response = await assignmentGradingApi.generateAIFeedback({
+                    submissionId: task.id, // Add submissionId to save to database
                     assignmentTitle: task.assignmentTitle,
                     assignmentDescription: task.assignmentDescription,
                     maxScore: task.maxScore,
@@ -484,6 +493,14 @@ function AssignmentGradingCard({
                   if (response.success && response.data) {
                     setScore(response.data.score.toString());
                     setFeedback(response.data.feedback);
+                    // Update local state immediately
+                    setGradingTasks(prevTasks => 
+                      prevTasks.map(t => 
+                        t.id === task.id 
+                          ? { ...t, aiScore: response.data!.score, aiFeedback: response.data!.feedback }
+                          : t
+                      )
+                    );
                     await Swal.fire({
                       icon: 'success',
                       title: 'สร้างคำแนะนำสำเร็จ!',
@@ -491,8 +508,8 @@ function AssignmentGradingCard({
                       timer: 2000,
                       showConfirmButton: false,
                     });
-                    // Refresh data
-                    window.location.reload();
+                    // Refresh data to get latest from database
+                    fetchData();
                   } else {
                     throw new Error(response.error || 'ไม่สามารถสร้างคำแนะนำได้');
                   }
