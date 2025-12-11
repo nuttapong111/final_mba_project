@@ -122,8 +122,8 @@ export const getTeacherDashboardStats = async (user: AuthUser) => {
   const totalStudents = courses.reduce((sum, c) => sum + c.students.length, 0);
   const totalExams = courses.reduce((sum, c) => sum + c.exams.length, 0);
 
-  // Get pending grading tasks
-  const pendingGradingTasks = await prisma.gradingTask.count({
+  // Get pending grading tasks (exams)
+  const pendingExamGradingTasks = await prisma.gradingTask.count({
     where: {
       status: 'pending',
       submission: {
@@ -138,6 +138,24 @@ export const getTeacherDashboardStats = async (user: AuthUser) => {
       },
     },
   });
+
+  // Get pending assignment grading tasks
+  const pendingAssignmentGradingTasks = await prisma.assignmentSubmission.count({
+    where: {
+      score: null,
+      submittedAt: { not: null },
+      assignment: {
+        course: {
+          OR: [
+            { instructorId: user.id },
+            { teachers: { some: { teacherId: user.id } } },
+          ],
+        },
+      },
+    },
+  });
+
+  const pendingGradingTasks = pendingExamGradingTasks + pendingAssignmentGradingTasks;
 
   return {
     totalCourses,

@@ -358,8 +358,9 @@ export default function TeacherWebboardPage() {
               </div>
             </Card>
           ))
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
