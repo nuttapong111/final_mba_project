@@ -20,11 +20,15 @@ export const getAllSchools = async (user: AuthUser): Promise<SchoolData[]> => {
     throw new Error('ไม่มีสิทธิ์เข้าถึงข้อมูลสถาบันทั้งหมด');
   }
 
+  console.log('[SCHOOL SERVICE] Fetching all schools...');
+  const startTime = Date.now();
+
+  // Use _count for better performance instead of including all users
   const schools = await prisma.school.findMany({
     include: {
-      users: {
+      _count: {
         select: {
-          role: true,
+          users: true,
         },
       },
     },
@@ -33,15 +37,37 @@ export const getAllSchools = async (user: AuthUser): Promise<SchoolData[]> => {
     },
   });
 
-  return schools.map((school) => ({
+  console.log(`[SCHOOL SERVICE] Found ${schools.length} schools in ${Date.now() - startTime}ms`);
+
+  // Get admin counts separately using aggregation for better performance
+  const schoolIds = schools.map((s) => s.id);
+  const adminCounts = await prisma.user.groupBy({
+    by: ['schoolId'],
+    where: {
+      schoolId: { in: schoolIds },
+      role: 'SCHOOL_ADMIN',
+    },
+    _count: {
+      id: true,
+    },
+  });
+
+  const adminCountMap = new Map(
+    adminCounts.map((item) => [item.schoolId || '', item._count.id])
+  );
+
+  const result = schools.map((school) => ({
     id: school.id,
     name: school.name,
     domain: school.domain || undefined,
     subscription: school.subscription,
     createdAt: school.createdAt,
-    adminCount: school.users.filter((u: { role: string }) => u.role === 'SCHOOL_ADMIN').length,
-    userCount: school.users.length,
+    adminCount: adminCountMap.get(school.id) || 0,
+    userCount: school._count.users,
   }));
+
+  console.log(`[SCHOOL SERVICE] Processed ${result.length} schools in ${Date.now() - startTime}ms`);
+  return result;
 };
 
 /**
@@ -55,9 +81,9 @@ export const getSchoolById = async (schoolId: string, user: AuthUser): Promise<S
   const school = await prisma.school.findUnique({
     where: { id: schoolId },
     include: {
-      users: {
+      _count: {
         select: {
-          role: true,
+          users: true,
         },
       },
     },
@@ -65,14 +91,22 @@ export const getSchoolById = async (schoolId: string, user: AuthUser): Promise<S
 
   if (!school) return null;
 
+  // Get admin count separately
+  const adminCount = await prisma.user.count({
+    where: {
+      schoolId: school.id,
+      role: 'SCHOOL_ADMIN',
+    },
+  });
+
   return {
     id: school.id,
     name: school.name,
     domain: school.domain || undefined,
     subscription: school.subscription,
     createdAt: school.createdAt,
-    adminCount: school.users.filter((u: { role: string }) => u.role === 'SCHOOL_ADMIN').length,
-    userCount: school.users.length,
+    adminCount: adminCount,
+    userCount: school._count.users,
   };
 };
 
@@ -114,11 +148,19 @@ export const createSchool = async (
       subscription: subscription,
     },
     include: {
-      users: {
+      _count: {
         select: {
-          role: true,
+          users: true,
         },
       },
+    },
+  });
+
+  // Get admin count (should be 0 for new school)
+  const adminCount = await prisma.user.count({
+    where: {
+      schoolId: school.id,
+      role: 'SCHOOL_ADMIN',
     },
   });
 
@@ -128,7 +170,7 @@ export const createSchool = async (
     domain: school.domain || undefined,
     subscription: school.subscription,
     createdAt: school.createdAt,
-    adminCount: school.users.filter((u: { role: string }) => u.role === 'SCHOOL_ADMIN').length,
-    userCount: school.users.length,
+    adminCount: adminCount,
+    userCount: school._count.users,
   };
 };

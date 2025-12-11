@@ -24,15 +24,32 @@ export default function AdminSchoolsPage() {
   const fetchSchools = async () => {
     try {
       setLoading(true);
+      console.log('[SCHOOLS PAGE] Fetching schools...');
+      const startTime = Date.now();
+      
       const response = await schoolsApi.getAll();
       
+      const fetchTime = Date.now() - startTime;
+      console.log(`[SCHOOLS PAGE] Fetched in ${fetchTime}ms`);
+      
       if (response.success && response.data) {
+        console.log(`[SCHOOLS PAGE] Received ${response.data.length} schools`);
         setSchools(response.data);
+        
+        if (response.data.length === 0) {
+          Swal.fire({
+            icon: 'info',
+            title: 'ไม่มีข้อมูล',
+            text: 'ยังไม่มีสถาบันในระบบ กรุณาสร้างสถาบันใหม่',
+            timer: 2000,
+            showConfirmButton: false,
+          });
+        }
       } else {
         throw new Error(response.error || 'ไม่สามารถโหลดข้อมูลได้');
       }
     } catch (error: any) {
-      console.error('Error fetching schools:', error);
+      console.error('[SCHOOLS PAGE] Error fetching schools:', error);
       Swal.fire({
         icon: 'error',
         title: 'เกิดข้อผิดพลาด',

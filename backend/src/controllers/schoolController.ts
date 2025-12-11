@@ -4,9 +4,17 @@ import { getAllSchools, getSchoolById, createSchool } from '../services/schoolSe
 export const getAllSchoolsController = async (c: Context) => {
   try {
     const user = c.get('user');
+    console.log('[SCHOOL CONTROLLER] Getting all schools for user:', user.id);
+    const startTime = Date.now();
+    
     const schools = await getAllSchools(user);
+    
+    const duration = Date.now() - startTime;
+    console.log(`[SCHOOL CONTROLLER] Returned ${schools.length} schools in ${duration}ms`);
+    
     return c.json({ success: true, data: schools });
   } catch (error: any) {
+    console.error('[SCHOOL CONTROLLER] Error getting schools:', error);
     return c.json({ success: false, error: error.message }, 400);
   }
 };
