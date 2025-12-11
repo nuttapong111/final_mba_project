@@ -25,7 +25,8 @@ export const extractTextFromPDF = async (buffer: Buffer): Promise<string> => {
     // pdf-parse uses CommonJS, so we need to handle it differently
     const pdfParseModule = await import('pdf-parse');
     // pdf-parse exports the function directly, not as default
-    const pdfParse = (pdfParseModule as any).default || pdfParseModule as (buffer: Buffer) => Promise<{ text: string }>;
+    // Use unknown first to avoid TypeScript errors
+    const pdfParse = ((pdfParseModule as any).default || pdfParseModule) as unknown as (buffer: Buffer) => Promise<{ text: string }>;
     
     if (typeof pdfParse !== 'function') {
       throw new Error('PDF parsing library is not available');
