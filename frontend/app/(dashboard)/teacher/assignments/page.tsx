@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -272,12 +272,14 @@ function AssignmentGradingCard({
   formatDateTime,
   formatFileSize,
   isGeneratingAI,
+  setGeneratingAI,
 }: {
   task: AssignmentGradingTask;
   onGrade: (taskId: string, score: number, feedback: string) => void;
   formatDateTime: (date: string) => string;
   formatFileSize: (bytes?: number) => string;
   isGeneratingAI: boolean;
+  setGeneratingAI: React.Dispatch<React.SetStateAction<Set<string>>>;
 }) {
   const [score, setScore] = useState(task.score?.toString() || task.aiScore?.toString() || '');
   const [feedback, setFeedback] = useState(task.feedback || task.aiFeedback || '');
