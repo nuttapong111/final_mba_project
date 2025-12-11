@@ -40,3 +40,6 @@ WHERE "score" IS NULL
   AND "aiFeedback" IS NULL;
 
 
+
+
+

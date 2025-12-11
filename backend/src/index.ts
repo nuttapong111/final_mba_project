@@ -24,6 +24,7 @@ import contentProgressRoutes from './routes/contentProgress';
 import filesRoutes from './routes/files';
 import assignmentRoutes from './routes/assignments';
 import mlTrainingRoutes from './routes/mlTraining';
+import schoolsRoutes from './routes/schools';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
@@ -151,6 +152,7 @@ app.route('/api/content-progress', contentProgressRoutes);
 app.route('/api/files', filesRoutes);
 app.route('/api/assignments', assignmentRoutes);
 app.route('/api/ml-training', mlTrainingRoutes);
+app.route('/api/schools', schoolsRoutes);
 
 // 404
 app.notFound((c) => {
