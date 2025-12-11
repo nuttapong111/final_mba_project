@@ -254,11 +254,17 @@ export const getAIGradingSuggestionWithPDF = async (
         console.log(`[GEMINI FILE API] Trying model: ${model}`);
         console.log(`[GEMINI FILE API] PDF size: ${base64Pdf.length} characters (base64)`);
         
-        // Check PDF size limit (Gemini has a 20MB limit for base64 encoded files)
-        const pdfSizeMB = base64Pdf.length * 3 / 4 / 1024 / 1024;
-        if (pdfSizeMB > 20) {
-          throw new Error(`ไฟล์ PDF ใหญ่เกินไป (${pdfSizeMB.toFixed(2)} MB). ขนาดสูงสุดที่รองรับคือ 20 MB`);
-        }
+    // Check PDF size limit
+    // For inline data: max 20MB
+    // For Files API: max 50MB (but we'll use Files API for files > 20MB)
+    const pdfSizeMB = base64Pdf.length * 3 / 4 / 1024 / 1024;
+    
+    // If file is larger than 20MB, we should use Files API instead
+    // But for now, we'll limit to 20MB for inline data
+    // TODO: Implement Files API for large files (> 20MB)
+    if (pdfSizeMB > 20) {
+      throw new Error(`ไฟล์ PDF ใหญ่เกินไป (${pdfSizeMB.toFixed(2)} MB). สำหรับไฟล์ที่ใหญ่กว่า 20 MB กรุณาใช้ Files API (ยังไม่รองรับในเวอร์ชันนี้)`);
+    }
         
         const response = await fetch(apiUrl, {
           method: 'POST',
