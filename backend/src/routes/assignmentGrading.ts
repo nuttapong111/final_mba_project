@@ -4,6 +4,7 @@ import {
   getAssignmentGradingTasksController,
   gradeAssignmentSubmissionController,
   generateAssignmentAIFeedbackController,
+  regenerateAIFeedbackController,
 } from '../controllers/assignmentGradingController';
 
 const assignmentGrading = new Hono();
@@ -18,6 +19,9 @@ assignmentGrading.patch('/tasks/:submissionId', roleMiddleware('TEACHER'), grade
 
 // Generate AI feedback for assignment
 assignmentGrading.post('/ai-feedback', roleMiddleware('TEACHER'), generateAssignmentAIFeedbackController);
+
+// Regenerate AI feedback for a specific submission
+assignmentGrading.post('/submissions/:submissionId/regenerate-ai', roleMiddleware('TEACHER'), regenerateAIFeedbackController);
 
 export default assignmentGrading;
 

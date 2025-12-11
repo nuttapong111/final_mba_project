@@ -1,5 +1,5 @@
 import { Context } from 'hono';
-import { getAssignmentGradingTasks, gradeAssignmentSubmission } from '../services/assignmentGradingService';
+import { getAssignmentGradingTasks, gradeAssignmentSubmission, regenerateAIFeedbackForSubmission } from '../services/assignmentGradingService';
 import { getAIGradingSuggestion, getAIGradingSuggestionWithPDF } from '../services/aiService';
 
 export const getAssignmentGradingTasksController = async (c: Context) => {
@@ -123,6 +123,23 @@ export const generateAssignmentAIFeedbackController = async (c: Context) => {
     return c.json({ success: true, data: result });
   } catch (error: any) {
     console.error('[ASSIGNMENT AI FEEDBACK] Error:', error);
+    return c.json({ success: false, error: error.message || 'ไม่สามารถสร้างคำแนะนำจาก AI ได้' }, 500);
+  }
+};
+
+export const regenerateAIFeedbackController = async (c: Context) => {
+  try {
+    const user = c.get('user');
+    const submissionId = c.req.param('submissionId');
+
+    if (!submissionId) {
+      return c.json({ success: false, error: 'กรุณาระบุ ID การส่งงาน' }, 400);
+    }
+
+    const result = await regenerateAIFeedbackForSubmission(submissionId, user);
+    return c.json({ success: true, data: result });
+  } catch (error: any) {
+    console.error('[REGENERATE AI FEEDBACK] Error:', error);
     return c.json({ success: false, error: error.message || 'ไม่สามารถสร้างคำแนะนำจาก AI ได้' }, 500);
   }
 };

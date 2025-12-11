@@ -25,6 +25,7 @@ export default function AssignmentGradingPage() {
   const [gradingSubmission, setGradingSubmission] = useState<AssignmentSubmission | null>(null);
   const [score, setScore] = useState<number>(0);
   const [feedback, setFeedback] = useState<string>('');
+  const [regeneratingAI, setRegeneratingAI] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -66,6 +67,61 @@ export default function AssignmentGradingPage() {
     } else {
       setScore(submission.score || 0);
       setFeedback(submission.feedback || '');
+    }
+  };
+
+  const handleRegenerateAI = async (submissionId: string) => {
+    setRegeneratingAI(submissionId);
+    try {
+      Swal.fire({
+        title: 'กำลังสร้างคำแนะนำจาก AI...',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
+      const response = await assignmentsApi.regenerateAIFeedback(submissionId);
+      
+      if (response.success && response.data) {
+        // Update local state
+        if (assignment) {
+          const updatedSubmissions = assignment.submissions?.map((s) =>
+            s.id === submissionId
+              ? { ...s, aiScore: response.data!.score, aiFeedback: response.data!.feedback }
+              : s
+          );
+          setAssignment({ ...assignment, submissions: updatedSubmissions });
+        }
+
+        // If this submission is currently being graded, update the form
+        if (gradingSubmission?.id === submissionId) {
+          setScore(response.data.score);
+          setFeedback(response.data.feedback);
+        }
+
+        await Swal.fire({
+          icon: 'success',
+          title: 'สร้างคำแนะนำสำเร็จ!',
+          text: 'ได้รับคำแนะนำจาก AI แล้ว',
+          timer: 2000,
+          showConfirmButton: false,
+        });
+
+        // Refresh data
+        fetchData();
+      } else {
+        throw new Error(response.error || 'ไม่สามารถสร้างคำแนะนำได้');
+      }
+    } catch (error: any) {
+      console.error('Error regenerating AI feedback:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: error.message || 'ไม่สามารถสร้างคำแนะนำจาก AI ได้',
+      });
+    } finally {
+      setRegeneratingAI(null);
     }
   };
 
@@ -226,7 +282,7 @@ export default function AssignmentGradingPage() {
                       </div>
                     )}
                     {/* AI Feedback Preview */}
-                    {submission.aiScore !== undefined && submission.aiFeedback && (
+                    {submission.aiScore !== undefined && submission.aiFeedback ? (
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
                         <div className="flex items-center justify-between mb-1">
                           <h5 className="font-medium text-blue-900 text-sm flex items-center">
@@ -240,6 +296,27 @@ export default function AssignmentGradingPage() {
                           </span>
                         </div>
                         <p className="text-blue-800 text-xs line-clamp-2">{submission.aiFeedback}</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRegenerateAI(submission.id)}
+                          disabled={regeneratingAI === submission.id}
+                          className="mt-2 w-full"
+                        >
+                          {regeneratingAI === submission.id ? 'กำลังสร้าง...' : 'สร้างคำแนะนำใหม่'}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="mt-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRegenerateAI(submission.id)}
+                          disabled={regeneratingAI === submission.id}
+                          className="w-full"
+                        >
+                          {regeneratingAI === submission.id ? 'กำลังสร้างคำแนะนำจาก AI...' : 'สร้างคำแนะนำจาก AI'}
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -350,7 +427,7 @@ export default function AssignmentGradingPage() {
               )}
 
               {/* AI Feedback */}
-              {gradingSubmission.aiScore !== undefined && gradingSubmission.aiFeedback && !gradingSubmission.score && (
+              {gradingSubmission.aiScore !== undefined && gradingSubmission.aiFeedback && !gradingSubmission.score ? (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-medium text-blue-900 flex items-center">
@@ -364,6 +441,26 @@ export default function AssignmentGradingPage() {
                     </span>
                   </div>
                   <p className="text-blue-800 text-sm whitespace-pre-wrap">{gradingSubmission.aiFeedback}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleRegenerateAI(gradingSubmission.id)}
+                    disabled={regeneratingAI === gradingSubmission.id}
+                    className="mt-3 w-full"
+                  >
+                    {regeneratingAI === gradingSubmission.id ? 'กำลังสร้าง...' : 'สร้างคำแนะนำใหม่'}
+                  </Button>
+                </div>
+              ) : !gradingSubmission.score && (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => handleRegenerateAI(gradingSubmission.id)}
+                    disabled={regeneratingAI === gradingSubmission.id}
+                    className="w-full"
+                  >
+                    {regeneratingAI === gradingSubmission.id ? 'กำลังสร้างคำแนะนำจาก AI...' : 'สร้างคำแนะนำจาก AI'}
+                  </Button>
                 </div>
               )}
 

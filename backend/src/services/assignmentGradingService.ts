@@ -303,6 +303,155 @@ export const getAssignmentGradingTasks = async (user: AuthUser): Promise<Assignm
 };
 
 /**
+ * Regenerate AI feedback for an assignment submission
+ */
+export const regenerateAIFeedbackForSubmission = async (
+  submissionId: string,
+  user: AuthUser
+): Promise<{ score: number; feedback: string }> => {
+  const submission = await prisma.assignmentSubmission.findUnique({
+    where: { id: submissionId },
+    include: {
+      assignment: {
+        include: {
+          course: true,
+        },
+      },
+      student: {
+        select: {
+          id: true,
+          name: true,
+          avatar: true,
+        },
+      },
+    },
+  });
+
+  if (!submission) {
+    throw new Error('ไม่พบการส่งงาน');
+  }
+
+  // Check permission (only teachers and admins can regenerate AI feedback)
+  const isTeacher = submission.assignment.course.instructorId === user.id;
+  const isAdmin = user.role === 'SUPER_ADMIN' || (user.role === 'SCHOOL_ADMIN' && submission.assignment.course.schoolId === user.schoolId);
+  const isCourseTeacher = await prisma.courseTeacher.findFirst({
+    where: {
+      courseId: submission.assignment.courseId,
+      teacherId: user.id,
+      grading: true,
+    },
+  });
+
+  if (!isTeacher && !isAdmin && !isCourseTeacher) {
+    throw new Error('ไม่มีสิทธิ์สร้างคำแนะนำจาก AI');
+  }
+
+  if (!submission.submittedAt) {
+    throw new Error('การบ้านนี้ยังไม่ได้ส่ง');
+  }
+
+  const schoolId = submission.assignment.course.schoolId;
+  const assignmentTitle = submission.assignment.title;
+  const assignmentDescription = submission.assignment.description || '';
+
+  // Build assignment context
+  let assignmentContext = `การบ้าน: ${assignmentTitle}`;
+  if (assignmentDescription) {
+    assignmentContext += `\nคำอธิบาย: ${assignmentDescription}`;
+  }
+
+  // Try to extract text from teacher's attached file (if PDF)
+  if (submission.assignment.fileUrl || submission.assignment.s3Key) {
+    const teacherFileName = submission.assignment.fileName || '';
+    const isTeacherPDF = teacherFileName.toLowerCase().endsWith('.pdf');
+
+    if (isTeacherPDF) {
+      try {
+        const { extractTextFromPDFUrl } = await import('./pdfService');
+        const teacherFileText = await extractTextFromPDFUrl(
+          submission.assignment.fileUrl || '',
+          submission.assignment.s3Key || null
+        );
+
+        if (teacherFileText && teacherFileText.trim()) {
+          assignmentContext += `\n\nไฟล์แนบจากอาจารย์ (${teacherFileName}):\n${teacherFileText}`;
+          console.log(`[REGENERATE AI FEEDBACK] Extracted ${teacherFileText.length} characters from teacher's PDF`);
+        }
+      } catch (pdfError: any) {
+        console.warn(`[REGENERATE AI FEEDBACK] Could not read teacher's PDF file: ${pdfError.message}`);
+      }
+    }
+  }
+
+  // Generate presigned URL for student file
+  let fileUrl = submission.fileUrl;
+  if (submission.s3Key) {
+    try {
+      const { getPresignedUrl } = await import('./s3Service');
+      fileUrl = await getPresignedUrl(submission.s3Key, 3600);
+    } catch (error) {
+      console.error(`[REGENERATE AI FEEDBACK] Failed to generate presigned URL:`, error);
+    }
+  }
+
+  // Generate AI feedback
+  const studentFileName = submission.fileName || '';
+  const isStudentPDF = studentFileName.toLowerCase().endsWith('.pdf');
+
+  let aiResult;
+  try {
+    if (isStudentPDF && (fileUrl || submission.s3Key)) {
+      console.log('[REGENERATE AI FEEDBACK] Using Gemini File API for PDF:', studentFileName);
+      const { getAIGradingSuggestionWithPDF } = await import('./aiService');
+      aiResult = await getAIGradingSuggestionWithPDF(
+        assignmentContext,
+        fileUrl || '',
+        submission.s3Key || null,
+        submission.assignment.maxScore,
+        schoolId
+      );
+    } else {
+      let studentAnswer = 'นักเรียนส่งไฟล์';
+      if (submission.fileName) {
+        studentAnswer = `นักเรียนส่งไฟล์: ${submission.fileName}`;
+      }
+
+      const { getAIGradingSuggestion } = await import('./aiService');
+      aiResult = await getAIGradingSuggestion(
+        assignmentContext,
+        studentAnswer,
+        submission.assignment.maxScore,
+        schoolId
+      );
+    }
+
+    console.log('[REGENERATE AI FEEDBACK] AI result received:', {
+      score: aiResult.score,
+      feedbackLength: aiResult.feedback.length,
+    });
+
+    // Update submission with new AI feedback
+    await prisma.assignmentSubmission.update({
+      where: { id: submission.id },
+      data: {
+        aiScore: aiResult.score,
+        aiFeedback: aiResult.feedback,
+      },
+    });
+
+    console.log('[REGENERATE AI FEEDBACK] AI feedback updated in database');
+
+    return {
+      score: aiResult.score,
+      feedback: aiResult.feedback,
+    };
+  } catch (error: any) {
+    console.error('[REGENERATE AI FEEDBACK] Error:', error);
+    throw new Error(`ไม่สามารถสร้างคำแนะนำจาก AI ได้: ${error.message}`);
+  }
+};
+
+/**
  * Grade an assignment submission
  */
 export const gradeAssignmentSubmission = async (
