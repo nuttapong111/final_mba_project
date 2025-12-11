@@ -383,7 +383,6 @@ export const getAIGradingSuggestionWithPDF = async (
           },
           body,
         });
-        });
 
         if (!response.ok) {
           let errorData: any = {};
