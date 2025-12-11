@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { coursesApi, type Course } from '@/lib/api';
+import { useAuthStore } from '@/store/authStore';
 import {
   ArrowLeftIcon,
   PencilIcon,
@@ -31,8 +32,12 @@ export default function CourseLayout({
   const id = params.id as string;
   const router = useRouter();
   const pathname = usePathname();
+  const { user } = useAuthStore();
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Check if user is teacher
+  const isTeacher = user?.role === 'TEACHER' || user?.role === 'teacher';
 
   useEffect(() => {
     fetchCourse();
@@ -102,56 +107,72 @@ export default function CourseLayout({
     }
   };
 
-  const tabs = [
+  // Define all tabs
+  const allTabs = [
     {
       id: 'content',
       name: 'จัดการเนื้อหาหลักสูตร',
       icon: DocumentTextIcon,
       href: `/school/courses/${id}/content`,
-    },
-    {
-      id: 'categories',
-      name: 'หมวดหมู่',
-      icon: TagIcon,
-      href: `/school/courses/${id}/categories`,
-    },
-    {
-      id: 'completion',
-      name: 'เงื่อนไขการจบหลักสูตรและระบบเกรด',
-      icon: CheckCircleIcon,
-      href: `/school/courses/${id}/completion-settings`,
+      allowedRoles: ['TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN'],
     },
     {
       id: 'question-bank',
       name: 'คลังข้อสอบ',
       icon: ArchiveBoxIcon,
       href: `/school/courses/${id}/question-bank`,
-    },
-    {
-      id: 'polls',
-      name: 'แบบประเมิน',
-      icon: ClipboardDocumentCheckIcon,
-      href: `/school/courses/${id}/polls`,
+      allowedRoles: ['TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN'],
     },
     {
       id: 'assignments',
       name: 'การบ้าน',
       icon: DocumentArrowUpIcon,
       href: `/school/courses/${id}/assignments`,
+      allowedRoles: ['TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN'],
+    },
+    {
+      id: 'categories',
+      name: 'หมวดหมู่',
+      icon: TagIcon,
+      href: `/school/courses/${id}/categories`,
+      allowedRoles: ['SCHOOL_ADMIN', 'SUPER_ADMIN'],
+    },
+    {
+      id: 'completion',
+      name: 'เงื่อนไขการจบหลักสูตรและระบบเกรด',
+      icon: CheckCircleIcon,
+      href: `/school/courses/${id}/completion-settings`,
+      allowedRoles: ['SCHOOL_ADMIN', 'SUPER_ADMIN'],
+    },
+    {
+      id: 'polls',
+      name: 'แบบประเมิน',
+      icon: ClipboardDocumentCheckIcon,
+      href: `/school/courses/${id}/polls`,
+      allowedRoles: ['SCHOOL_ADMIN', 'SUPER_ADMIN'],
     },
     {
       id: 'certificate',
       name: 'ใบประกาศนียบัตร',
       icon: AcademicCapIcon,
       href: `/school/courses/${id}/certificate`,
+      allowedRoles: ['SCHOOL_ADMIN', 'SUPER_ADMIN'],
     },
     {
       id: 'teachers-students',
       name: 'อาจารย์และนักเรียน',
       icon: UserGroupIcon,
       href: `/school/courses/${id}/teachers-students`,
+      allowedRoles: ['SCHOOL_ADMIN', 'SUPER_ADMIN'],
     },
   ];
+
+  // Filter tabs based on user role
+  const tabs = allTabs.filter(tab => {
+    if (!user?.role) return false;
+    const userRole = user.role.toUpperCase();
+    return tab.allowedRoles.some(role => role.toUpperCase() === userRole);
+  });
 
   // ตรวจสอบ active tab จาก pathname
   const getActiveTab = () => {
@@ -183,16 +204,19 @@ export default function CourseLayout({
             <p className="text-gray-600 mt-1">จัดการหลักสูตร</p>
           </div>
         </div>
-        <div className="flex space-x-3">
-          <Button variant="outline" onClick={handleEdit}>
-            <PencilIcon className="h-5 w-5 mr-2 inline" />
-            แก้ไข
-          </Button>
-          <Button variant="outline" onClick={handleDelete}>
-            <TrashIcon className="h-5 w-5 mr-2 inline" />
-            ลบ
-          </Button>
-        </div>
+        {/* Only show edit/delete buttons for admins, not teachers */}
+        {!isTeacher && (
+          <div className="flex space-x-3">
+            <Button variant="outline" onClick={handleEdit}>
+              <PencilIcon className="h-5 w-5 mr-2 inline" />
+              แก้ไข
+            </Button>
+            <Button variant="outline" onClick={handleDelete}>
+              <TrashIcon className="h-5 w-5 mr-2 inline" />
+              ลบ
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
