@@ -28,15 +28,6 @@ export default function TeacherAssignmentsPage() {
   const [loading, setLoading] = useState(true);
   const [generatingAI, setGeneratingAI] = useState<Set<string>>(new Set()); // Track which tasks are generating AI
   const [selectedTask, setSelectedTask] = useState<AssignmentGradingTask | null>(null);
-  
-  // Callback to update task and refresh data
-  const handleUpdateTask = async (updatedTask: AssignmentGradingTask) => {
-    setGradingTasks(prevTasks => 
-      prevTasks.map(t => t.id === updatedTask.id ? updatedTask : t)
-    );
-    // Refresh data from server to ensure consistency
-    await fetchData();
-  };
 
   useEffect(() => {
     fetchData();
@@ -89,6 +80,15 @@ export default function TeacherAssignmentsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Callback to update task and refresh data
+  const handleUpdateTask = async (updatedTask: AssignmentGradingTask) => {
+    setGradingTasks(prevTasks => 
+      prevTasks.map(t => t.id === updatedTask.id ? updatedTask : t)
+    );
+    // Refresh data from server to ensure consistency
+    await fetchData();
   };
 
   const handleGrade = async (taskId: string, score: number, feedback: string) => {
