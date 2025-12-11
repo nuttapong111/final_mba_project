@@ -252,19 +252,40 @@ export const getAIGradingSuggestionWithPDF = async (
     let teacherBase64Pdf: string | null = null;
     if (teacherPdfFileUrl || teacherPdfS3Key) {
       try {
+        console.log('[GEMINI FILE API] ===== DOWNLOADING TEACHER PDF =====');
         console.log('[GEMINI FILE API] Downloading teacher PDF file...', { 
-          teacherPdfFileUrl: teacherPdfFileUrl?.substring(0, 50), 
+          teacherPdfFileUrl: teacherPdfFileUrl?.substring(0, 100), 
           teacherPdfS3Key,
           hasUrl: !!teacherPdfFileUrl,
-          hasS3Key: !!teacherPdfS3Key
+          hasS3Key: !!teacherPdfS3Key,
+          studentFileUrl: pdfFileUrl?.substring(0, 100),
+          studentS3Key: pdfS3Key,
         });
+        
+        // Check if teacher file URL/S3Key is the same as student file
+        const isSameFile = (teacherPdfFileUrl && pdfFileUrl && teacherPdfFileUrl === pdfFileUrl) ||
+                           (teacherPdfS3Key && pdfS3Key && teacherPdfS3Key === pdfS3Key);
+        if (isSameFile) {
+          console.warn('[GEMINI FILE API] ⚠️ WARNING: Teacher file URL/S3Key is the same as student file!');
+          console.warn('[GEMINI FILE API] Teacher file:', teacherPdfFileUrl || teacherPdfS3Key);
+          console.warn('[GEMINI FILE API] Student file:', pdfFileUrl || pdfS3Key);
+        }
+        
         const { downloadFile } = await import('./pdfService');
         const teacherPdfBuffer = await downloadFile(teacherPdfFileUrl || '', teacherPdfS3Key || null);
         teacherBase64Pdf = teacherPdfBuffer.toString('base64');
-        console.log('[GEMINI FILE API] Teacher PDF file downloaded successfully, size:', teacherPdfBuffer.length, 'bytes');
-        console.log('[GEMINI FILE API] Teacher PDF converted to base64, length:', teacherBase64Pdf.length);
+        console.log('[GEMINI FILE API] ✅ Teacher PDF file downloaded successfully, size:', teacherPdfBuffer.length, 'bytes');
+        console.log('[GEMINI FILE API] ✅ Teacher PDF converted to base64, length:', teacherBase64Pdf.length);
+        
+        // Check if file content is the same
+        if (teacherBase64Pdf === base64Pdf) {
+          console.error('[GEMINI FILE API] ❌ ERROR: Teacher PDF content is IDENTICAL to student PDF content!');
+          console.error('[GEMINI FILE API] This means both files are the same file!');
+        } else {
+          console.log('[GEMINI FILE API] ✅ Teacher PDF content is different from student PDF (as expected)');
+        }
       } catch (downloadError: any) {
-        console.error('[GEMINI FILE API] Error downloading teacher PDF file:', downloadError);
+        console.error('[GEMINI FILE API] ❌ Error downloading teacher PDF file:', downloadError);
         console.warn('[GEMINI FILE API] Could not download teacher PDF file, continuing without it:', downloadError.message);
         // Continue without teacher's file if download fails
       }
