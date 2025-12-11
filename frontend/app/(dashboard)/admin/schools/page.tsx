@@ -233,14 +233,18 @@ export default function AdminSchoolsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Domain (ไม่บังคับ)
+                  Domain/Subdomain (ไม่บังคับ)
                 </label>
                 <Input
                   type="text"
                   value={formData.domain}
                   onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
-                  placeholder="example.com"
+                  placeholder="school.example.com หรือ school"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  สามารถใช้เป็น subdomain (เช่น school.example.com) หรือ domain เต็ม (เช่น school.com)
+                  ถ้าไม่ระบุจะสร้างอัตโนมัติ
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

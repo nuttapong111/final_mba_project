@@ -9,9 +9,18 @@ export interface AuthUser {
   schoolId?: string;
 }
 
+export interface SchoolContext {
+  id: string;
+  name: string;
+  domain: string;
+  subscription: string;
+}
+
 declare module 'hono' {
   interface ContextVariableMap {
     user: AuthUser;
+    school?: SchoolContext;
+    schoolId?: string;
   }
 }
 
