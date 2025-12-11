@@ -205,14 +205,22 @@ export const getAIGradingSuggestionWithPDF = async (
     }
 
     // Download PDF file
-    const { downloadFile } = await import('./pdfService');
-    const pdfBuffer = await downloadFile(pdfFileUrl, pdfS3Key);
+    let pdfBuffer: Buffer;
+    try {
+      console.log('[GEMINI FILE API] Downloading PDF file...', { pdfFileUrl: pdfFileUrl?.substring(0, 50), pdfS3Key });
+      const { downloadFile } = await import('./pdfService');
+      pdfBuffer = await downloadFile(pdfFileUrl, pdfS3Key);
+      console.log('[GEMINI FILE API] PDF file downloaded successfully, size:', pdfBuffer.length, 'bytes');
+    } catch (downloadError: any) {
+      console.error('[GEMINI FILE API] Error downloading PDF file:', downloadError);
+      throw new Error(`ไม่สามารถดาวน์โหลดไฟล์ PDF ได้: ${downloadError.message}`);
+    }
     
     // Convert PDF to base64 for inline embedding
     // Note: Gemini API supports inline file data with base64 encoding
     const base64Pdf = pdfBuffer.toString('base64');
     
-    console.log('[GEMINI FILE API] PDF file loaded, size:', pdfBuffer.length, 'bytes');
+    console.log('[GEMINI FILE API] PDF converted to base64, length:', base64Pdf.length);
 
     // Use Gemini API with file
     const prompt = `คุณเป็นผู้ช่วยตรวจการบ้านอัตนัย ให้คะแนนและให้คำแนะนำสำหรับการบ้านของนักเรียน
@@ -275,15 +283,34 @@ export const getAIGradingSuggestionWithPDF = async (
         });
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          const errorMessage = `Gemini API error with ${model}: ${response.status} ${response.statusText}`;
-          console.log(`[GEMINI FILE API] ${errorMessage}`);
+          let errorData: any = {};
+          try {
+            errorData = await response.json();
+          } catch (e) {
+            console.warn('[GEMINI FILE API] Could not parse error response as JSON');
+          }
+          
+          const errorMessage = errorData.error?.message || errorData.error || `Gemini API error with ${model}: ${response.status} ${response.statusText}`;
+          console.error(`[GEMINI FILE API] ${errorMessage}`, { 
+            status: response.status, 
+            statusText: response.statusText,
+            errorData 
+          });
           lastError = new Error(errorMessage);
           
           if (response.status === 404) {
             const nextModelIndex = modelsToTry.indexOf(model) + 1;
             if (nextModelIndex < modelsToTry.length) {
               console.log(`[GEMINI FILE API] Model ${model} not found, trying next model`);
+              continue;
+            }
+          }
+          
+          // If it's a 400 error, it might be that the model doesn't support PDF
+          if (response.status === 400) {
+            const nextModelIndex = modelsToTry.indexOf(model) + 1;
+            if (nextModelIndex < modelsToTry.length) {
+              console.log(`[GEMINI FILE API] Model ${model} returned 400, trying next model`);
               continue;
             }
           }

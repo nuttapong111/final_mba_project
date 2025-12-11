@@ -44,8 +44,21 @@ export const generateAssignmentAIFeedbackController = async (c: Context) => {
       studentFileName,
       teacherFileUrl,
       teacherS3Key,
-      teacherFileName
-    } = await c.req.json();
+      teacherFileName: teacherFileNameParam
+    } = await c.req.json() as {
+      assignmentTitle: string;
+      assignmentDescription?: string;
+      studentNotes?: string;
+      maxScore?: number;
+      studentFileUrl?: string;
+      studentS3Key?: string;
+      studentFileName?: string;
+      teacherFileUrl?: string;
+      teacherS3Key?: string;
+      teacherFileName?: string;
+    };
+    
+    const teacherFileName = teacherFileNameParam;
 
     if (!assignmentTitle) {
       return c.json({ success: false, error: 'กรุณาระบุชื่อการบ้าน' }, 400);
