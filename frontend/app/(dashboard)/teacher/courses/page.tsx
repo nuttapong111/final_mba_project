@@ -11,6 +11,7 @@ import Swal from 'sweetalert2';
 
 export default function TeacherCoursesPage() {
   const { user } = useAuthStore();
+  const router = useRouter();
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -90,7 +91,16 @@ export default function TeacherCoursesPage() {
                       </span>
                     )}
                   </div>
-              <Button variant="primary" size="sm">จัดการ</Button>
+              <Button 
+                variant="primary" 
+                size="sm"
+                onClick={() => {
+                  // Navigate to course detail page (school admin view)
+                  router.push(`/school/courses/${course.id}`);
+                }}
+              >
+                จัดการ
+              </Button>
             </div>
           </Card>
             ))
