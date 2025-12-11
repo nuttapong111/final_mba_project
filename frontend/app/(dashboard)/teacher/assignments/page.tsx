@@ -557,65 +557,6 @@ function AssignmentGradingCard({
           </div>
         ) : null}
 
-        {/* Remove fallback button - card should handle all cases */}
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-2">
-            <Button
-              variant="outline"
-              onClick={async () => {
-                setGeneratingAI((prev) => new Set(prev).add(task.id));
-                try {
-                  Swal.fire({
-                    title: 'กำลังสร้างคำแนะนำใหม่จาก AI...',
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                      Swal.showLoading();
-                    },
-                  });
-
-                  const response = await assignmentGradingApi.regenerateAIFeedback(task.id);
-                  
-                  if (response.success && response.data) {
-                    setScore(response.data.score.toString());
-                    setFeedback(response.data.feedback);
-                    // Update local state immediately
-                    onUpdateTask({
-                      ...task,
-                      aiScore: response.data.score,
-                      aiFeedback: response.data.feedback,
-                    });
-                    await Swal.fire({
-                      icon: 'success',
-                      title: 'สร้างคำแนะนำใหม่สำเร็จ!',
-                      text: 'ได้รับคำแนะนำใหม่จาก AI แล้ว',
-                      timer: 2000,
-                      showConfirmButton: false,
-                    });
-                  } else {
-                    throw new Error(response.error || 'ไม่สามารถสร้างคำแนะนำได้');
-                  }
-                } catch (error: any) {
-                  console.error('Error regenerating AI feedback:', error);
-                  Swal.fire({
-                    icon: 'error',
-                    title: 'เกิดข้อผิดพลาด',
-                    text: error.message || 'ไม่สามารถสร้างคำแนะนำจาก AI ได้',
-                  });
-                } finally {
-                  setGeneratingAI((prev) => {
-                    const newSet = new Set(prev);
-                    newSet.delete(task.id);
-                    return newSet;
-                  });
-                }
-              }}
-              disabled={isGeneratingAI}
-              className="w-full"
-            >
-              {isGeneratingAI ? 'กำลังสร้าง...' : 'ขอคำแนะนำใหม่จาก AI อีกครั้ง'}
-            </Button>
-          </div>
-        )}
-
         {/* Grading Form */}
         {isEditing ? (
           <div className="space-y-4 border-t pt-4">
