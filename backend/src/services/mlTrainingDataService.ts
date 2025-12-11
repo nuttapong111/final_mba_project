@@ -42,21 +42,21 @@ export const saveMLTrainingData = async (
       console.log(`[ML TRAINING DATA] Updated training data for ${sourceType}:${sourceId}`);
     } else {
       // Create new record
-      await prisma.mLTrainingData.create({
-        data: {
-          question,
-          answer,
-          aiScore,
-          aiFeedback,
-          teacherScore,
-          teacherFeedback,
-          maxScore,
-          sourceType,
-          sourceId,
-          schoolId: schoolId || null,
-          usedForTraining: false,
-        },
-      });
+    await prisma.mLTrainingData.create({
+      data: {
+        question,
+        answer,
+        aiScore,
+        aiFeedback,
+        teacherScore,
+        teacherFeedback,
+        maxScore,
+        sourceType,
+        sourceId,
+        schoolId: schoolId || null,
+        usedForTraining: false,
+      },
+    });
       console.log(`[ML TRAINING DATA] Created training data for ${sourceType}:${sourceId}`);
     }
   } catch (error: any) {
@@ -92,8 +92,8 @@ export const getMLTrainingData = async (
         OR: [
           // Has teacher feedback (preferred)
           {
-            teacherScore: { not: null },
-            teacherFeedback: { not: null },
+        teacherScore: { not: null },
+        teacherFeedback: { not: null },
           },
           // Or has AI feedback (can be used for training)
           {

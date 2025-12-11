@@ -33,7 +33,7 @@ export default function MLTrainingPage() {
   useEffect(() => {
     if (user) {
       console.log('[ML Training] Fetching data for user:', user.id, 'schoolId:', user.schoolId);
-      fetchData();
+    fetchData();
     } else {
       console.log('[ML Training] User not ready yet');
     }
@@ -314,10 +314,10 @@ export default function MLTrainingPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">การเทรนโมเดล ML</h1>
-          <p className="text-gray-600 mt-1">จัดการและตรวจสอบการเทรนโมเดล Machine Learning</p>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">การเทรนโมเดล ML</h1>
+        <p className="text-gray-600 mt-1">จัดการและตรวจสอบการเทรนโมเดล Machine Learning</p>
+      </div>
         <div className="flex items-center space-x-3">
           <Button
             onClick={handleSync}

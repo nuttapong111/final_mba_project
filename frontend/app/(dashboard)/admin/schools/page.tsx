@@ -32,20 +32,23 @@ export default function AdminSchoolsPage() {
       const fetchTime = Date.now() - startTime;
       console.log(`[SCHOOLS PAGE] Fetched in ${fetchTime}ms`);
       
-      if (response.success && response.data) {
-        console.log(`[SCHOOLS PAGE] Received ${response.data.length} schools`);
-        setSchools(response.data);
-        
-        if (response.data.length === 0) {
-          Swal.fire({
-            icon: 'info',
-            title: 'ไม่มีข้อมูล',
-            text: 'ยังไม่มีสถาบันในระบบ กรุณาสร้างสถาบันใหม่',
-            timer: 2000,
-            showConfirmButton: false,
-          });
+      console.log('[SCHOOLS PAGE] Response:', response);
+      
+      if (response.success) {
+        if (response.data && Array.isArray(response.data)) {
+          console.log(`[SCHOOLS PAGE] Received ${response.data.length} schools`);
+          setSchools(response.data);
+          
+          if (response.data.length === 0) {
+            console.log('[SCHOOLS PAGE] No schools found');
+            // Don't show alert, just show empty state
+          }
+        } else {
+          console.warn('[SCHOOLS PAGE] Response success but no data or data is not array:', response);
+          setSchools([]);
         }
       } else {
+        console.error('[SCHOOLS PAGE] Response not successful:', response);
         throw new Error(response.error || 'ไม่สามารถโหลดข้อมูลได้');
       }
     } catch (error: any) {
@@ -149,14 +152,20 @@ export default function AdminSchoolsPage() {
             <p className="text-gray-600">กำลังโหลดข้อมูล...</p>
           </div>
         </Card>
-      ) : schools.length === 0 ? (
-        <Card>
-          <div className="text-center py-12">
-            <BuildingOfficeIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">ยังไม่มีสถาบันในระบบ</p>
-          </div>
-        </Card>
       ) : (
+        <>
+          {schools.length === 0 ? (
+            <Card>
+              <div className="text-center py-12">
+                <BuildingOfficeIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 mb-4">ยังไม่มีสถาบันในระบบ</p>
+                <Button onClick={() => setShowCreateModal(true)}>
+                  <PlusIcon className="h-5 w-5 mr-2 inline" />
+                  สร้างสถาบันแรก
+                </Button>
+              </div>
+            </Card>
+          ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {schools.map((school) => (
             <Card key={school.id} hover>
@@ -212,6 +221,8 @@ export default function AdminSchoolsPage() {
             </Card>
           ))}
         </div>
+          )}
+        </>
       )}
 
       {/* Create School Modal */}
@@ -233,18 +244,14 @@ export default function AdminSchoolsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Domain/Subdomain (ไม่บังคับ)
+                  Domain (ไม่บังคับ)
                 </label>
                 <Input
                   type="text"
                   value={formData.domain}
                   onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
-                  placeholder="school.example.com หรือ school"
+                  placeholder="example.com"
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  สามารถใช้เป็น subdomain (เช่น school.example.com) หรือ domain เต็ม (เช่น school.com)
-                  ถ้าไม่ระบุจะสร้างอัตโนมัติ
-                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

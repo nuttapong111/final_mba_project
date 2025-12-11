@@ -30,7 +30,7 @@ export const getAISettings = async (schoolId: string | null, user: AuthUser) => 
       })
     : await prisma.aISettings.findFirst({
         where: { schoolId: null },
-      });
+  });
 
   // If no settings exist, create default with Gemini
   if (!settings) {
@@ -87,27 +87,27 @@ export const updateAISettings = async (
       })
     : await prisma.aISettings.findFirst({
         where: { schoolId: null },
-      });
+  });
 
   // Use upsert when schoolId is provided, otherwise use findFirst + create/update
   let settings;
   if (targetSchoolId) {
     settings = await prisma.aISettings.upsert({
       where: { schoolId: targetSchoolId },
-      create: {
+    create: {
         schoolId: targetSchoolId,
-        provider: data.provider,
-        mlApiUrl: data.mlApiUrl,
-        geminiApiKey: data.geminiApiKey || undefined,
-        enabled: data.enabled,
-      },
-      update: {
-        provider: data.provider,
-        mlApiUrl: data.mlApiUrl,
-        geminiApiKey: data.geminiApiKey !== undefined ? data.geminiApiKey : existing?.geminiApiKey,
-        enabled: data.enabled,
-      },
-    });
+      provider: data.provider,
+      mlApiUrl: data.mlApiUrl,
+      geminiApiKey: data.geminiApiKey || undefined,
+      enabled: data.enabled,
+    },
+    update: {
+      provider: data.provider,
+      mlApiUrl: data.mlApiUrl,
+      geminiApiKey: data.geminiApiKey !== undefined ? data.geminiApiKey : existing?.geminiApiKey,
+      enabled: data.enabled,
+    },
+  });
   } else {
     // For null schoolId (global settings), use findFirst + create/update
     if (existing) {
@@ -155,7 +155,7 @@ export const getActiveAIProvider = async (schoolId: string | null): Promise<AIPr
       })
     : await prisma.aISettings.findFirst({
         where: { schoolId: null },
-      });
+  });
 
   if (!settings || !settings.enabled) {
     // Default to GEMINI if no settings
@@ -181,7 +181,7 @@ export const getMLApiUrl = async (schoolId: string | null): Promise<string | nul
       })
     : await prisma.aISettings.findFirst({
         where: { schoolId: null },
-      });
+  });
 
   return settings?.mlApiUrl || process.env.ML_API_URL || null;
 };
@@ -197,7 +197,7 @@ export const getGeminiApiKey = async (schoolId: string | null): Promise<string |
       })
     : await prisma.aISettings.findFirst({
         where: { schoolId: null },
-      });
+  });
 
   return settings?.geminiApiKey || process.env.GEMINI_API_KEY || null;
 };

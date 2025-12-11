@@ -17,9 +17,12 @@ export const schoolsApi = {
     error?: string;
   }> => {
     try {
+      console.log('[SCHOOLS API] Fetching schools from /schools');
       const response = await apiClient.get('/schools');
+      console.log('[SCHOOLS API] Response:', response.data);
       return response.data;
     } catch (error: any) {
+      console.error('[SCHOOLS API] Error:', error);
       return {
         success: false,
         error: error.response?.data?.error || error.message || 'ไม่สามารถดึงข้อมูลสถาบันได้',

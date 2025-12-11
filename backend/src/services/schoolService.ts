@@ -37,20 +37,35 @@ export const getAllSchools = async (user: AuthUser): Promise<SchoolData[]> => {
     },
   });
 
-  console.log(`[SCHOOL SERVICE] Found ${schools.length} schools in ${Date.now() - startTime}ms`);
+  const queryTime = Date.now() - startTime;
+  console.log(`[SCHOOL SERVICE] Found ${schools.length} schools in ${queryTime}ms`);
+  
+  if (schools.length === 0) {
+    console.log('[SCHOOL SERVICE] No schools found in database');
+    return [];
+  }
 
   // Get admin counts separately using aggregation for better performance
   const schoolIds = schools.map((s) => s.id);
-  const adminCounts = await prisma.user.groupBy({
-    by: ['schoolId'],
-    where: {
-      schoolId: { in: schoolIds },
-      role: 'SCHOOL_ADMIN',
-    },
-    _count: {
-      id: true,
-    },
-  });
+  let adminCounts: Array<{ schoolId: string | null; _count: { id: number } }> = [];
+  
+  if (schoolIds.length > 0) {
+    try {
+      adminCounts = await prisma.user.groupBy({
+        by: ['schoolId'],
+        where: {
+          schoolId: { in: schoolIds },
+          role: 'SCHOOL_ADMIN',
+        },
+        _count: {
+          id: true,
+        },
+      });
+    } catch (error) {
+      console.error('[SCHOOL SERVICE] Error getting admin counts:', error);
+      // Continue without admin counts
+    }
+  }
 
   const adminCountMap = new Map(
     adminCounts.map((item) => [item.schoolId || '', item._count.id])
@@ -66,7 +81,8 @@ export const getAllSchools = async (user: AuthUser): Promise<SchoolData[]> => {
     userCount: school._count.users,
   }));
 
-  console.log(`[SCHOOL SERVICE] Processed ${result.length} schools in ${Date.now() - startTime}ms`);
+  const totalTime = Date.now() - startTime;
+  console.log(`[SCHOOL SERVICE] Processed ${result.length} schools in ${totalTime}ms`);
   return result;
 };
 

@@ -51,8 +51,8 @@ export const getMLTrainingStats = async (
           aiFeedback: { not: null },
         },
         {
-          teacherScore: { not: null },
-          teacherFeedback: { not: null },
+      teacherScore: { not: null },
+      teacherFeedback: { not: null },
         },
       ],
     },
@@ -128,7 +128,7 @@ export const getMLTrainingSettings = async (
       })
     : await prisma.mLTrainingSettings.findFirst({
         where: { schoolId: null },
-      });
+  });
 
   // If no settings exist, create default
   if (!settings) {
@@ -178,16 +178,16 @@ export const updateMLTrainingSettings = async (
   if (targetSchoolId) {
     settings = await prisma.mLTrainingSettings.upsert({
       where: { schoolId: targetSchoolId },
-      create: {
+    create: {
         schoolId: targetSchoolId,
-        aiWeight: data.aiWeight,
-        teacherWeight: data.teacherWeight,
-      },
-      update: {
-        aiWeight: data.aiWeight,
-        teacherWeight: data.teacherWeight,
-      },
-    });
+      aiWeight: data.aiWeight,
+      teacherWeight: data.teacherWeight,
+    },
+    update: {
+      aiWeight: data.aiWeight,
+      teacherWeight: data.teacherWeight,
+    },
+  });
   } else {
     // For null schoolId (global settings), use findFirst + create/update
     const existing = await prisma.mLTrainingSettings.findFirst({

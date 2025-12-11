@@ -43,9 +43,9 @@ export const mlTrainingApi = {
     error?: string;
   }> => {
     try {
-      const params = schoolId ? `?schoolId=${schoolId}` : '';
-      const response = await apiClient.get(`/ml-training/stats${params}`);
-      return response.data;
+    const params = schoolId ? `?schoolId=${schoolId}` : '';
+    const response = await apiClient.get(`/ml-training/stats${params}`);
+    return response.data;
     } catch (error: any) {
       return {
         success: false,
@@ -60,9 +60,9 @@ export const mlTrainingApi = {
     error?: string;
   }> => {
     try {
-      const params = schoolId ? `?schoolId=${schoolId}` : '';
-      const response = await apiClient.get(`/ml-training/settings${params}`);
-      return response.data;
+    const params = schoolId ? `?schoolId=${schoolId}` : '';
+    const response = await apiClient.get(`/ml-training/settings${params}`);
+    return response.data;
     } catch (error: any) {
       return {
         success: false,
@@ -80,9 +80,9 @@ export const mlTrainingApi = {
     error?: string;
   }> => {
     try {
-      const params = schoolId ? `?schoolId=${schoolId}` : '';
-      const response = await apiClient.put(`/ml-training/settings${params}`, data);
-      return response.data;
+    const params = schoolId ? `?schoolId=${schoolId}` : '';
+    const response = await apiClient.put(`/ml-training/settings${params}`, data);
+    return response.data;
     } catch (error: any) {
       return {
         success: false,
@@ -97,9 +97,9 @@ export const mlTrainingApi = {
     error?: string;
   }> => {
     try {
-      const params = schoolId ? `?schoolId=${schoolId}` : '';
-      const response = await apiClient.post(`/ml-training/train${params}`);
-      return response.data;
+    const params = schoolId ? `?schoolId=${schoolId}` : '';
+    const response = await apiClient.post(`/ml-training/train${params}`);
+    return response.data;
     } catch (error: any) {
       return {
         success: false,
@@ -117,11 +117,11 @@ export const mlTrainingApi = {
     error?: string;
   }> => {
     try {
-      const params = new URLSearchParams();
-      if (schoolId) params.append('schoolId', schoolId);
-      params.append('limit', limit.toString());
-      const response = await apiClient.get(`/ml-training/history?${params.toString()}`);
-      return response.data;
+    const params = new URLSearchParams();
+    if (schoolId) params.append('schoolId', schoolId);
+    params.append('limit', limit.toString());
+    const response = await apiClient.get(`/ml-training/history?${params.toString()}`);
+    return response.data;
     } catch (error: any) {
       return {
         success: false,

@@ -25,26 +25,14 @@ import filesRoutes from './routes/files';
 import assignmentRoutes from './routes/assignments';
 import mlTrainingRoutes from './routes/mlTraining';
 import schoolsRoutes from './routes/schools';
-import { subdomainMiddleware } from './middleware/subdomain';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
 const app = new Hono();
 
-// Subdomain middleware (should be early to set school context)
-app.use('/*', subdomainMiddleware);
-
-// CORS - allow all origins for subdomain support
+// CORS
 app.use('/*', cors({
-  origin: (origin) => {
-    // Allow requests from any subdomain
-    if (!origin) return true;
-    // Allow localhost for development
-    if (origin.includes('localhost') || origin.includes('127.0.0.1')) return true;
-    // Allow Railway domains
-    if (origin.includes('railway.app') || origin.includes('up.railway.app')) return true;
-    return true; // Allow all for now, can be restricted later
-  },
+  origin: env.CORS_ORIGIN,
   credentials: true,
 }));
 
