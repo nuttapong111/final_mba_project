@@ -257,6 +257,7 @@ export default function TeacherAssignmentsPage() {
               formatDateTime={formatDateTime}
               formatFileSize={formatFileSize}
               isGeneratingAI={generatingAI.has(task.id)}
+              setGeneratingAI={setGeneratingAI}
             />
           ))
         )}
@@ -396,7 +397,123 @@ function AssignmentGradingCard({
                 คะแนนแนะนำ: {task.aiScore}/{task.maxScore}
               </span>
             </div>
-            <p className="text-blue-800 text-sm whitespace-pre-wrap">{task.aiFeedback}</p>
+            <p className="text-blue-800 text-sm whitespace-pre-wrap mb-3">{task.aiFeedback}</p>
+            {isEditing && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  setGeneratingAI((prev) => new Set(prev).add(task.id));
+                  try {
+                    Swal.fire({
+                      title: 'กำลังสร้างคำแนะนำจาก AI...',
+                      allowOutsideClick: false,
+                      didOpen: () => {
+                        Swal.showLoading();
+                      },
+                    });
+
+                    const response = await assignmentGradingApi.regenerateAIFeedback(task.id);
+                    
+                    if (response.success && response.data) {
+                      setScore(response.data.score.toString());
+                      setFeedback(response.data.feedback);
+                      await Swal.fire({
+                        icon: 'success',
+                        title: 'สร้างคำแนะนำสำเร็จ!',
+                        text: 'ได้รับคำแนะนำจาก AI แล้ว',
+                        timer: 2000,
+                        showConfirmButton: false,
+                      });
+                      // Refresh data
+                      window.location.reload();
+                    } else {
+                      throw new Error(response.error || 'ไม่สามารถสร้างคำแนะนำได้');
+                    }
+                  } catch (error: any) {
+                    console.error('Error regenerating AI feedback:', error);
+                    Swal.fire({
+                      icon: 'error',
+                      title: 'เกิดข้อผิดพลาด',
+                      text: error.message || 'ไม่สามารถสร้างคำแนะนำจาก AI ได้',
+                    });
+                  } finally {
+                    setGeneratingAI((prev) => {
+                      const newSet = new Set(prev);
+                      newSet.delete(task.id);
+                      return newSet;
+                    });
+                  }
+                }}
+                disabled={isGeneratingAI}
+                className="w-full"
+              >
+                {isGeneratingAI ? 'กำลังสร้าง...' : 'สร้างคำแนะนำใหม่'}
+              </Button>
+            )}
+          </div>
+        ) : isEditing ? (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <Button
+              variant="outline"
+              onClick={async () => {
+                setGeneratingAI((prev) => new Set(prev).add(task.id));
+                try {
+                  Swal.fire({
+                    title: 'กำลังสร้างคำแนะนำจาก AI...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                      Swal.showLoading();
+                    },
+                  });
+
+                  const response = await assignmentGradingApi.generateAIFeedback({
+                    assignmentTitle: task.assignmentTitle,
+                    assignmentDescription: task.assignmentDescription,
+                    maxScore: task.maxScore,
+                    studentFileUrl: task.fileUrl,
+                    studentS3Key: task.s3Key,
+                    studentFileName: task.fileName,
+                    teacherFileUrl: task.teacherFileUrl,
+                    teacherS3Key: task.teacherS3Key,
+                    teacherFileName: task.teacherFileName,
+                  });
+                  
+                  if (response.success && response.data) {
+                    setScore(response.data.score.toString());
+                    setFeedback(response.data.feedback);
+                    await Swal.fire({
+                      icon: 'success',
+                      title: 'สร้างคำแนะนำสำเร็จ!',
+                      text: 'ได้รับคำแนะนำจาก AI แล้ว',
+                      timer: 2000,
+                      showConfirmButton: false,
+                    });
+                    // Refresh data
+                    window.location.reload();
+                  } else {
+                    throw new Error(response.error || 'ไม่สามารถสร้างคำแนะนำได้');
+                  }
+                } catch (error: any) {
+                  console.error('Error generating AI feedback:', error);
+                  Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: error.message || 'ไม่สามารถสร้างคำแนะนำจาก AI ได้',
+                  });
+                } finally {
+                  setGeneratingAI((prev) => {
+                    const newSet = new Set(prev);
+                    newSet.delete(task.id);
+                    return newSet;
+                  });
+                }
+              }}
+              disabled={isGeneratingAI}
+              className="w-full"
+            >
+              {isGeneratingAI ? 'กำลังสร้างคำแนะนำจาก AI...' : 'สร้างคำแนะนำจาก AI'}
+            </Button>
           </div>
         ) : null}
 

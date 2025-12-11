@@ -68,5 +68,22 @@ export const assignmentGradingApi = {
     const response = await apiClient.post('/assignment-grading/ai-feedback', data);
     return response.data;
   },
+
+  regenerateAIFeedback: async (submissionId: string): Promise<{
+    success: boolean;
+    data?: { score: number; feedback: string };
+    error?: string;
+  }> => {
+    try {
+      const response = await apiClient.post(`/assignment-grading/submissions/${submissionId}/regenerate-ai`);
+      return response.data;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error || error.message || 'ไม่สามารถสร้างคำแนะนำจาก AI ได้';
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  },
 };
 
