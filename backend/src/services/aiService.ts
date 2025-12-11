@@ -223,6 +223,9 @@ export const getAIGradingSuggestionWithPDF = async (
     console.log('[GEMINI FILE API] PDF converted to base64, length:', base64Pdf.length);
 
     // Use Gemini API with file
+    // Note: PDF files are treated as images (each page = 1 image)
+    // Limitations: May not accurately identify spatial location of text/objects
+    // Handwritten text may cause hallucinations
     const prompt = `คุณเป็นผู้ช่วยตรวจการบ้านอัตนัย ให้คะแนนและให้คำแนะนำสำหรับการบ้านของนักเรียน
 
 คำถาม/โจทย์: ${question}
@@ -230,6 +233,11 @@ export const getAIGradingSuggestionWithPDF = async (
 กรุณาตรวจสอบไฟล์ PDF ที่แนบมาและให้:
 1. คะแนน (0-${maxScore}) โดยพิจารณาจากความถูกต้อง ความสมบูรณ์ และความชัดเจน
 2. คำแนะนำที่เป็นประโยชน์สำหรับนักเรียน
+
+**หมายเหตุ:** 
+- PDF จะถูกประมวลผลเป็นภาพ (แต่ละหน้า = 1 ภาพ)
+- อาจไม่สามารถระบุตำแหน่งของข้อความหรือวัตถุได้อย่างแม่นยำ
+- ข้อความที่เขียนด้วยมืออาจทำให้เกิดความผิดพลาดในการตีความ
 
 ตอบในรูปแบบ JSON:
 {
