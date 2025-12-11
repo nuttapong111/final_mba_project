@@ -196,7 +196,9 @@ export const getAIGradingSuggestionWithPDF = async (
   pdfS3Key: string | null,
   maxScore: number = 100,
   schoolId?: string | null,
-  geminiApiKey?: string
+  geminiApiKey?: string,
+  teacherPdfFileUrl?: string,
+  teacherPdfS3Key?: string | null
 ): Promise<AIGradingResult> => {
   try {
     const apiKey = geminiApiKey || await getGeminiApiKey(schoolId || null) || process.env.GEMINI_API_KEY;
@@ -204,33 +206,71 @@ export const getAIGradingSuggestionWithPDF = async (
       throw new Error('Gemini API Key ไม่พบ กรุณาตั้งค่าในหน้าตั้งค่า AI หรือตั้งค่า GEMINI_API_KEY ใน environment variables');
     }
 
-    // Download PDF file
+    // Download student's PDF file
     let pdfBuffer: Buffer;
     try {
-      console.log('[GEMINI FILE API] Downloading PDF file...', { pdfFileUrl: pdfFileUrl?.substring(0, 50), pdfS3Key });
+      console.log('[GEMINI FILE API] Downloading student PDF file...', { pdfFileUrl: pdfFileUrl?.substring(0, 50), pdfS3Key });
       const { downloadFile } = await import('./pdfService');
       pdfBuffer = await downloadFile(pdfFileUrl, pdfS3Key);
-      console.log('[GEMINI FILE API] PDF file downloaded successfully, size:', pdfBuffer.length, 'bytes');
+      console.log('[GEMINI FILE API] Student PDF file downloaded successfully, size:', pdfBuffer.length, 'bytes');
     } catch (downloadError: any) {
-      console.error('[GEMINI FILE API] Error downloading PDF file:', downloadError);
-      throw new Error(`ไม่สามารถดาวน์โหลดไฟล์ PDF ได้: ${downloadError.message}`);
+      console.error('[GEMINI FILE API] Error downloading student PDF file:', downloadError);
+      throw new Error(`ไม่สามารถดาวน์โหลดไฟล์ PDF ของนักเรียนได้: ${downloadError.message}`);
     }
     
-    // Convert PDF to base64 for inline embedding
-    // Note: Gemini API supports inline file data with base64 encoding
+    // Convert student's PDF to base64 for inline embedding
     const base64Pdf = pdfBuffer.toString('base64');
-    
-    console.log('[GEMINI FILE API] PDF converted to base64, length:', base64Pdf.length);
+    console.log('[GEMINI FILE API] Student PDF converted to base64, length:', base64Pdf.length);
 
-    // Use Gemini API with file
+    // Download teacher's PDF file if provided
+    let teacherBase64Pdf: string | null = null;
+    if (teacherPdfFileUrl || teacherPdfS3Key) {
+      try {
+        console.log('[GEMINI FILE API] Downloading teacher PDF file...', { teacherPdfFileUrl: teacherPdfFileUrl?.substring(0, 50), teacherPdfS3Key });
+        const { downloadFile } = await import('./pdfService');
+        const teacherPdfBuffer = await downloadFile(teacherPdfFileUrl || '', teacherPdfS3Key || null);
+        teacherBase64Pdf = teacherPdfBuffer.toString('base64');
+        console.log('[GEMINI FILE API] Teacher PDF file downloaded successfully, size:', teacherPdfBuffer.length, 'bytes');
+      } catch (downloadError: any) {
+        console.warn('[GEMINI FILE API] Could not download teacher PDF file, continuing without it:', downloadError.message);
+        // Continue without teacher's file if download fails
+      }
+    }
+
+    // Use Gemini API with file(s)
     // Note: PDF files are treated as images (each page = 1 image)
     // Limitations: May not accurately identify spatial location of text/objects
     // Handwritten text may cause hallucinations
-    const prompt = `คุณเป็นผู้ช่วยตรวจการบ้านอัตนัย ให้คะแนนและให้คำแนะนำสำหรับการบ้านของนักเรียน
+    const prompt = teacherBase64Pdf 
+      ? `คุณเป็นผู้ช่วยตรวจการบ้านอัตนัย ให้คะแนนและให้คำแนะนำสำหรับการบ้านของนักเรียน
 
 คำถาม/โจทย์: ${question}
 
-กรุณาตรวจสอบไฟล์ PDF ที่แนบมาและให้:
+**ไฟล์ที่แนบมา:**
+1. ไฟล์แรก: ไฟล์โจทย์/คำถามที่อาจารย์สร้างขึ้น (ใช้เป็นข้อมูลอ้างอิง)
+2. ไฟล์ที่สอง: ไฟล์คำตอบของนักเรียน (ไฟล์ที่ต้องตรวจ)
+
+กรุณาตรวจสอบไฟล์ PDF ทั้งสองไฟล์และให้:
+1. คะแนน (0-${maxScore}) โดยพิจารณาจากความถูกต้อง ความสมบูรณ์ และความชัดเจนของคำตอบเมื่อเทียบกับโจทย์
+2. คำแนะนำที่เป็นประโยชน์สำหรับนักเรียน
+
+**หมายเหตุ:** 
+- PDF จะถูกประมวลผลเป็นภาพ (แต่ละหน้า = 1 ภาพ)
+- อาจไม่สามารถระบุตำแหน่งของข้อความหรือวัตถุได้อย่างแม่นยำ
+- ข้อความที่เขียนด้วยมืออาจทำให้เกิดความผิดพลาดในการตีความ
+
+ตอบในรูปแบบ JSON:
+{
+  "score": <คะแนน>,
+  "feedback": "<คำแนะนำ>"
+}
+
+คำแนะนำควรเป็นภาษาไทยและให้คำแนะนำที่เป็นประโยชน์`
+      : `คุณเป็นผู้ช่วยตรวจการบ้านอัตนัย ให้คะแนนและให้คำแนะนำสำหรับการบ้านของนักเรียน
+
+คำถาม/โจทย์: ${question}
+
+กรุณาตรวจสอบไฟล์ PDF ที่แนบมา (ไฟล์คำตอบของนักเรียน) และให้:
 1. คะแนน (0-${maxScore}) โดยพิจารณาจากความถูกต้อง ความสมบูรณ์ และความชัดเจน
 2. คำแนะนำที่เป็นประโยชน์สำหรับนักเรียน
 
@@ -287,6 +327,14 @@ export const getAIGradingSuggestionWithPDF = async (
                   {
                     text: prompt,
                   },
+                  // Include teacher's PDF file first if available
+                  ...(teacherBase64Pdf ? [{
+                    inlineData: {
+                      mimeType: 'application/pdf',
+                      data: teacherBase64Pdf,
+                    },
+                  }] : []),
+                  // Then student's PDF file
                   {
                     inlineData: {
                       mimeType: 'application/pdf',

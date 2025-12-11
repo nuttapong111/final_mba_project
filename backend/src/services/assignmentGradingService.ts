@@ -176,12 +176,16 @@ export const getAssignmentGradingTasks = async (user: AuthUser): Promise<Assignm
               // Use Gemini File API for PDF files
               console.log('[ASSIGNMENT GRADING] Attempting to grade PDF file:', studentFileName);
               const { getAIGradingSuggestionWithPDF } = await import('./aiService');
+              // Pass teacher's PDF file if available
               aiResult = await getAIGradingSuggestionWithPDF(
                 assignmentContext,
                 submission.fileUrl || '',
                 submission.s3Key || null,
                 submission.assignment.maxScore,
-                schoolId
+                schoolId,
+                undefined, // geminiApiKey
+                submission.assignment.fileUrl || undefined,
+                submission.assignment.s3Key || null
               );
               console.log('[ASSIGNMENT GRADING] PDF grading successful');
             } else {
@@ -364,12 +368,16 @@ export const regenerateAIFeedbackForSubmission = async (
     if (isStudentPDF && (fileUrl || submission.s3Key)) {
       console.log('[REGENERATE AI FEEDBACK] Using Gemini File API for PDF:', studentFileName);
       const { getAIGradingSuggestionWithPDF } = await import('./aiService');
+      // Pass teacher's PDF file if available
       aiResult = await getAIGradingSuggestionWithPDF(
         assignmentContext,
         fileUrl || '',
         submission.s3Key || null,
         submission.assignment.maxScore,
-        schoolId
+        schoolId,
+        undefined, // geminiApiKey
+        submission.assignment.fileUrl || undefined,
+        submission.assignment.s3Key || null
       );
     } else {
       let studentAnswer = 'นักเรียนส่งไฟล์';

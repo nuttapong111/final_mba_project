@@ -90,13 +90,17 @@ export const generateAssignmentAIFeedbackController = async (c: Context) => {
     if (isStudentPDF && (studentFileUrl || studentS3Key)) {
       // Use Gemini File API for PDF files
       console.log('[ASSIGNMENT AI FEEDBACK] Using Gemini File API for PDF');
+      // Pass teacher's PDF file if available
       result = await getAIGradingSuggestionWithPDF(
         assignmentContext,
-          studentFileUrl || '',
+        studentFileUrl || '',
         studentS3Key || null,
         maxScore || 100,
-        schoolId
-        );
+        schoolId,
+        undefined, // geminiApiKey
+        teacherFileUrl || undefined,
+        teacherS3Key || null
+      );
         } else {
       // Use text-based method for non-PDF files or text notes
       let studentAnswer = studentNotes || '';
