@@ -21,6 +21,11 @@ export default function AdminSchoolsPage() {
   });
   const [creating, setCreating] = useState(false);
 
+  useEffect(() => {
+    console.log('[SCHOOLS PAGE] Component mounted, fetching schools...');
+    fetchSchools();
+  }, []);
+
   const fetchSchools = async () => {
     try {
       setLoading(true);
