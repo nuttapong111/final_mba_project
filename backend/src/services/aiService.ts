@@ -67,12 +67,12 @@ export const getAIGradingSuggestion = async (
     
     // Try multiple models with fallback mechanism
     // Use officially recommended models from Gemini API documentation
-    // Note: gemini-pro is an alias that automatically points to the most stable Pro version
+    // Updated: Gemini 1.5 series is deprecated, use Gemini 2.5 series
+    // Note: gemini-2.5-flash and gemini-2.5-pro are aliases that automatically point to latest stable versions
     const modelsToTry = [
-      'gemini-2.5-flash',  // Latest recommended - fastest and most efficient
-      'gemini-2.5-pro',    // Latest recommended - most powerful
-      'gemini-pro',        // Alias - automatically points to most stable Pro version
-      'gemini-1.0-pro',    // Stable original model (fallback)
+      'gemini-2.5-flash',  // Latest recommended - fastest and most efficient, supports PDF
+      'gemini-2.5-pro',    // Latest recommended - most powerful, supports PDF
+      'gemini-2.5-flash-lite', // Fastest flash model, supports PDF
     ];
     
     let lastError: Error | null = null;
@@ -247,10 +247,12 @@ export const getAIGradingSuggestionWithPDF = async (
 
 คำแนะนำควรเป็นภาษาไทยและให้คำแนะนำที่เป็นประโยชน์`;
 
+    // Updated to use Gemini 2.5 models (Gemini 1.5 series is deprecated)
+    // Use aliases that automatically point to latest stable versions
     const modelsToTry = [
-      'gemini-2.0-flash-exp',
-      'gemini-1.5-pro',
-      'gemini-1.5-flash',
+      'gemini-2.5-flash',  // Optimized for cost-efficiency and high throughput
+      'gemini-2.5-pro',    // State-of-the-art model for complex reasoning
+      'gemini-2.5-flash-lite', // Fastest flash model
     ];
 
     let lastError: Error | null = null;
