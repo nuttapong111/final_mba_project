@@ -454,6 +454,10 @@ export const regenerateAIFeedbackForSubmission = async (
     };
   } catch (error: any) {
     console.error('[REGENERATE AI FEEDBACK] Error:', error);
+    // Provide clearer error message for PDF processing errors
+    if (error.message?.includes('DOMMatrix') || error.message?.includes('PDF processing')) {
+      throw new Error(`ไม่สามารถสร้างคำแนะนำจาก AI ได้: PDF processing error. กรุณาตรวจสอบว่า Gemini API รองรับไฟล์ PDF หรือไม่`);
+    }
     throw new Error(`ไม่สามารถสร้างคำแนะนำจาก AI ได้: ${error.message}`);
   }
 };

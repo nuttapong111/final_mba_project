@@ -244,6 +244,13 @@ export const getAIGradingSuggestionWithPDF = async (
         const apiUrl = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
         
         console.log(`[GEMINI FILE API] Trying model: ${model}`);
+        console.log(`[GEMINI FILE API] PDF size: ${base64Pdf.length} characters (base64)`);
+        
+        // Check PDF size limit (Gemini has a 20MB limit for base64 encoded files)
+        const pdfSizeMB = base64Pdf.length * 3 / 4 / 1024 / 1024;
+        if (pdfSizeMB > 20) {
+          throw new Error(`ไฟล์ PDF ใหญ่เกินไป (${pdfSizeMB.toFixed(2)} MB). ขนาดสูงสุดที่รองรับคือ 20 MB`);
+        }
         
         const response = await fetch(apiUrl, {
           method: 'POST',
