@@ -200,27 +200,53 @@ export const getAIGradingSuggestionWithPDF = async (
   teacherPdfFileUrl?: string,
   teacherPdfS3Key?: string | null
 ): Promise<AIGradingResult> => {
+  console.log('[GEMINI FILE API] ===== START getAIGradingSuggestionWithPDF =====');
+  console.log('[GEMINI FILE API] Parameters:', {
+    questionLength: question?.length || 0,
+    pdfFileUrl: pdfFileUrl?.substring(0, 100) || 'N/A',
+    pdfS3Key: pdfS3Key || 'N/A',
+    maxScore,
+    schoolId: schoolId || 'N/A',
+    teacherPdfFileUrl: teacherPdfFileUrl?.substring(0, 100) || 'N/A',
+    teacherPdfS3Key: teacherPdfS3Key || 'N/A',
+    hasStudentFile: !!(pdfFileUrl || pdfS3Key),
+    hasTeacherFile: !!(teacherPdfFileUrl || teacherPdfS3Key),
+  });
+  
   try {
     const apiKey = geminiApiKey || await getGeminiApiKey(schoolId || null) || process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error('Gemini API Key ไม่พบ กรุณาตั้งค่าในหน้าตั้งค่า AI หรือตั้งค่า GEMINI_API_KEY ใน environment variables');
     }
+    console.log('[GEMINI FILE API] API key found:', apiKey.substring(0, 10) + '...');
 
     // Download student's PDF file
     let pdfBuffer: Buffer;
     try {
-      console.log('[GEMINI FILE API] Downloading student PDF file...', { pdfFileUrl: pdfFileUrl?.substring(0, 50), pdfS3Key });
+      console.log('[GEMINI FILE API] ===== DOWNLOADING STUDENT PDF =====');
+      console.log('[GEMINI FILE API] Downloading student PDF file...', { 
+        pdfFileUrl: pdfFileUrl?.substring(0, 100), 
+        pdfS3Key,
+        hasUrl: !!pdfFileUrl,
+        hasS3Key: !!pdfS3Key
+      });
       const { downloadFile } = await import('./pdfService');
       pdfBuffer = await downloadFile(pdfFileUrl, pdfS3Key);
-      console.log('[GEMINI FILE API] Student PDF file downloaded successfully, size:', pdfBuffer.length, 'bytes');
+      console.log('[GEMINI FILE API] ✅ Student PDF file downloaded successfully, size:', pdfBuffer.length, 'bytes');
     } catch (downloadError: any) {
-      console.error('[GEMINI FILE API] Error downloading student PDF file:', downloadError);
+      console.error('[GEMINI FILE API] ❌ Error downloading student PDF file:', downloadError);
+      console.error('[GEMINI FILE API] Error details:', {
+        message: downloadError.message,
+        stack: downloadError.stack,
+        name: downloadError.name,
+      });
       throw new Error(`ไม่สามารถดาวน์โหลดไฟล์ PDF ของนักเรียนได้: ${downloadError.message}`);
     }
     
     // Convert student's PDF to base64 for inline embedding
+    console.log('[GEMINI FILE API] Converting student PDF to base64...');
     const base64Pdf = pdfBuffer.toString('base64');
-    console.log('[GEMINI FILE API] Student PDF converted to base64, length:', base64Pdf.length);
+    console.log('[GEMINI FILE API] ✅ Student PDF converted to base64, length:', base64Pdf.length, 'characters');
 
     // Download teacher's PDF file if provided
     let teacherBase64Pdf: string | null = null;
@@ -346,10 +372,19 @@ export const getAIGradingSuggestionWithPDF = async (
           },
         ];
         
+        console.log(`[GEMINI FILE API] ===== SENDING REQUEST TO GEMINI API =====`);
         console.log(`[GEMINI FILE API] Sending request with ${parts.length} parts:`, {
           hasText: true,
           hasTeacherPdf: !!teacherBase64Pdf,
           hasStudentPdf: true,
+          teacherPdfSize: teacherBase64Pdf?.length || 0,
+          studentPdfSize: base64Pdf.length,
+        });
+        console.log(`[GEMINI FILE API] Parts breakdown:`, {
+          part1: parts[0]?.text ? `Text (${parts[0].text.length} chars)` : 'N/A',
+          part2: parts[1]?.inlineData ? `PDF 1 (${parts[1].inlineData?.data?.length || 0} chars)` : 'N/A',
+          part3: parts[2]?.inlineData ? `PDF 2 (${parts[2].inlineData?.data?.length || 0} chars)` : 'N/A',
+          part4: parts[3]?.inlineData ? `PDF 3 (${parts[3].inlineData?.data?.length || 0} chars)` : 'N/A',
         });
         
         const body = JSON.stringify({
@@ -358,12 +393,21 @@ export const getAIGradingSuggestionWithPDF = async (
           }],
         });
         
+        console.log(`[GEMINI FILE API] Request body size: ${body.length} characters`);
+        console.log(`[GEMINI FILE API] Calling Gemini API: ${apiUrl.substring(0, 80)}...`);
+        
         const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body,
+        });
+        
+        console.log(`[GEMINI FILE API] ✅ Received response from Gemini API:`, {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok,
         });
 
         if (!response.ok) {
@@ -459,6 +503,11 @@ export const getAIGradingSuggestionWithPDF = async (
                   const score = Math.max(0, Math.min(maxScore, Math.round(parsed.score || 0)));
                   const feedback = parsed.feedback || 'ไม่สามารถให้คำแนะนำได้';
 
+                  console.log(`[GEMINI FILE API] ===== RESULT =====`);
+                  console.log(`[GEMINI FILE API] Score: ${score}, Feedback length: ${feedback.length}`);
+                  console.log(`[GEMINI FILE API] Feedback preview: ${feedback.substring(0, 100)}...`);
+                  console.log(`[GEMINI FILE API] ===== END getAIGradingSuggestionWithPDF =====`);
+
                   return {
                     score,
                     feedback,
@@ -527,7 +576,8 @@ export const getAIGradingSuggestionWithPDF = async (
         };
         const text = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
         
-        console.log(`[GEMINI FILE API] Success with model: ${model}`);
+        console.log(`[GEMINI FILE API] ✅ Success with model: ${model}`);
+        console.log(`[GEMINI FILE API] ===== PARSING RESPONSE =====`);
 
         // Parse JSON from response
         let jsonText = text.trim();
@@ -541,6 +591,11 @@ export const getAIGradingSuggestionWithPDF = async (
         
         const score = Math.max(0, Math.min(maxScore, Math.round(parsed.score || 0)));
         const feedback = parsed.feedback || 'ไม่สามารถให้คำแนะนำได้';
+
+        console.log(`[GEMINI FILE API] ===== RESULT =====`);
+        console.log(`[GEMINI FILE API] Score: ${score}, Feedback length: ${feedback.length}`);
+        console.log(`[GEMINI FILE API] Feedback preview: ${feedback.substring(0, 200)}...`);
+        console.log(`[GEMINI FILE API] ===== END getAIGradingSuggestionWithPDF =====`);
 
         return {
           score,

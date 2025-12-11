@@ -161,7 +161,10 @@ export const assignmentsApi = {
     error?: string;
   }> => {
     try {
-      const response = await apiClient.post(`/assignment-grading/submissions/${submissionId}/regenerate-ai`);
+      // Increase timeout to 3 minutes (180000ms) for PDF processing and AI API calls
+      const response = await apiClient.post(`/assignment-grading/submissions/${submissionId}/regenerate-ai`, {}, {
+        timeout: 180000, // 3 minutes
+      });
       return response.data;
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || error.message || 'ไม่สามารถสร้างคำแนะนำจาก AI ได้';
