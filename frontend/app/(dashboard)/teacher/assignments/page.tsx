@@ -28,6 +28,15 @@ export default function TeacherAssignmentsPage() {
   const [loading, setLoading] = useState(true);
   const [generatingAI, setGeneratingAI] = useState<Set<string>>(new Set()); // Track which tasks are generating AI
   const [selectedTask, setSelectedTask] = useState<AssignmentGradingTask | null>(null);
+  
+  // Callback to update task and refresh data
+  const handleUpdateTask = async (updatedTask: AssignmentGradingTask) => {
+    setGradingTasks(prevTasks => 
+      prevTasks.map(t => t.id === updatedTask.id ? updatedTask : t)
+    );
+    // Refresh data from server to ensure consistency
+    await fetchData();
+  };
 
   useEffect(() => {
     fetchData();
@@ -258,6 +267,7 @@ export default function TeacherAssignmentsPage() {
               formatFileSize={formatFileSize}
               isGeneratingAI={generatingAI.has(task.id)}
               setGeneratingAI={setGeneratingAI}
+              onUpdateTask={handleUpdateTask}
             />
           ))
         )}
@@ -273,6 +283,7 @@ function AssignmentGradingCard({
   formatFileSize,
   isGeneratingAI,
   setGeneratingAI,
+  onUpdateTask,
 }: {
   task: AssignmentGradingTask;
   onGrade: (taskId: string, score: number, feedback: string) => void;
@@ -280,6 +291,7 @@ function AssignmentGradingCard({
   formatFileSize: (bytes?: number) => string;
   isGeneratingAI: boolean;
   setGeneratingAI: React.Dispatch<React.SetStateAction<Set<string>>>;
+  onUpdateTask: (task: AssignmentGradingTask) => void;
 }) {
   const [score, setScore] = useState(task.score?.toString() || task.aiScore?.toString() || '');
   const [feedback, setFeedback] = useState(task.feedback || task.aiFeedback || '');
@@ -421,13 +433,11 @@ function AssignmentGradingCard({
                       setScore(response.data.score.toString());
                       setFeedback(response.data.feedback);
                       // Update local state immediately
-                      setGradingTasks(prevTasks => 
-                        prevTasks.map(t => 
-                          t.id === task.id 
-                            ? { ...t, aiScore: response.data!.score, aiFeedback: response.data!.feedback }
-                            : t
-                        )
-                      );
+                      onUpdateTask({
+                        ...task,
+                        aiScore: response.data.score,
+                        aiFeedback: response.data.feedback,
+                      });
                       await Swal.fire({
                         icon: 'success',
                         title: 'สร้างคำแนะนำสำเร็จ!',
@@ -436,7 +446,7 @@ function AssignmentGradingCard({
                         showConfirmButton: false,
                       });
                       // Refresh data to get latest from database
-                      fetchData();
+                      // Note: fetchData will be called from parent component
                     } else {
                       throw new Error(response.error || 'ไม่สามารถสร้างคำแนะนำได้');
                     }
@@ -494,13 +504,11 @@ function AssignmentGradingCard({
                     setScore(response.data.score.toString());
                     setFeedback(response.data.feedback);
                     // Update local state immediately
-                    setGradingTasks(prevTasks => 
-                      prevTasks.map(t => 
-                        t.id === task.id 
-                          ? { ...t, aiScore: response.data!.score, aiFeedback: response.data!.feedback }
-                          : t
-                      )
-                    );
+                    onUpdateTask({
+                      ...task,
+                      aiScore: response.data.score,
+                      aiFeedback: response.data.feedback,
+                    });
                     await Swal.fire({
                       icon: 'success',
                       title: 'สร้างคำแนะนำสำเร็จ!',
@@ -509,7 +517,7 @@ function AssignmentGradingCard({
                       showConfirmButton: false,
                     });
                     // Refresh data to get latest from database
-                    fetchData();
+                    // Note: fetchData will be called from parent component
                   } else {
                     throw new Error(response.error || 'ไม่สามารถสร้างคำแนะนำได้');
                   }
