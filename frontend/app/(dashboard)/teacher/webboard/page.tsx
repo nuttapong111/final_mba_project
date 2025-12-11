@@ -93,50 +93,6 @@ export default function TeacherWebboardPage() {
       setLoading(false);
     }
   };
-    {
-      id: '1',
-      courseId: '1',
-      courseTitle: 'คณิตศาสตร์ ม.4',
-      studentId: '4',
-      studentName: 'นักเรียน ดีใจ',
-      studentAvatar: 'https://ui-avatars.com/api/?name=ดีใจ&background=10b981&color=fff',
-      question: 'อาจารย์ครับ ไม่เข้าใจเรื่องการแก้สมการกำลังสอง ช่วยอธิบายให้หน่อยได้ไหมครับ?',
-      createdAt: '2024-03-15T10:30:00',
-      replies: [],
-    },
-    {
-      id: '2',
-      courseId: '1',
-      courseTitle: 'คณิตศาสตร์ ม.4',
-      studentId: '7',
-      studentName: 'นักเรียน สมชาย',
-      studentAvatar: 'https://ui-avatars.com/api/?name=สมชาย&background=3b82f6&color=fff',
-      question: 'อาจารย์ครับ ข้อสอบข้อที่ 5 ใช้สูตรอะไรในการแก้ครับ?',
-      createdAt: '2024-03-15T14:20:00',
-      replies: [
-        {
-          id: 'r1',
-          authorId: user?.id || '',
-          authorName: user?.name || 'อาจารย์',
-          authorRole: 'teacher',
-          authorAvatar: user?.avatar,
-          content: 'ใช้สูตรกำลังสองสมบูรณ์ (a+b)² = a² + 2ab + b² ครับ',
-          createdAt: '2024-03-15T15:00:00',
-        },
-      ],
-    },
-    {
-      id: '3',
-      courseId: '2',
-      courseTitle: 'ภาษาอังกฤษ TOEIC',
-      studentId: '4',
-      studentName: 'นักเรียน ดีใจ',
-      studentAvatar: 'https://ui-avatars.com/api/?name=ดีใจ&background=10b981&color=fff',
-      question: 'อาจารย์ครับ คำว่า "however" กับ "but" ใช้ต่างกันอย่างไรครับ?',
-      createdAt: '2024-03-16T09:15:00',
-      replies: [],
-    },
-  ]);
 
   const [replyContents, setReplyContents] = useState<Record<string, string>>({});
   const [showReplyInput, setShowReplyInput] = useState<Record<string, boolean>>({});
