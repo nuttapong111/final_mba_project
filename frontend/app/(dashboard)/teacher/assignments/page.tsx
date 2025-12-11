@@ -420,7 +420,7 @@ function AssignmentGradingCard({
                   setGeneratingAI((prev) => new Set(prev).add(task.id));
                   try {
                     Swal.fire({
-                      title: 'กำลังสร้างคำแนะนำจาก AI...',
+                      title: 'กำลังสร้างคำแนะนำใหม่จาก AI...',
                       allowOutsideClick: false,
                       didOpen: () => {
                         Swal.showLoading();
@@ -440,8 +440,8 @@ function AssignmentGradingCard({
                       });
                       await Swal.fire({
                         icon: 'success',
-                        title: 'สร้างคำแนะนำสำเร็จ!',
-                        text: 'ได้รับคำแนะนำจาก AI แล้ว',
+                        title: 'สร้างคำแนะนำใหม่สำเร็จ!',
+                        text: 'ได้รับคำแนะนำใหม่จาก AI แล้ว',
                         timer: 2000,
                         showConfirmButton: false,
                       });
@@ -468,7 +468,7 @@ function AssignmentGradingCard({
                 disabled={isGeneratingAI}
                 className="w-full"
               >
-                {isGeneratingAI ? 'กำลังสร้าง...' : 'สร้างคำแนะนำใหม่'}
+                {isGeneratingAI ? 'กำลังสร้าง...' : 'ขอคำแนะนำใหม่จาก AI อีกครั้ง'}
               </Button>
             )}
           </div>
