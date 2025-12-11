@@ -1,17 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { mockCourses } from '@/lib/mockData';
-import { filterCoursesByRole } from '@/lib/utils';
+import { webboardApi, coursesApi } from '@/lib/api';
 import {
   ChatBubbleLeftRightIcon,
   MagnifyingGlassIcon,
   PaperAirplaneIcon,
   UserIcon,
 } from '@heroicons/react/24/outline';
+import Swal from 'sweetalert2';
 
 interface Post {
   id: string;
@@ -37,12 +37,62 @@ interface Reply {
 
 export default function TeacherWebboardPage() {
   const { user } = useAuthStore();
-  const myCourses = filterCoursesByRole(mockCourses, user as any);
+  const [courses, setCourses] = useState<any[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock posts data
-  const [posts, setPosts] = useState<Post[]>([
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [postsResponse, coursesResponse] = await Promise.all([
+        webboardApi.getTeacherPosts(),
+        coursesApi.getCourses(),
+      ]);
+
+      if (postsResponse.success && postsResponse.data) {
+        // Transform API data to match component format
+        const transformedPosts = postsResponse.data.map((post: any) => ({
+          id: post.id,
+          courseId: post.courseId,
+          courseTitle: post.course?.title || '',
+          studentId: post.studentId,
+          studentName: post.student?.name || 'นักเรียน',
+          studentAvatar: post.student?.avatar,
+          question: post.question,
+          createdAt: post.createdAt,
+          replies: post.replies?.map((reply: any) => ({
+            id: reply.id,
+            authorId: reply.authorId,
+            authorName: reply.author?.name || '',
+            authorRole: reply.author?.role === 'TEACHER' ? 'teacher' : 'student',
+            authorAvatar: reply.author?.avatar,
+            content: reply.content,
+            createdAt: reply.createdAt,
+          })) || [],
+        }));
+        setPosts(transformedPosts);
+      }
+
+      if (coursesResponse.success && coursesResponse.data) {
+        setCourses(coursesResponse.data);
+      }
+    } catch (error: any) {
+      console.error('Error fetching webboard data:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: error.message || 'ไม่สามารถโหลดข้อมูลได้',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
     {
       id: '1',
       courseId: '1',
@@ -98,28 +148,51 @@ export default function TeacherWebboardPage() {
     return courseMatch && searchMatch;
   });
 
-  const handleReply = (postId: string) => {
+  const handleReply = async (postId: string) => {
     const content = replyContents[postId]?.trim();
     if (!content) return;
 
-    const newReply: Reply = {
-      id: `r${Date.now()}`,
-      authorId: user?.id || '',
-      authorName: user?.name || 'อาจารย์',
-      authorRole: 'teacher',
-      authorAvatar: user?.avatar,
-      content,
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      const response = await webboardApi.replyToPost(postId, content);
+      
+      if (response.success && response.data) {
+        // Update local state with new reply
+        const newReply: Reply = {
+          id: response.data.id,
+          authorId: response.data.authorId,
+          authorName: response.data.author?.name || user?.name || 'อาจารย์',
+          authorRole: response.data.author?.role === 'TEACHER' ? 'teacher' : 'student',
+          authorAvatar: response.data.author?.avatar,
+          content: response.data.content,
+          createdAt: response.data.createdAt,
+        };
 
-    setPosts(posts.map(post => 
-      post.id === postId 
-        ? { ...post, replies: [...(post.replies || []), newReply] }
-        : post
-    ));
+        setPosts(posts.map(post => 
+          post.id === postId 
+            ? { ...post, replies: [...(post.replies || []), newReply] }
+            : post
+        ));
 
-    setReplyContents({ ...replyContents, [postId]: '' });
-    setShowReplyInput({ ...showReplyInput, [postId]: false });
+        setReplyContents({ ...replyContents, [postId]: '' });
+        setShowReplyInput({ ...showReplyInput, [postId]: false });
+
+        await Swal.fire({
+          icon: 'success',
+          title: 'ส่งคำตอบสำเร็จ!',
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      } else {
+        throw new Error(response.error || 'ไม่สามารถส่งคำตอบได้');
+      }
+    } catch (error: any) {
+      console.error('Error replying to post:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: error.message || 'ไม่สามารถส่งคำตอบได้',
+      });
+    }
   };
 
   const formatDateTime = (dateString: string) => {
@@ -159,7 +232,7 @@ export default function TeacherWebboardPage() {
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
           >
             <option value="all">ทุกหลักสูตร</option>
-            {myCourses.map((course) => (
+            {courses.map((course) => (
               <option key={course.id} value={course.id}>
                 {course.title}
               </option>
@@ -169,15 +242,23 @@ export default function TeacherWebboardPage() {
       </Card>
 
       {/* Posts List */}
-      <div className="space-y-4">
-        {filteredPosts.length === 0 ? (
-          <Card>
-            <div className="text-center py-12">
-              <ChatBubbleLeftRightIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">ไม่พบคำถาม</p>
-            </div>
-          </Card>
-        ) : (
+      {loading ? (
+        <Card>
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">กำลังโหลดข้อมูล...</p>
+          </div>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {filteredPosts.length === 0 ? (
+            <Card>
+              <div className="text-center py-12">
+                <ChatBubbleLeftRightIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">ไม่พบคำถาม</p>
+              </div>
+            </Card>
+          ) : (
           filteredPosts.map((post) => (
             <Card key={post.id}>
               <div className="space-y-4">

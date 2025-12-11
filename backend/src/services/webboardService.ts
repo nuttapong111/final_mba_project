@@ -55,6 +55,68 @@ export const getWebboardPosts = async (courseId: string, user: AuthUser) => {
   return posts;
 };
 
+/**
+ * Get all webboard posts for a teacher across all their courses
+ */
+export const getTeacherWebboardPosts = async (user: AuthUser) => {
+  // Get all courses where user is instructor or teacher
+  const courses = await prisma.course.findMany({
+    where: {
+      OR: [
+        { instructorId: user.id },
+        { teachers: { some: { teacherId: user.id } } },
+      ],
+    },
+    select: {
+      id: true,
+      title: true,
+    },
+  });
+
+  const courseIds = courses.map((c) => c.id);
+
+  if (courseIds.length === 0) {
+    return [];
+  }
+
+  const posts = await prisma.webboardPost.findMany({
+    where: {
+      courseId: { in: courseIds },
+    },
+    include: {
+      course: {
+        select: {
+          id: true,
+          title: true,
+        },
+      },
+      student: {
+        select: {
+          id: true,
+          name: true,
+          avatar: true,
+        },
+      },
+      replies: {
+        include: {
+          author: {
+            select: {
+              id: true,
+              name: true,
+              avatar: true,
+              role: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return posts;
+};
+
 export const createWebboardPost = async (
   courseId: string,
   question: string,

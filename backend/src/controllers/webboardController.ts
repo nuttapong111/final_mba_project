@@ -1,5 +1,5 @@
 import { Context } from 'hono';
-import { getWebboardPosts, createWebboardPost, replyToPost } from '../services/webboardService';
+import { getWebboardPosts, createWebboardPost, replyToPost, getTeacherWebboardPosts } from '../services/webboardService';
 
 export const getPostsController = async (c: Context) => {
   try {
@@ -41,6 +41,21 @@ export const replyPostController = async (c: Context) => {
 
     const reply = await replyToPost(postId, content, user);
     return c.json({ success: true, data: reply });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 400);
+  }
+};
+
+export const getTeacherPostsController = async (c: Context) => {
+  try {
+    const user = c.get('user');
+    
+    if (user.role !== 'TEACHER') {
+      return c.json({ success: false, error: 'เฉพาะครูผู้สอนเท่านั้น' }, 403);
+    }
+
+    const posts = await getTeacherWebboardPosts(user);
+    return c.json({ success: true, data: posts });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 400);
   }

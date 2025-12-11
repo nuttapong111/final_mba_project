@@ -31,6 +31,15 @@ export interface WebboardReply {
 }
 
 export const webboardApi = {
+  getTeacherPosts: async (): Promise<{
+    success: boolean;
+    data?: WebboardPost[];
+    error?: string;
+  }> => {
+    const response = await apiClient.get('/webboard/teacher/posts');
+    return response.data;
+  },
+
   getPosts: async (courseId: string): Promise<{
     success: boolean;
     data?: WebboardPost[];
