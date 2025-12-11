@@ -297,13 +297,24 @@ function AssignmentGradingCard({
   const [feedback, setFeedback] = useState(task.feedback || task.aiFeedback || '');
   const [isEditing, setIsEditing] = useState(task.status === 'pending');
 
-  // Update score and feedback when AI feedback is generated
+  // Update score and feedback when AI feedback is generated or when task changes
   useEffect(() => {
+    // If there's AI feedback from DB and task is not graded yet, use AI feedback
     if (task.aiScore !== undefined && task.aiFeedback && isEditing && !task.score) {
       setScore(task.aiScore.toString());
       setFeedback(task.aiFeedback);
     }
-  }, [task.aiScore, task.aiFeedback, task.score, isEditing]);
+    // If task is already graded, use the graded score and feedback
+    else if (task.score !== undefined && task.feedback) {
+      setScore(task.score.toString());
+      setFeedback(task.feedback);
+    }
+    // If there's only AI feedback (from DB), use it
+    else if (task.aiScore !== undefined && task.aiFeedback) {
+      setScore(task.aiScore.toString());
+      setFeedback(task.aiFeedback);
+    }
+  }, [task.aiScore, task.aiFeedback, task.score, task.feedback, isEditing]);
 
   const handleSubmit = () => {
     const scoreNum = parseFloat(score);
@@ -400,7 +411,7 @@ function AssignmentGradingCard({
               <p className="text-blue-800 text-sm">กำลังประมวลผลข้อเสนอแนะจาก AI กรุณารอสักครู่...</p>
             </div>
           </div>
-        ) : task.aiScore !== undefined && task.aiFeedback ? (
+        ) : (task.aiScore !== undefined && task.aiScore !== null && task.aiFeedback && task.aiFeedback.trim() !== '') ? (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium text-blue-900 flex items-center">
