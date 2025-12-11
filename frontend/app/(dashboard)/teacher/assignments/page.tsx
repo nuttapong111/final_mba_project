@@ -428,7 +428,7 @@ function AssignmentGradingCard({
               <p className="text-blue-800 text-sm">กำลังประมวลผลข้อเสนอแนะจาก AI กรุณารอสักครู่...</p>
             </div>
           </div>
-        ) : task.aiScore !== undefined && task.aiFeedback ? (
+        ) : (task.aiScore !== undefined && task.aiScore !== null) && task.aiFeedback && task.aiFeedback.trim() !== '' ? (
           // Show AI feedback card when AI feedback exists (same style as exam grading page)
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">

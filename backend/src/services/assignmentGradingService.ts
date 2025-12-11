@@ -272,8 +272,10 @@ export const getAssignmentGradingTasks = async (user: AuthUser): Promise<Assignm
         gradedAt: submission.gradedAt?.toISOString() || undefined,
         maxScore: submission.assignment.maxScore,
         status: submission.score !== null ? ('graded' as const) : ('pending' as const),
-        aiScore,
-        aiFeedback,
+        // Explicitly include aiScore and aiFeedback even if undefined/null
+        // Frontend needs to check for existence to show card
+        aiScore: aiScore !== null && aiScore !== undefined ? aiScore : undefined,
+        aiFeedback: aiFeedback && aiFeedback.trim() !== '' ? aiFeedback : undefined,
       };
     })
   );
