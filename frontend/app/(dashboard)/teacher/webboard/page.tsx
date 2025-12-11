@@ -113,7 +113,7 @@ export default function TeacherWebboardPage() {
       
       if (response.success && response.data) {
         // Update local state with new reply
-        const newReply: Reply = {
+    const newReply: Reply = {
           id: response.data.id,
           authorId: response.data.authorId,
           authorName: response.data.author?.name || user?.name || 'อาจารย์',
@@ -121,16 +121,16 @@ export default function TeacherWebboardPage() {
           authorAvatar: response.data.author?.avatar,
           content: response.data.content,
           createdAt: response.data.createdAt,
-        };
+    };
 
-        setPosts(posts.map(post => 
-          post.id === postId 
-            ? { ...post, replies: [...(post.replies || []), newReply] }
-            : post
-        ));
+    setPosts(posts.map(post => 
+      post.id === postId 
+        ? { ...post, replies: [...(post.replies || []), newReply] }
+        : post
+    ));
 
-        setReplyContents({ ...replyContents, [postId]: '' });
-        setShowReplyInput({ ...showReplyInput, [postId]: false });
+    setReplyContents({ ...replyContents, [postId]: '' });
+    setShowReplyInput({ ...showReplyInput, [postId]: false });
 
         await Swal.fire({
           icon: 'success',
@@ -206,15 +206,15 @@ export default function TeacherWebboardPage() {
           </div>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {filteredPosts.length === 0 ? (
-            <Card>
-              <div className="text-center py-12">
-                <ChatBubbleLeftRightIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">ไม่พบคำถาม</p>
-              </div>
-            </Card>
-          ) : (
+      <div className="space-y-4">
+        {filteredPosts.length === 0 ? (
+          <Card>
+            <div className="text-center py-12">
+              <ChatBubbleLeftRightIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">ไม่พบคำถาม</p>
+            </div>
+          </Card>
+        ) : (
           filteredPosts.map((post) => (
             <Card key={post.id}>
               <div className="space-y-4">
@@ -314,8 +314,8 @@ export default function TeacherWebboardPage() {
               </div>
             </Card>
           ))
-          )}
-        </div>
+        )}
+      </div>
       )}
     </div>
   );

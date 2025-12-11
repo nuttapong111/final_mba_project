@@ -54,7 +54,7 @@ export default function TeacherCoursesPage() {
           </div>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {courses.length === 0 ? (
             <Card className="col-span-full">
               <div className="text-center py-12">
@@ -64,8 +64,8 @@ export default function TeacherCoursesPage() {
             </Card>
           ) : (
             courses.map((course) => (
-              <Card key={course.id} hover>
-                <div className="relative h-48 mb-4 rounded-lg overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600">
+          <Card key={course.id} hover>
+            <div className="relative h-48 mb-4 rounded-lg overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600">
                   {course.thumbnail && (
                     <img
                       src={course.thumbnail}
@@ -73,10 +73,10 @@ export default function TeacherCoursesPage() {
                       className="w-full h-full object-cover"
                     />
                   )}
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{course.title}</h3>
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">{course.title}</h3>
                 <p className="text-gray-600 text-sm mb-4 line-clamp-2">{course.description}</p>
-                <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                   <div className="flex items-center space-x-4 text-sm text-gray-600">
                     <span className="flex items-center">
                       <UsersIcon className="h-4 w-4 mr-1" />
@@ -89,12 +89,12 @@ export default function TeacherCoursesPage() {
                       </span>
                     )}
                   </div>
-                  <Button variant="primary" size="sm">จัดการ</Button>
-                </div>
-              </Card>
+              <Button variant="primary" size="sm">จัดการ</Button>
+            </div>
+          </Card>
             ))
           )}
-        </div>
+      </div>
       )}
     </div>
   );

@@ -95,14 +95,14 @@ export const generateAssignmentAIFeedbackController = async (c: Context) => {
       // Pass teacher's PDF file if available
       result = await getAIGradingSuggestionWithPDF(
         assignmentContext,
-        studentFileUrl || '',
+          studentFileUrl || '',
         studentS3Key || null,
         maxScore || 100,
         schoolId,
         undefined, // geminiApiKey
         teacherFileUrl || undefined,
         teacherS3Key || null
-      );
+        );
         } else {
       // Use text-based method for non-PDF files or text notes
       let studentAnswer = studentNotes || '';

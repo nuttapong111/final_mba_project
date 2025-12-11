@@ -171,35 +171,35 @@ export default function AdminSchoolsPage() {
               </div>
             </Card>
           ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {schools.map((school) => (
-            <Card key={school.id} hover>
-              <div className="flex items-center space-x-4 mb-4">
-                <div className="h-16 w-16 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <BuildingOfficeIcon className="h-8 w-8 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">{school.name}</h3>
-                  {school.domain && (
-                    <p className="text-sm text-gray-600">{school.domain}</p>
-                  )}
-                </div>
+          <Card key={school.id} hover>
+            <div className="flex items-center space-x-4 mb-4">
+              <div className="h-16 w-16 bg-blue-100 rounded-lg flex items-center justify-center">
+                <BuildingOfficeIcon className="h-8 w-8 text-blue-600" />
               </div>
-              <div className="space-y-2 mb-4">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">{school.name}</h3>
+                  {school.domain && (
+                <p className="text-sm text-gray-600">{school.domain}</p>
+                  )}
+              </div>
+            </div>
+            <div className="space-y-2 mb-4">
                 {school.subscription && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">แพ็กเกจ:</span>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">แพ็กเกจ:</span>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                       school.subscription === 'PREMIUM' ? 'bg-purple-100 text-purple-800' :
                       school.subscription === 'BASIC' ? 'bg-blue-100 text-blue-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {school.subscription}
-                    </span>
-                  </div>
+                  'bg-gray-100 text-gray-800'
+                }`}>
+                  {school.subscription}
+                </span>
+              </div>
                 )}
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">วันที่สร้าง:</span>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">วันที่สร้าง:</span>
                   <span className="text-sm text-gray-900">{formatDate(school.createdAt)}</span>
                 </div>
                 {school.userCount !== undefined && (
@@ -212,20 +212,20 @@ export default function AdminSchoolsPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">ผู้ดูแล:</span>
                     <span className="text-sm text-gray-900">{school.adminCount} คน</span>
-                  </div>
+              </div>
                 )}
-              </div>
-              <div className="flex space-x-2 pt-4 border-t border-gray-200">
+            </div>
+            <div className="flex space-x-2 pt-4 border-t border-gray-200">
                 <Button variant="primary" className="flex-1" onClick={() => handleViewDetails(school)}>
-                  ดูรายละเอียด
-                </Button>
-                <Button variant="outline">
-                  แก้ไข
-                </Button>
-              </div>
-            </Card>
-          ))}
-        </div>
+                ดูรายละเอียด
+              </Button>
+              <Button variant="outline">
+                แก้ไข
+              </Button>
+            </div>
+          </Card>
+        ))}
+      </div>
           )}
         </>
       )}

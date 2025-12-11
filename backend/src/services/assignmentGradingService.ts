@@ -172,35 +172,35 @@ export const getAssignmentGradingTasks = async (user: AuthUser): Promise<Assignm
           
           let aiResult;
           try {
-            if (isStudentPDF && (submission.fileUrl || submission.s3Key)) {
-              // Use Gemini File API for PDF files
+          if (isStudentPDF && (submission.fileUrl || submission.s3Key)) {
+            // Use Gemini File API for PDF files
               console.log('[ASSIGNMENT GRADING] Attempting to grade PDF file:', studentFileName);
-              const { getAIGradingSuggestionWithPDF } = await import('./aiService');
+            const { getAIGradingSuggestionWithPDF } = await import('./aiService');
               // Pass teacher's PDF file if available
-              aiResult = await getAIGradingSuggestionWithPDF(
-                assignmentContext,
-                submission.fileUrl || '',
-                submission.s3Key || null,
-                submission.assignment.maxScore,
+            aiResult = await getAIGradingSuggestionWithPDF(
+              assignmentContext,
+              submission.fileUrl || '',
+              submission.s3Key || null,
+              submission.assignment.maxScore,
                 schoolId,
                 undefined, // geminiApiKey
                 submission.assignment.fileUrl || undefined,
                 submission.assignment.s3Key || null
-              );
+            );
               console.log('[ASSIGNMENT GRADING] PDF grading successful');
-            } else {
-              // Use text-based method
-              let studentAnswer = 'นักเรียนส่งไฟล์';
-              if (submission.fileName) {
-                studentAnswer = `นักเรียนส่งไฟล์: ${submission.fileName}`;
-              }
-              
-              aiResult = await getAIGradingSuggestion(
-                assignmentContext,
-                studentAnswer,
-                submission.assignment.maxScore,
-                schoolId
-              );
+          } else {
+            // Use text-based method
+            let studentAnswer = 'นักเรียนส่งไฟล์';
+            if (submission.fileName) {
+              studentAnswer = `นักเรียนส่งไฟล์: ${submission.fileName}`;
+            }
+            
+            aiResult = await getAIGradingSuggestion(
+              assignmentContext,
+              studentAnswer,
+              submission.assignment.maxScore,
+              schoolId
+            );
             }
           } catch (aiError: any) {
             console.error('[ASSIGNMENT GRADING] AI grading error:', aiError);

@@ -65,8 +65,8 @@ export default function AssignmentGradingPage() {
       setScore(submission.aiScore);
       setFeedback(submission.aiFeedback);
     } else {
-      setScore(submission.score || 0);
-      setFeedback(submission.feedback || '');
+    setScore(submission.score || 0);
+    setFeedback(submission.feedback || '');
     }
   };
 
