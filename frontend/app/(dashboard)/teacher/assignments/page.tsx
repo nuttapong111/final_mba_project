@@ -411,8 +411,8 @@ function AssignmentGradingCard({
               <p className="text-blue-800 text-sm">กำลังประมวลผลข้อเสนอแนะจาก AI กรุณารอสักครู่...</p>
             </div>
           </div>
-        ) : (task.aiScore !== undefined && task.aiScore !== null && task.aiFeedback && task.aiFeedback.trim() !== '') ? (
-          // Show AI feedback card when AI feedback exists
+        ) : task.aiScore !== undefined && task.aiFeedback ? (
+          // Show AI feedback card when AI feedback exists (same style as exam grading page)
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
               <h4 className="font-medium text-blue-900 flex items-center">
@@ -484,7 +484,7 @@ function AssignmentGradingCard({
               </Button>
             )}
           </div>
-        ) : isEditing && (task.aiScore === undefined || task.aiScore === null || !task.aiFeedback || task.aiFeedback.trim() === '') ? (
+        ) : isEditing && !isGeneratingAI ? (
           // Show generate button when no AI feedback exists
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
             <Button
@@ -557,8 +557,7 @@ function AssignmentGradingCard({
           </div>
         ) : null}
 
-        {/* Show regenerate button if AI feedback exists but not shown in card above (fallback) */}
-        {isEditing && !isGeneratingAI && task.aiScore !== undefined && task.aiScore !== null && task.aiFeedback && task.aiFeedback.trim() !== '' && (
+        {/* Remove fallback button - card should handle all cases */}
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-2">
             <Button
               variant="outline"
