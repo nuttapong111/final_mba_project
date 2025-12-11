@@ -362,19 +362,29 @@ export const getAIGradingSuggestionWithPDF = async (
     }
     throw new Error('All Gemini models failed');
   } catch (error: any) {
-    console.error('[GEMINI FILE API] Error:', error);
+    console.error('[GEMINI FILE API] Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+    });
     
     // Don't try fallback for PDF files - it will fail with DOMMatrix error
     // Just throw a clear error message
     const isPDFProcessingError = error.message?.includes('DOMMatrix') || 
                                  error.message?.includes('canvas') ||
-                                 error.message?.includes('browser');
+                                 error.message?.includes('browser') ||
+                                 error.message?.includes('PDF processing');
     
     if (isPDFProcessingError) {
       throw new Error(`ไม่สามารถตรวจไฟล์ PDF ได้: PDF processing library error. กรุณาตรวจสอบว่า Gemini API รองรับไฟล์ PDF หรือไม่`);
     }
     
-    // For other errors, provide a clear message
+    // Check if it's a download error
+    if (error.message?.includes('ดาวน์โหลด')) {
+      throw error; // Re-throw download errors as-is
+    }
+    
+    // For other errors (like Gemini API errors), provide a clear message
     throw new Error(`ไม่สามารถตรวจไฟล์ PDF ได้: ${error.message}. กรุณาตรวจสอบว่า Gemini API รองรับไฟล์ PDF หรือไม่`);
   }
 };
