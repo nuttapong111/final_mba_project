@@ -60,7 +60,6 @@ export const generateAssignmentAIFeedbackController = async (c: Context) => {
     // Note: Skip extracting text from teacher's PDF file to avoid DOMMatrix errors
     // Teacher's PDF file URL will be passed to Gemini File API if needed
     if (teacherFileUrl || teacherS3Key) {
-      const teacherFileName = teacherFileName || '';
       if (teacherFileName) {
         assignmentContext += `\n\nอาจารย์ได้แนบไฟล์: ${teacherFileName}`;
         console.log(`[ASSIGNMENT AI FEEDBACK] Teacher attached file: ${teacherFileName}`);
