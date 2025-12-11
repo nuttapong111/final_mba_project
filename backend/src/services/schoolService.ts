@@ -74,3 +74,44 @@ export const getSchoolById = async (schoolId: string, user: AuthUser): Promise<S
     userCount: school.users.length,
   };
 };
+
+/**
+ * Create a new school
+ */
+export const createSchool = async (
+  data: {
+    name: string;
+    domain?: string;
+    subscription?: string;
+  },
+  user: AuthUser
+): Promise<SchoolData> => {
+  if (user.role !== 'SUPER_ADMIN') {
+    throw new Error('ไม่มีสิทธิ์สร้างสถาบันใหม่');
+  }
+
+  const school = await prisma.school.create({
+    data: {
+      name: data.name,
+      domain: data.domain || null,
+      subscription: data.subscription || 'FREE',
+    },
+    include: {
+      users: {
+        select: {
+          role: true,
+        },
+      },
+    },
+  });
+
+  return {
+    id: school.id,
+    name: school.name,
+    domain: school.domain || undefined,
+    subscription: school.subscription || undefined,
+    createdAt: school.createdAt,
+    adminCount: school.users.filter((u) => u.role === 'SCHOOL_ADMIN').length,
+    userCount: school.users.length,
+  };
+};
