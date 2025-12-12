@@ -259,6 +259,16 @@ export default function NewLessonPage() {
                                     handleUpdateContent(index, 'fileUrl', fileUrl);
                                     handleUpdateContent(index, 'fileName', file.name);
                                     handleUpdateContent(index, 'fileSize', file.size);
+                                    
+                                    // อ่าน duration จากไฟล์วิดีโออัตโนมัติ
+                                    const video = document.createElement('video');
+                                    video.preload = 'metadata';
+                                    video.onloadedmetadata = () => {
+                                      window.URL.revokeObjectURL(fileUrl);
+                                      const durationInMinutes = Math.ceil(video.duration / 60);
+                                      handleUpdateContent(index, 'duration', durationInMinutes);
+                                    };
+                                    video.src = fileUrl;
                                   }
                                 }}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"

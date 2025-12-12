@@ -1390,6 +1390,16 @@ export default function CourseContentPage() {
                                     handleUpdateContent(lessonIndex, contentIndex, 'fileUrl', fileUrl);
                                     handleUpdateContent(lessonIndex, contentIndex, 'fileName', file.name);
                                     handleUpdateContent(lessonIndex, contentIndex, 'fileSize', file.size);
+                                    
+                                    // อ่าน duration จากไฟล์วิดีโออัตโนมัติ
+                                    const video = document.createElement('video');
+                                    video.preload = 'metadata';
+                                    video.onloadedmetadata = () => {
+                                      window.URL.revokeObjectURL(fileUrl);
+                                      const durationInMinutes = Math.ceil(video.duration / 60);
+                                      handleUpdateContent(lessonIndex, contentIndex, 'duration', durationInMinutes);
+                                    };
+                                    video.src = fileUrl;
                                   }
                                 }}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -1427,13 +1437,22 @@ export default function CourseContentPage() {
                               )}
                             </div>
                           )}
-                          <Input
-                            label="ระยะเวลา (นาที)"
-                            type="number"
-                            value={content.duration || ''}
-                            onChange={(e) => handleUpdateContent(lessonIndex, contentIndex, 'duration', parseInt(e.target.value))}
-                            placeholder="45"
-                          />
+                          {/* แสดงฟิลด์ duration เฉพาะเมื่อใช้ URL (เพราะอ่านจากไฟล์ได้อัตโนมัติ) */}
+                          {(!content.fileUrl || content.fileUrl === '') && (
+                            <Input
+                              label="ระยะเวลา (นาที)"
+                              type="number"
+                              value={content.duration || ''}
+                              onChange={(e) => handleUpdateContent(lessonIndex, contentIndex, 'duration', parseInt(e.target.value))}
+                              placeholder="45"
+                            />
+                          )}
+                          {/* แสดง duration ที่อ่านได้จากไฟล์อัตโนมัติ (read-only) */}
+                          {content.fileUrl && content.fileUrl !== '' && content.duration && (
+                            <div className="text-sm text-gray-600">
+                              <span className="font-medium">ระยะเวลา:</span> {content.duration} นาที (อ่านจากไฟล์อัตโนมัติ)
+                            </div>
+                          )}
                         </>
                       )}
                       {content.type === 'document' && (
