@@ -203,6 +203,10 @@ export default function NewLessonPage() {
                                   checked={!!content.fileUrl}
                                   onChange={() => {
                                     handleUpdateContent(index, 'url', undefined);
+                                    // Set fileUrl to empty string to enable file upload option
+                                    if (!content.fileUrl) {
+                                      handleUpdateContent(index, 'fileUrl', '');
+                                    }
                                   }}
                                   className="text-blue-600 focus:ring-blue-500"
                                 />
