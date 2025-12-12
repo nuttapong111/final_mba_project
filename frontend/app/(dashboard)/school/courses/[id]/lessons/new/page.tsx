@@ -182,46 +182,89 @@ export default function NewLessonPage() {
                               วิธีเพิ่มวิดีโอ
                             </label>
                             <div className="flex space-x-4 mb-3">
-                              <label className="flex items-center space-x-2">
+                              <label className="flex items-center space-x-2 cursor-pointer">
                                 <input
                                   type="radio"
                                   name={`video-source-${index}`}
-                                  checked={!content.fileUrl}
+                                  checked={!content.fileUrl || content.fileUrl === ''}
                                   onChange={() => {
                                     handleUpdateContent(index, 'fileUrl', undefined);
                                     handleUpdateContent(index, 'fileName', undefined);
                                     handleUpdateContent(index, 'fileSize', undefined);
+                                    handleUpdateContent(index, 'file', undefined);
                                   }}
-                                  className="text-blue-600 focus:ring-blue-500"
+                                  className="text-blue-600 focus:ring-blue-500 cursor-pointer"
                                 />
                                 <span className="text-sm text-gray-700">ใช้ URL</span>
                               </label>
-                              <label className="flex items-center space-x-2">
+                              <label className="flex items-center space-x-2 cursor-pointer">
                                 <input
                                   type="radio"
                                   name={`video-source-${index}`}
-                                  checked={!!content.fileUrl}
+                                  checked={content.fileUrl !== undefined && content.fileUrl !== ''}
                                   onChange={() => {
                                     handleUpdateContent(index, 'url', undefined);
-                                    // Set fileUrl to empty string to enable file upload option
-                                    if (!content.fileUrl) {
-                                      handleUpdateContent(index, 'fileUrl', '');
+                                    // Set fileUrl to a placeholder value to enable file upload option
+                                    if (!content.fileUrl || content.fileUrl === '') {
+                                      handleUpdateContent(index, 'fileUrl', 'pending');
                                     }
                                   }}
-                                  className="text-blue-600 focus:ring-blue-500"
+                                  className="text-blue-600 focus:ring-blue-500 cursor-pointer"
                                 />
                                 <span className="text-sm text-gray-700">อัพโหลดไฟล์</span>
                               </label>
                             </div>
                           </div>
-                          {!content.fileUrl || content.fileUrl === '' ? (
-                            <Input
-                              label="URL วิดีโอ"
-                              type="url"
-                              value={content.url || ''}
-                              onChange={(e) => handleUpdateContent(index, 'url', e.target.value)}
-                              placeholder="https://..."
-                            />
+                          {!content.fileUrl || content.fileUrl === '' || content.fileUrl === 'pending' ? (
+                            !content.fileUrl || content.fileUrl === '' ? (
+                              <Input
+                                label="URL วิดีโอ"
+                                type="url"
+                                value={content.url || ''}
+                                onChange={(e) => handleUpdateContent(index, 'url', e.target.value)}
+                                placeholder="https://..."
+                              />
+                            ) : (
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                  ไฟล์วิดีโอ
+                                </label>
+                                <input
+                                  type="file"
+                                  accept="video/*"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      // ตรวจสอบขนาดไฟล์ (สูงสุด 2GB)
+                                      if (file.size > 2 * 1024 * 1024 * 1024) {
+                                        Swal.fire({
+                                          icon: 'error',
+                                          title: 'ไฟล์ใหญ่เกินไป',
+                                          text: 'ขนาดไฟล์ไม่ควรเกิน 2GB',
+                                        });
+                                        return;
+                                      }
+                                    // ตรวจสอบประเภทไฟล์
+                                    if (!file.type.startsWith('video/')) {
+                                      Swal.fire({
+                                        icon: 'error',
+                                        title: 'ประเภทไฟล์ไม่ถูกต้อง',
+                                        text: 'กรุณาเลือกไฟล์วิดีโอเท่านั้น',
+                                      });
+                                      return;
+                                    }
+                                    // เก็บไฟล์จริงไว้ใน state สำหรับอัพโหลด
+                                    handleUpdateContent(index, 'file', file);
+                                    // สร้าง URL สำหรับแสดงตัวอย่าง (local preview)
+                                    const fileUrl = URL.createObjectURL(file);
+                                    handleUpdateContent(index, 'fileUrl', fileUrl);
+                                    handleUpdateContent(index, 'fileName', file.name);
+                                    handleUpdateContent(index, 'fileSize', file.size);
+                                  }
+                                }}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                              />
+                            )
                           ) : (
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1.5">

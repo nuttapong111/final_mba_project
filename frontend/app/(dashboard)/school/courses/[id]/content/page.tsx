@@ -1313,31 +1313,34 @@ export default function CourseContentPage() {
                               วิธีเพิ่มวิดีโอ
                             </label>
                             <div className="flex space-x-4 mb-3">
-                              <label className="flex items-center space-x-2">
+                              <label className="flex items-center space-x-2 cursor-pointer">
                                 <input
                                   type="radio"
                                   name={`video-source-${lessonIndex}-${contentIndex}`}
-                                  checked={!content.fileUrl}
+                                  checked={!content.fileUrl || content.fileUrl === ''}
                                   onChange={() => {
                                     handleUpdateContent(lessonIndex, contentIndex, 'fileUrl', undefined);
+                                    handleUpdateContent(lessonIndex, contentIndex, 'fileName', undefined);
+                                    handleUpdateContent(lessonIndex, contentIndex, 'fileSize', undefined);
+                                    handleUpdateContent(lessonIndex, contentIndex, 'file', undefined);
                                   }}
-                                  className="text-blue-600 focus:ring-blue-500"
+                                  className="text-blue-600 focus:ring-blue-500 cursor-pointer"
                                 />
                                 <span className="text-sm text-gray-700">ใช้ URL</span>
                               </label>
-                              <label className="flex items-center space-x-2">
+                              <label className="flex items-center space-x-2 cursor-pointer">
                                 <input
                                   type="radio"
                                   name={`video-source-${lessonIndex}-${contentIndex}`}
-                                  checked={!!content.fileUrl}
+                                  checked={content.fileUrl !== undefined && content.fileUrl !== ''}
                                   onChange={() => {
                                     handleUpdateContent(lessonIndex, contentIndex, 'url', undefined);
-                                    // Set fileUrl to empty string to enable file upload option
-                                    if (!content.fileUrl) {
-                                      handleUpdateContent(lessonIndex, contentIndex, 'fileUrl', '');
+                                    // Set fileUrl to a placeholder value to enable file upload option
+                                    if (!content.fileUrl || content.fileUrl === '') {
+                                      handleUpdateContent(lessonIndex, contentIndex, 'fileUrl', 'pending');
                                     }
                                   }}
-                                  className="text-blue-600 focus:ring-blue-500"
+                                  className="text-blue-600 focus:ring-blue-500 cursor-pointer"
                                 />
                                 <span className="text-sm text-gray-700">อัพโหลดไฟล์</span>
                               </label>
