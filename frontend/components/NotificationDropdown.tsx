@@ -219,10 +219,7 @@ export default function NotificationDropdown() {
                             </p>
                             <p className="text-xs text-gray-600 mt-1 line-clamp-2">{notification.message}</p>
                             <p className="text-xs text-gray-400 mt-1">
-                              {formatDistanceToNow(new Date(notification.createdAt), {
-                                addSuffix: true,
-                                locale: th,
-                              })}
+                              {formatTimeAgo(notification.createdAt)}
                             </p>
                           </Link>
                         ) : (
@@ -232,10 +229,7 @@ export default function NotificationDropdown() {
                             </p>
                             <p className="text-xs text-gray-600 mt-1 line-clamp-2">{notification.message}</p>
                             <p className="text-xs text-gray-400 mt-1">
-                              {formatDistanceToNow(new Date(notification.createdAt), {
-                                addSuffix: true,
-                                locale: th,
-                              })}
+                              {formatTimeAgo(notification.createdAt)}
                             </p>
                           </div>
                         )}
