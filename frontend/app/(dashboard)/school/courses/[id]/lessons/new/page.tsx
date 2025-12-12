@@ -305,13 +305,22 @@ export default function NewLessonPage() {
                               )}
                             </div>
                           )}
-                          <Input
-                            label="ระยะเวลา (นาที)"
-                            type="number"
-                            value={content.duration || ''}
-                            onChange={(e) => handleUpdateContent(index, 'duration', parseInt(e.target.value))}
-                            placeholder="45"
-                          />
+                          {/* แสดงฟิลด์ duration เฉพาะเมื่อใช้ URL (เพราะอ่านจากไฟล์ได้อัตโนมัติ) */}
+                          {(!content.fileUrl || content.fileUrl === '') && (
+                            <Input
+                              label="ระยะเวลา (นาที)"
+                              type="number"
+                              value={content.duration || ''}
+                              onChange={(e) => handleUpdateContent(index, 'duration', parseInt(e.target.value))}
+                              placeholder="45"
+                            />
+                          )}
+                          {/* แสดง duration ที่อ่านได้จากไฟล์อัตโนมัติ (read-only) */}
+                          {content.fileUrl && content.fileUrl !== '' && content.duration && (
+                            <div className="text-sm text-gray-600">
+                              <span className="font-medium">ระยะเวลา:</span> {content.duration} นาที (อ่านจากไฟล์อัตโนมัติ)
+                            </div>
+                          )}
                         </>
                       )}
                       {content.type === 'document' && (
