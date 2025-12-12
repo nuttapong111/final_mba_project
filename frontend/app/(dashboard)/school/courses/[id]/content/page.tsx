@@ -1346,56 +1346,14 @@ export default function CourseContentPage() {
                               </label>
                             </div>
                           </div>
-                          {!content.fileUrl || content.fileUrl === '' || content.fileUrl === 'pending' ? (
-                            !content.fileUrl || content.fileUrl === '' ? (
-                              <Input
-                                label="URL วิดีโอ"
-                                type="url"
-                                value={content.url || ''}
-                                onChange={(e) => handleUpdateContent(lessonIndex, contentIndex, 'url', e.target.value)}
-                                placeholder="https://..."
-                              />
-                            ) : (
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                  ไฟล์วิดีโอ
-                                </label>
-                                <input
-                                  type="file"
-                                  accept="video/*"
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                      // ตรวจสอบขนาดไฟล์ (สูงสุด 2GB)
-                                      if (file.size > 2 * 1024 * 1024 * 1024) {
-                                        Swal.fire({
-                                          icon: 'error',
-                                          title: 'ไฟล์ใหญ่เกินไป',
-                                          text: 'ขนาดไฟล์ไม่ควรเกิน 2GB',
-                                        });
-                                        return;
-                                      }
-                                    // ตรวจสอบประเภทไฟล์
-                                    if (!file.type.startsWith('video/')) {
-                                      Swal.fire({
-                                        icon: 'error',
-                                        title: 'ประเภทไฟล์ไม่ถูกต้อง',
-                                        text: 'กรุณาเลือกไฟล์วิดีโอเท่านั้น',
-                                      });
-                                      return;
-                                    }
-                                    // เก็บไฟล์จริงไว้ใน state สำหรับอัพโหลด
-                                    handleUpdateContent(lessonIndex, contentIndex, 'file', file);
-                                    // สร้าง URL สำหรับแสดงตัวอย่าง (local preview)
-                                    const fileUrl = URL.createObjectURL(file);
-                                    handleUpdateContent(lessonIndex, contentIndex, 'fileUrl', fileUrl);
-                                    handleUpdateContent(lessonIndex, contentIndex, 'fileName', file.name);
-                                    handleUpdateContent(lessonIndex, contentIndex, 'fileSize', file.size);
-                                  }
-                                }}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                              />
-                            )
+                          {!content.fileUrl || content.fileUrl === '' ? (
+                            <Input
+                              label="URL วิดีโอ"
+                              type="url"
+                              value={content.url || ''}
+                              onChange={(e) => handleUpdateContent(lessonIndex, contentIndex, 'url', e.target.value)}
+                              placeholder="https://..."
+                            />
                           ) : (
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -1405,17 +1363,17 @@ export default function CourseContentPage() {
                                 type="file"
                                 accept="video/*"
                                 onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                      // ตรวจสอบขนาดไฟล์ (สูงสุด 2GB)
-                                      if (file.size > 2 * 1024 * 1024 * 1024) {
-                                        Swal.fire({
-                                          icon: 'error',
-                                          title: 'ไฟล์ใหญ่เกินไป',
-                                          text: 'ขนาดไฟล์ไม่ควรเกิน 2GB',
-                                        });
-                                        return;
-                                      }
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    // ตรวจสอบขนาดไฟล์ (สูงสุด 2GB)
+                                    if (file.size > 2 * 1024 * 1024 * 1024) {
+                                      Swal.fire({
+                                        icon: 'error',
+                                        title: 'ไฟล์ใหญ่เกินไป',
+                                        text: 'ขนาดไฟล์ไม่ควรเกิน 2GB',
+                                      });
+                                      return;
+                                    }
                                     // ตรวจสอบประเภทไฟล์
                                     if (!file.type.startsWith('video/')) {
                                       Swal.fire({

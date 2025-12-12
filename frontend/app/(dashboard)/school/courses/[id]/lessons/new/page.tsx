@@ -215,56 +215,14 @@ export default function NewLessonPage() {
                               </label>
                             </div>
                           </div>
-                          {!content.fileUrl || content.fileUrl === '' || content.fileUrl === 'pending' ? (
-                            !content.fileUrl || content.fileUrl === '' ? (
-                              <Input
-                                label="URL วิดีโอ"
-                                type="url"
-                                value={content.url || ''}
-                                onChange={(e) => handleUpdateContent(index, 'url', e.target.value)}
-                                placeholder="https://..."
-                              />
-                            ) : (
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                  ไฟล์วิดีโอ
-                                </label>
-                                <input
-                                  type="file"
-                                  accept="video/*"
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                      // ตรวจสอบขนาดไฟล์ (สูงสุด 2GB)
-                                      if (file.size > 2 * 1024 * 1024 * 1024) {
-                                        Swal.fire({
-                                          icon: 'error',
-                                          title: 'ไฟล์ใหญ่เกินไป',
-                                          text: 'ขนาดไฟล์ไม่ควรเกิน 2GB',
-                                        });
-                                        return;
-                                      }
-                                    // ตรวจสอบประเภทไฟล์
-                                    if (!file.type.startsWith('video/')) {
-                                      Swal.fire({
-                                        icon: 'error',
-                                        title: 'ประเภทไฟล์ไม่ถูกต้อง',
-                                        text: 'กรุณาเลือกไฟล์วิดีโอเท่านั้น',
-                                      });
-                                      return;
-                                    }
-                                    // เก็บไฟล์จริงไว้ใน state สำหรับอัพโหลด
-                                    handleUpdateContent(index, 'file', file);
-                                    // สร้าง URL สำหรับแสดงตัวอย่าง (local preview)
-                                    const fileUrl = URL.createObjectURL(file);
-                                    handleUpdateContent(index, 'fileUrl', fileUrl);
-                                    handleUpdateContent(index, 'fileName', file.name);
-                                    handleUpdateContent(index, 'fileSize', file.size);
-                                  }
-                                }}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                              />
-                            )
+                          {!content.fileUrl || content.fileUrl === '' ? (
+                            <Input
+                              label="URL วิดีโอ"
+                              type="url"
+                              value={content.url || ''}
+                              onChange={(e) => handleUpdateContent(index, 'url', e.target.value)}
+                              placeholder="https://..."
+                            />
                           ) : (
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -294,6 +252,8 @@ export default function NewLessonPage() {
                                       });
                                       return;
                                     }
+                                    // เก็บไฟล์จริงไว้ใน state สำหรับอัพโหลด
+                                    handleUpdateContent(index, 'file', file);
                                     // สร้าง URL สำหรับแสดงตัวอย่าง (local preview)
                                     const fileUrl = URL.createObjectURL(file);
                                     handleUpdateContent(index, 'fileUrl', fileUrl);
@@ -303,7 +263,7 @@ export default function NewLessonPage() {
                                 }}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                               />
-                              {content.fileUrl && (
+                              {content.fileUrl && content.fileUrl !== 'pending' && (
                                 <div className="mt-2 p-2 bg-gray-50 rounded-lg border border-gray-200">
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center space-x-2">
