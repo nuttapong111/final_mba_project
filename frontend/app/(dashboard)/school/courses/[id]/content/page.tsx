@@ -1343,7 +1343,7 @@ export default function CourseContentPage() {
                               </label>
                             </div>
                           </div>
-                          {!content.fileUrl ? (
+                          {!content.fileUrl || content.fileUrl === '' ? (
                             <Input
                               label="URL วิดีโอ"
                               type="url"
