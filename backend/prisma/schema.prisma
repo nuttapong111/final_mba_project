@@ -100,22 +100,22 @@ enum PollQuestionType {
 
 // Schools
 model School {
-  id            String            @id @default(uuid())
-  name          String
-  logo          String?
-  primaryColor  String            @default("#3b82f6")
-  domain        String            @unique
-  subscription  SubscriptionTier  @default(BASIC)
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  id           String           @id @default(uuid())
+  name         String
+  logo         String?
+  primaryColor String           @default("#3b82f6")
+  domain       String           @unique
+  subscription SubscriptionTier @default(BASIC)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
-  users         User[]
-  courses       Course[]
-  certificates  Certificate[]
-  courseCategories CourseCategory[]
-  aiSettings    AISettings?  @relation("SchoolAISettings")
+  users              User[]
+  courses            Course[]
+  certificates       Certificate[]
+  courseCategories   CourseCategory[]
+  aiSettings         AISettings?         @relation("SchoolAISettings")
   mlTrainingSettings MLTrainingSettings? @relation("SchoolMLTrainingSettings")
-  mlTrainingHistory MLTrainingHistory[] @relation("SchoolMLTrainingHistory")
+  mlTrainingHistory  MLTrainingHistory[] @relation("SchoolMLTrainingHistory")
 }
 
 // Users
@@ -130,42 +130,45 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  school            School?            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  
+  school School? @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
   // Course relationships
-  coursesAsInstructor Course[]          @relation("CourseInstructor")
-  courseTeachers     CourseTeacher[]
-  courseStudents     CourseStudent[]
-  
+  coursesAsInstructor Course[]        @relation("CourseInstructor")
+  courseTeachers      CourseTeacher[]
+  courseStudents      CourseStudent[]
+
   // Exam relationships
-  examSubmissions    ExamSubmission[]
-  
+  examSubmissions ExamSubmission[]
+
   // Live session relationships
   liveSessionAttendances LiveSessionAttendance[]
-  
+
   // Webboard
-  webboardPosts      WebboardPost[]
-  webboardReplies    WebboardReply[]
-  
+  webboardPosts   WebboardPost[]
+  webboardReplies WebboardReply[]
+
   // Grading
-  gradingTasks       GradingTask[]
-  
+  gradingTasks GradingTask[]
+
   // Assignments
   assignmentSubmissions AssignmentSubmission[] @relation("AssignmentSubmissions")
   assignmentGradings    AssignmentSubmission[] @relation("AssignmentGradings")
+
+  // Notifications
+  notifications Notification[] @relation("UserNotifications")
 }
 
 // Course Categories
 model CourseCategory {
-  id            String   @id @default(uuid())
-  name          String
-  description   String?  @db.Text
-  schoolId      String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          String   @id @default(uuid())
+  name        String
+  description String?  @db.Text
+  schoolId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  courses       Course[]
+  school  School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  courses Course[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -173,56 +176,56 @@ model CourseCategory {
 
 // Courses
 model Course {
-  id                    String    @id @default(uuid())
-  title                 String
-  description           String    @db.Text
-  thumbnail             String?
-  category              String
-  categoryId            String?
-  level                 CourseLevel
-  courseType            CourseType
-  livePlatform          LivePlatform?
-  instructorId          String
-  schoolId              String
-  startDate             DateTime?
-  endDate               DateTime?
-  duration              Int       // in hours
-  price                 Float     @default(0)
-  status                CourseStatus @default(DRAFT)
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  id           String        @id @default(uuid())
+  title        String
+  description  String        @db.Text
+  thumbnail    String?
+  category     String
+  categoryId   String?
+  level        CourseLevel
+  courseType   CourseType
+  livePlatform LivePlatform?
+  instructorId String
+  schoolId     String
+  startDate    DateTime?
+  endDate      DateTime?
+  duration     Int // in hours
+  price        Float         @default(0)
+  status       CourseStatus  @default(DRAFT)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
-  instructor            User      @relation("CourseInstructor", fields: [instructorId], references: [id])
-  school                School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  courseCategory        CourseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  
-  teachers              CourseTeacher[]
-  students              CourseStudent[]
-  lessons               Lesson[]
-  liveSessions          LiveSession[]
-  questionBanks         QuestionBank[]
-  exams                 Exam[]
-  polls                 Poll[]
-  webboardPosts         WebboardPost[]
+  instructor     User            @relation("CourseInstructor", fields: [instructorId], references: [id])
+  school         School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  courseCategory CourseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  teachers               CourseTeacher[]
+  students               CourseStudent[]
+  lessons                Lesson[]
+  liveSessions           LiveSession[]
+  questionBanks          QuestionBank[]
+  exams                  Exam[]
+  polls                  Poll[]
+  webboardPosts          WebboardPost[]
   completionRequirements CourseCompletionRequirements?
-  certificates          Certificate[]
-  assignments          Assignment[]
-  gradingSystem        GradingSystem?
-  gradeWeights         GradeWeight[]
+  certificates           Certificate[]
+  assignments            Assignment[]
+  gradingSystem          GradingSystem?
+  gradeWeights           GradeWeight[]
 }
 
 // Course Teachers (Many-to-Many with roles)
 model CourseTeacher {
-  id            String   @id @default(uuid())
-  courseId      String
-  teacherId     String
-  liveTeaching  Boolean  @default(false)
-  grading       Boolean  @default(false)
-  webboard      Boolean  @default(false)
-  addedAt       DateTime @default(now())
+  id           String   @id @default(uuid())
+  courseId     String
+  teacherId    String
+  liveTeaching Boolean  @default(false)
+  grading      Boolean  @default(false)
+  webboard     Boolean  @default(false)
+  addedAt      DateTime @default(now())
 
-  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  teacher       User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  course  Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teacher User   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
   @@unique([courseId, teacherId])
   @@index([courseId])
@@ -231,15 +234,15 @@ model CourseTeacher {
 
 // Course Students (Enrollment)
 model CourseStudent {
-  id            String   @id @default(uuid())
-  courseId      String
-  studentId     String
-  enrolledAt    DateTime @default(now())
-  progress      Float    @default(0) // 0-100
-  completedAt   DateTime?
+  id          String    @id @default(uuid())
+  courseId    String
+  studentId   String
+  enrolledAt  DateTime  @default(now())
+  progress    Float     @default(0) // 0-100
+  completedAt DateTime?
 
-  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  student       User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course  Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  student User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([courseId, studentId])
   @@index([courseId])
@@ -256,35 +259,35 @@ model Lesson {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  contents    LessonContent[]
+  course   Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  contents LessonContent[]
 
   @@index([courseId])
 }
 
 // Lesson Contents
 model LessonContent {
-  id            String      @id @default(uuid())
-  lessonId      String
-  type          ContentType
-  title         String
-  url           String?
-  fileUrl       String?
-  fileName      String?
-  fileSize      Int?
-  s3Key         String?     // S3 key สำหรับลบไฟล์จาก S3
-  duration      Int?        // in minutes
-  order         Int
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id        String      @id @default(uuid())
+  lessonId  String
+  type      ContentType
+  title     String
+  url       String?
+  fileUrl   String?
+  fileName  String?
+  fileSize  Int?
+  s3Key     String? // S3 key สำหรับลบไฟล์จาก S3
+  duration  Int? // in minutes
+  order     Int
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 
-  lesson        Lesson      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  quizSettings  QuizSettings?
-  poll           Poll?
-  assignmentId  String?     @unique
-  assignment    Assignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
-  examId        String?     @unique
-  exam          Exam?       @relation(fields: [examId], references: [id], onDelete: SetNull)
+  lesson          Lesson            @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  quizSettings    QuizSettings?
+  poll            Poll?
+  assignmentId    String?           @unique
+  assignment      Assignment?       @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+  examId          String?           @unique
+  exam            Exam?             @relation(fields: [examId], references: [id], onDelete: SetNull)
   contentProgress ContentProgress[]
 
   @@index([lessonId])
@@ -292,46 +295,46 @@ model LessonContent {
 
 // Quiz Settings
 model QuizSettings {
-  id                String   @id @default(uuid())
-  contentId         String   @unique
+  id                String    @id @default(uuid())
+  contentId         String    @unique
   totalQuestions    Int?
-  duration          Int?     // in minutes
-  maxAttempts       Int      @default(0) // 0 = unlimited
-  timeRestriction   String?  // 'always' | 'scheduled'
+  duration          Int? // in minutes
+  maxAttempts       Int       @default(0) // 0 = unlimited
+  timeRestriction   String? // 'always' | 'scheduled'
   startDate         DateTime?
   startTime         String?
   endDate           DateTime?
   endTime           String?
-  passingPercentage Int      @default(70)
-  examType          String?  // 'QUIZ' | 'MIDTERM' | 'FINAL' - ประเภทข้อสอบ
+  passingPercentage Int       @default(70)
+  examType          String? // 'QUIZ' | 'MIDTERM' | 'FINAL' - ประเภทข้อสอบ
 
-  content           LessonContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  content            LessonContent           @relation(fields: [contentId], references: [id], onDelete: Cascade)
   categorySelections ExamQuestionSelection[]
 }
 
 // Exam Question Selection (for random questions)
 model ExamQuestionSelection {
-  id            String   @id @default(uuid())
+  id             String      @id @default(uuid())
   quizSettingsId String
-  categoryId    String
-  categoryName  String
-  questionCount Int
-  difficulty    Difficulty?
+  categoryId     String
+  categoryName   String
+  questionCount  Int
+  difficulty     Difficulty?
 
-  quizSettings  QuizSettings @relation(fields: [quizSettingsId], references: [id], onDelete: Cascade)
+  quizSettings QuizSettings @relation(fields: [quizSettingsId], references: [id], onDelete: Cascade)
 }
 
 // Course Completion Requirements
 model CourseCompletionRequirements {
-  id                      String   @id @default(uuid())
-  courseId                String   @unique
-  requireProgress         Boolean  @default(true)
-  minProgressPercentage   Int?     @default(100)
-  requireAllQuizzes       Boolean  @default(false)
+  id                       String  @id @default(uuid())
+  courseId                 String  @unique
+  requireProgress          Boolean @default(true)
+  minProgressPercentage    Int?    @default(100)
+  requireAllQuizzes        Boolean @default(false)
   minQuizPassingPercentage Int?
 
-  course                  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  quizRequirements        QuizPassingRequirement[]
+  course           Course                   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  quizRequirements QuizPassingRequirement[]
 }
 
 // Quiz Passing Requirements
@@ -346,8 +349,8 @@ model QuizPassingRequirement {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  requirements      CourseCompletionRequirements? @relation(fields: [requirementsId], references: [id], onDelete: Cascade)
-  gradingSystem     GradingSystem? @relation(fields: [gradingSystemId], references: [id], onDelete: Cascade)
+  requirements  CourseCompletionRequirements? @relation(fields: [requirementsId], references: [id], onDelete: Cascade)
+  gradingSystem GradingSystem?                @relation(fields: [gradingSystemId], references: [id], onDelete: Cascade)
 
   @@index([requirementsId])
   @@index([gradingSystemId])
@@ -356,21 +359,21 @@ model QuizPassingRequirement {
 
 // Live Sessions
 model LiveSession {
-  id            String            @id @default(uuid())
-  courseId      String
-  date          DateTime
-  startTime     String            // HH:mm
-  endTime       String            // HH:mm
-  meetingLink   String
-  meetingId     String?
+  id              String            @id @default(uuid())
+  courseId        String
+  date            DateTime
+  startTime       String // HH:mm
+  endTime         String // HH:mm
+  meetingLink     String
+  meetingId       String?
   meetingPassword String?
-  status        LiveSessionStatus @default(SCHEDULED)
-  recordingUrl  String?
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  status          LiveSessionStatus @default(SCHEDULED)
+  recordingUrl    String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
-  course        Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  attendances   LiveSessionAttendance[]
+  course      Course                  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  attendances LiveSessionAttendance[]
 
   @@index([courseId])
   @@index([date])
@@ -378,15 +381,15 @@ model LiveSession {
 
 // Live Session Attendance
 model LiveSessionAttendance {
-  id            String   @id @default(uuid())
-  sessionId     String
-  studentId     String
-  joinedAt      DateTime?
-  leftAt        DateTime?
-  duration      Int?     // in minutes
+  id        String    @id @default(uuid())
+  sessionId String
+  studentId String
+  joinedAt  DateTime?
+  leftAt    DateTime?
+  duration  Int? // in minutes
 
-  session       LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  student       User        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  session LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student User        @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([sessionId, studentId])
   @@index([sessionId])
@@ -396,47 +399,47 @@ model LiveSessionAttendance {
 // Question Banks
 model QuestionBank {
   id          String   @id @default(uuid())
-  courseId   String?
+  courseId    String?
   name        String
   description String?  @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  course      Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  categories  QuestionCategory[]
-  questions   Question[]
+  course     Course?            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  categories QuestionCategory[]
+  questions  Question[]
 
   @@index([courseId])
 }
 
 // Question Categories
 model QuestionCategory {
-  id            String   @id @default(uuid())
+  id             String   @id @default(uuid())
   questionBankId String
-  name          String
-  description   String?  @db.Text
-  createdAt     DateTime @default(now())
+  name           String
+  description    String?  @db.Text
+  createdAt      DateTime @default(now())
 
-  questionBank  QuestionBank @relation(fields: [questionBankId], references: [id], onDelete: Cascade)
-  questions     Question[]
+  questionBank QuestionBank @relation(fields: [questionBankId], references: [id], onDelete: Cascade)
+  questions    Question[]
 
   @@index([questionBankId])
 }
 
 // Questions
 model Question {
-  id            String       @id @default(uuid())
+  id             String       @id @default(uuid())
   questionBankId String?
-  categoryId    String?
-  question      String       @db.Text
-  type          QuestionType
-  difficulty    Difficulty
-  points        Int          @default(1)
-  explanation   String?      @db.Text
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  categoryId     String?
+  question       String       @db.Text
+  type           QuestionType
+  difficulty     Difficulty
+  points         Int          @default(1)
+  explanation    String?      @db.Text
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
-  questionBank  QuestionBank? @relation(fields: [questionBankId], references: [id], onDelete: Cascade)
+  questionBank  QuestionBank?     @relation(fields: [questionBankId], references: [id], onDelete: Cascade)
   category      QuestionCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   options       QuestionOption[]
   examQuestions ExamQuestion[]
@@ -447,38 +450,38 @@ model Question {
 
 // Question Options
 model QuestionOption {
-  id         String   @id @default(uuid())
+  id         String  @id @default(uuid())
   questionId String
-  text       String   @db.Text
-  isCorrect  Boolean  @default(false)
+  text       String  @db.Text
+  isCorrect  Boolean @default(false)
   order      Int
 
-  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@index([questionId])
 }
 
 // Exams
 model Exam {
-  id                String     @id @default(uuid())
+  id                 String     @id @default(uuid())
   courseId           String
   title              String
   type               ExamType
-  duration            Int         // in minutes
+  duration           Int // in minutes
   totalQuestions     Int
-  totalScore          Int
-  passingScore        Int
-  startDate           DateTime
-  endDate             DateTime
-  status              ExamStatus @default(DRAFT)
-  useRandomQuestions  Boolean     @default(false)
-  createdAt           DateTime   @default(now())
-  updatedAt           DateTime   @updatedAt
+  totalScore         Int
+  passingScore       Int
+  startDate          DateTime
+  endDate            DateTime
+  status             ExamStatus @default(DRAFT)
+  useRandomQuestions Boolean    @default(false)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 
-  course              Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  examQuestions       ExamQuestion[]
-  submissions         ExamSubmission[]
-  content             LessonContent?
+  course        Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  examQuestions ExamQuestion[]
+  submissions   ExamSubmission[]
+  content       LessonContent?
 
   @@index([courseId])
   @@index([startDate])
@@ -486,13 +489,13 @@ model Exam {
 
 // Exam Questions (Many-to-Many)
 model ExamQuestion {
-  id        String   @id @default(uuid())
-  examId    String
+  id         String @id @default(uuid())
+  examId     String
   questionId String
-  order     Int
+  order      Int
 
-  exam      Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
-  question  Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  exam     Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([examId, questionId])
   @@index([examId])
@@ -500,19 +503,19 @@ model ExamQuestion {
 
 // Exam Submissions
 model ExamSubmission {
-  id            String   @id @default(uuid())
-  examId        String
-  studentId     String
-  score          Float?
-  percentage    Float?
-  passed         Boolean?
-  submittedAt    DateTime @default(now())
-  timeSpent     Int?     // in minutes
+  id          String   @id @default(uuid())
+  examId      String
+  studentId   String
+  score       Float?
+  percentage  Float?
+  passed      Boolean?
+  submittedAt DateTime @default(now())
+  timeSpent   Int? // in minutes
 
-  exam          Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
-  student       User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  answers       ExamAnswer[]
-  gradingTasks  GradingTask[]
+  exam         Exam          @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student      User          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  answers      ExamAnswer[]
+  gradingTasks GradingTask[]
 
   @@index([examId])
   @@index([studentId])
@@ -520,14 +523,14 @@ model ExamSubmission {
 
 // Exam Answers
 model ExamAnswer {
-  id            String   @id @default(uuid())
-  submissionId  String
-  questionId    String
-  answer        String   @db.Text
-  isCorrect     Boolean?
-  points        Float?
+  id           String   @id @default(uuid())
+  submissionId String
+  questionId   String
+  answer       String   @db.Text
+  isCorrect    Boolean?
+  points       Float?
 
-  submission    ExamSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  submission ExamSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
 
   @@unique([submissionId, questionId])
   @@index([submissionId])
@@ -543,40 +546,40 @@ model Poll {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  course      Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  content     LessonContent? @relation(fields: [contentId], references: [id], onDelete: Cascade)
-  questions   PollQuestion[]
-  responses   PollResponse[]
+  course    Course?        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  content   LessonContent? @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  questions PollQuestion[]
+  responses PollResponse[]
 
   @@index([courseId])
 }
 
 // Poll Questions
 model PollQuestion {
-  id          String          @id @default(uuid())
-  pollId      String
-  type        PollQuestionType
-  question    String           @db.Text
-  required    Boolean          @default(false)
-  options     String[]         // For multiple_choice and checkbox
-  minRating   Int?
-  maxRating   Int?
-  order       Int
+  id        String           @id @default(uuid())
+  pollId    String
+  type      PollQuestionType
+  question  String           @db.Text
+  required  Boolean          @default(false)
+  options   String[] // For multiple_choice and checkbox
+  minRating Int?
+  maxRating Int?
+  order     Int
 
-  poll        Poll             @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  poll Poll @relation(fields: [pollId], references: [id], onDelete: Cascade)
 
   @@index([pollId])
 }
 
 // Poll Responses
 model PollResponse {
-  id            String   @id @default(uuid())
-  pollId        String
-  studentId     String
-  submittedAt   DateTime @default(now())
+  id          String   @id @default(uuid())
+  pollId      String
+  studentId   String
+  submittedAt DateTime @default(now())
 
-  poll          Poll     @relation(fields: [pollId], references: [id], onDelete: Cascade)
-  answers       PollAnswer[]
+  poll    Poll         @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  answers PollAnswer[]
 
   @@unique([pollId, studentId])
   @@index([pollId])
@@ -584,12 +587,12 @@ model PollResponse {
 
 // Poll Answers
 model PollAnswer {
-  id              String   @id @default(uuid())
-  responseId      String
-  questionId      String
-  answer          String   @db.Text // JSON string for multiple answers
+  id         String @id @default(uuid())
+  responseId String
+  questionId String
+  answer     String @db.Text // JSON string for multiple answers
 
-  response        PollResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  response PollResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
 
   @@unique([responseId, questionId])
   @@index([responseId])
@@ -597,17 +600,17 @@ model PollAnswer {
 
 // Content Progress (Track student progress)
 model ContentProgress {
-  id            String   @id @default(uuid())
-  contentId     String
-  studentId     String
-  courseId      String
-  completed     Boolean  @default(false)
-  completedAt   DateTime?
-  progress      Float    @default(0) // 0-100 for videos
-  lastPosition  Int?     // for video playback position
-  updatedAt     DateTime @updatedAt
+  id           String    @id @default(uuid())
+  contentId    String
+  studentId    String
+  courseId     String
+  completed    Boolean   @default(false)
+  completedAt  DateTime?
+  progress     Float     @default(0) // 0-100 for videos
+  lastPosition Int? // for video playback position
+  updatedAt    DateTime  @updatedAt
 
-  content       LessonContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  content LessonContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
 
   @@unique([contentId, studentId])
   @@index([contentId])
@@ -617,16 +620,16 @@ model ContentProgress {
 
 // Webboard Posts
 model WebboardPost {
-  id            String   @id @default(uuid())
-  courseId      String
-  studentId     String
-  question      String   @db.Text
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id        String   @id @default(uuid())
+  courseId  String
+  studentId String
+  question  String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  student       User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  replies       WebboardReply[]
+  course  Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  student User            @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  replies WebboardReply[]
 
   @@index([courseId])
   @@index([studentId])
@@ -634,15 +637,15 @@ model WebboardPost {
 
 // Webboard Replies
 model WebboardReply {
-  id            String   @id @default(uuid())
-  postId       String
-  authorId     String
-  content      String   @db.Text
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id        String   @id @default(uuid())
+  postId    String
+  authorId  String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  post          WebboardPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author        User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post   WebboardPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([postId])
   @@index([authorId])
@@ -650,21 +653,21 @@ model WebboardReply {
 
 // Grading Tasks (for essay/short answer questions)
 model GradingTask {
-  id            String   @id @default(uuid())
-  submissionId  String
-  questionId    String
-  studentId     String
-  answer        String   @db.Text
-  aiScore       Float?
-  aiFeedback    String?  @db.Text
-  teacherScore  Float?
-  teacherFeedback String? @db.Text
-  status        String   @default("pending") // pending, graded
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id              String   @id @default(uuid())
+  submissionId    String
+  questionId      String
+  studentId       String
+  answer          String   @db.Text
+  aiScore         Float?
+  aiFeedback      String?  @db.Text
+  teacherScore    Float?
+  teacherFeedback String?  @db.Text
+  status          String   @default("pending") // pending, graded
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  submission    ExamSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
-  student       User           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  submission ExamSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  student    User           @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([submissionId])
   @@index([studentId])
@@ -673,15 +676,15 @@ model GradingTask {
 
 // Certificates
 model Certificate {
-  id            String   @id @default(uuid())
-  courseId      String
-  studentId     String
-  schoolId      String
-  issuedAt      DateTime @default(now())
+  id             String   @id @default(uuid())
+  courseId       String
+  studentId      String
+  schoolId       String
+  issuedAt       DateTime @default(now())
   certificateUrl String?
 
-  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@unique([courseId, studentId])
   @@index([courseId])
@@ -696,24 +699,24 @@ enum GradingSystemType {
 
 // Assignments
 model Assignment {
-  id            String   @id @default(uuid())
-  courseId      String
-  title         String
-  description   String?  @db.Text
-  fileUrl       String?
-  fileName      String?
-  fileSize      Int?
-  s3Key         String?
-  dueDate       DateTime?
-  maxScore      Float    @default(100)
-  order         Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  createdBy     String   // User ID who created the assignment
+  id          String    @id @default(uuid())
+  courseId    String
+  title       String
+  description String?   @db.Text
+  fileUrl     String?
+  fileName    String?
+  fileSize    Int?
+  s3Key       String?
+  dueDate     DateTime?
+  maxScore    Float     @default(100)
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdBy   String // User ID who created the assignment
 
-  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  content       LessonContent?
-  submissions   AssignmentSubmission[]
+  course      Course                 @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  content     LessonContent?
+  submissions AssignmentSubmission[]
 
   @@index([courseId])
   @@index([createdBy])
@@ -721,26 +724,26 @@ model Assignment {
 
 // Assignment Submissions
 model AssignmentSubmission {
-  id            String   @id @default(uuid())
-  assignmentId  String
-  studentId     String
-  fileUrl       String?
-  fileName      String?
-  fileSize      Int?
-  s3Key         String?
-  submittedAt   DateTime?
-  score         Float?
-  feedback      String?  @db.Text
-  gradedAt      DateTime?
-  gradedBy      String?  // User ID who graded
-  aiScore       Float?   // AI suggested score
-  aiFeedback    String?  @db.Text // AI suggested feedback
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String    @id @default(uuid())
+  assignmentId String
+  studentId    String
+  fileUrl      String?
+  fileName     String?
+  fileSize     Int?
+  s3Key        String?
+  submittedAt  DateTime?
+  score        Float?
+  feedback     String?   @db.Text
+  gradedAt     DateTime?
+  gradedBy     String? // User ID who graded
+  aiScore      Float? // AI suggested score
+  aiFeedback   String?   @db.Text // AI suggested feedback
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  assignment    Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  student       User       @relation("AssignmentSubmissions", fields: [studentId], references: [id], onDelete: Cascade)
-  grader        User?      @relation("AssignmentGradings", fields: [gradedBy], references: [id], onDelete: SetNull)
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student    User       @relation("AssignmentSubmissions", fields: [studentId], references: [id], onDelete: Cascade)
+  grader     User?      @relation("AssignmentGradings", fields: [gradedBy], references: [id], onDelete: SetNull)
 
   @@unique([assignmentId, studentId])
   @@index([assignmentId])
@@ -749,37 +752,37 @@ model AssignmentSubmission {
 
 // Grading System
 model GradingSystem {
-  id            String   @id @default(uuid())
-  courseId      String   @unique
-  systemType    GradingSystemType @default(PASS_FAIL)
-  passingScore  Float?   // For PASS_FAIL system
-  
+  id           String            @id @default(uuid())
+  courseId     String            @unique
+  systemType   GradingSystemType @default(PASS_FAIL)
+  passingScore Float? // For PASS_FAIL system
+
   // Completion requirements (for both systems)
-  requireProgress Boolean @default(true)
-  minProgressPercentage Float? // Percentage required for completion
-  requireAllQuizzes Boolean @default(false)
+  requireProgress          Boolean @default(true)
+  minProgressPercentage    Float? // Percentage required for completion
+  requireAllQuizzes        Boolean @default(false)
   minQuizPassingPercentage Float? // Minimum quiz passing percentage
-  
+
   // Certificate requirements (for GRADE system)
   certificateMinGrade String? // Minimum grade required for certificate (e.g., "B")
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
 
-  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  criteria      GradeCriteria[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course           Course                   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  criteria         GradeCriteria[]
   quizRequirements QuizPassingRequirement[]
 }
 
 // Grade Criteria (for GRADE system)
 model GradeCriteria {
-  id            String   @id @default(uuid())
+  id              String   @id @default(uuid())
   gradingSystemId String
-  grade         String   // A, B, C, D, F
-  minScore      Float    // Minimum percentage (e.g., 80 for A)
-  maxScore      Float?   // Maximum percentage (optional)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  grade           String // A, B, C, D, F
+  minScore        Float // Minimum percentage (e.g., 80 for A)
+  maxScore        Float? // Maximum percentage (optional)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   gradingSystem GradingSystem @relation(fields: [gradingSystemId], references: [id], onDelete: Cascade)
 
@@ -788,14 +791,14 @@ model GradeCriteria {
 
 // Grade Weights (for GRADE system)
 model GradeWeight {
-  id            String   @id @default(uuid())
-  courseId      String
-  category      String   // 'quiz', 'assignment', 'exam', 'participation', etc.
-  weight        Float    // Percentage (e.g., 30 for 30%)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id        String   @id @default(uuid())
+  courseId  String
+  category  String // 'quiz', 'assignment', 'exam', 'participation', etc.
+  weight    Float // Percentage (e.g., 30 for 30%)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([courseId, category])
   @@index([courseId])
@@ -803,16 +806,16 @@ model GradeWeight {
 
 // AI Provider Settings
 model AISettings {
-  id            String   @id @default(uuid())
-  schoolId      String?  // null = global setting
-  provider      String   @default("GEMINI") // GEMINI, ML, BOTH
-  mlApiUrl      String?  // ML API URL if using ML
-  geminiApiKey  String?  // Gemini API key (encrypted)
-  enabled       Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String   @id @default(uuid())
+  schoolId     String? // null = global setting
+  provider     String   @default("GEMINI") // GEMINI, ML, BOTH
+  mlApiUrl     String? // ML API URL if using ML
+  geminiApiKey String? // Gemini API key (encrypted)
+  enabled      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  school        School?  @relation("SchoolAISettings", fields: [schoolId], references: [id], onDelete: Cascade)
+  school School? @relation("SchoolAISettings", fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@unique([schoolId])
   @@index([schoolId])
@@ -820,20 +823,20 @@ model AISettings {
 
 // ML Training Data - สำหรับเก็บข้อมูลคำถาม-คำตอบเพื่อใช้ในการเทรน ML Model
 model MLTrainingData {
-  id            String   @id @default(uuid())
-  question      String   @db.Text
-  answer         String   @db.Text
-  aiScore        Float?
-  aiFeedback     String?  @db.Text
-  teacherScore   Float?
-  teacherFeedback String? @db.Text
-  maxScore       Float    @default(100)
-  sourceType     String   // 'exam' or 'assignment'
-  sourceId       String?  // ID ของ GradingTask หรือ AssignmentSubmission
-  schoolId       String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  usedForTraining Boolean @default(false) // ระบุว่าข้อมูลนี้ถูกใช้ในการเทรนแล้วหรือยัง
+  id              String   @id @default(uuid())
+  question        String   @db.Text
+  answer          String   @db.Text
+  aiScore         Float?
+  aiFeedback      String?  @db.Text
+  teacherScore    Float?
+  teacherFeedback String?  @db.Text
+  maxScore        Float    @default(100)
+  sourceType      String // 'exam' or 'assignment'
+  sourceId        String? // ID ของ GradingTask หรือ AssignmentSubmission
+  schoolId        String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  usedForTraining Boolean  @default(false) // ระบุว่าข้อมูลนี้ถูกใช้ในการเทรนแล้วหรือยัง
 
   @@index([schoolId])
   @@index([sourceType, sourceId])
@@ -844,13 +847,13 @@ model MLTrainingData {
 // ML Training Settings - สำหรับตั้งค่า weight ของแหล่งข้อมูลในการเทรน
 model MLTrainingSettings {
   id            String   @id @default(uuid())
-  schoolId      String?  // null = global setting
+  schoolId      String? // null = global setting
   aiWeight      Float    @default(0.3) // Weight ของข้อมูลจาก AI (0-1)
   teacherWeight Float    @default(0.7) // Weight ของข้อมูลจากอาจารย์ (0-1)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  school        School?  @relation("SchoolMLTrainingSettings", fields: [schoolId], references: [id], onDelete: Cascade)
+  school School? @relation("SchoolMLTrainingSettings", fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@unique([schoolId])
   @@index([schoolId])
@@ -860,20 +863,39 @@ model MLTrainingSettings {
 model MLTrainingHistory {
   id            String   @id @default(uuid())
   schoolId      String?
-  accuracy      Float?   // ความแม่นยำ (R² score)
-  mse           Float?   // Mean Squared Error
-  mae           Float?   // Mean Absolute Error
-  samples       Int      // จำนวนข้อมูลที่ใช้เทรน
-  aiWeight      Float    // Weight ของ AI ที่ใช้ในการเทรน
-  teacherWeight Float    // Weight ของ Teacher ที่ใช้ในการเทรน
+  accuracy      Float? // ความแม่นยำ (R² score)
+  mse           Float? // Mean Squared Error
+  mae           Float? // Mean Absolute Error
+  samples       Int // จำนวนข้อมูลที่ใช้เทรน
+  aiWeight      Float // Weight ของ AI ที่ใช้ในการเทรน
+  teacherWeight Float // Weight ของ Teacher ที่ใช้ในการเทรน
   status        String   @default("completed") // completed, failed
   errorMessage  String?  @db.Text
   createdAt     DateTime @default(now())
 
-  school        School?  @relation("SchoolMLTrainingHistory", fields: [schoolId], references: [id], onDelete: Cascade)
+  school School? @relation("SchoolMLTrainingHistory", fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@index([schoolId])
   @@index([createdAt])
   @@index([status])
 }
 
+// Notifications
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  title     String
+  message   String    @db.Text
+  type      String // 'info', 'success', 'warning', 'error', 'assignment', 'exam', 'grade', 'course', 'system'
+  link      String? // URL to navigate when clicked
+  read      Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+
+  user User @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+  @@index([type])
+}

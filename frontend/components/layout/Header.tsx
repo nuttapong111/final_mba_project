@@ -6,7 +6,8 @@ import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { getRoleLabel, normalizeRole } from '@/lib/utils';
 import { roleNavigation } from '@/lib/roleConfig';
-import { UserCircleIcon, BellIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
+import { UserCircleIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
+import NotificationDropdown from '@/components/NotificationDropdown';
 import { cn } from '@/lib/utils';
 
 export default function Header() {
@@ -67,9 +68,9 @@ export default function Header() {
           {/* User Info and Actions */}
           <div className="flex items-center space-x-2 sm:space-x-4">
             {/* Notifications (Desktop) */}
-            <button className="hidden sm:block p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors relative">
-              <BellIcon className="h-5 w-5" />
-            </button>
+            <div className="hidden sm:block">
+              <NotificationDropdown />
+            </div>
             
             {/* User Profile (Desktop) */}
             <div className="hidden sm:flex items-center space-x-2">

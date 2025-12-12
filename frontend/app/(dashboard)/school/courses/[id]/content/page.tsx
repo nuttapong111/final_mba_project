@@ -1395,9 +1395,13 @@ export default function CourseContentPage() {
                                     const video = document.createElement('video');
                                     video.preload = 'metadata';
                                     video.onloadedmetadata = () => {
-                                      window.URL.revokeObjectURL(fileUrl);
                                       const durationInMinutes = Math.ceil(video.duration / 60);
                                       handleUpdateContent(lessonIndex, contentIndex, 'duration', durationInMinutes);
+                                      // Revoke URL หลังจากอ่าน duration แล้ว (แต่ยังต้องเก็บไว้สำหรับ preview)
+                                      // ไม่ revoke เพราะยังต้องใช้สำหรับแสดง preview
+                                    };
+                                    video.onerror = () => {
+                                      console.error('Error loading video metadata');
                                     };
                                     video.src = fileUrl;
                                   }
