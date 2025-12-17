@@ -187,11 +187,12 @@ export default function TeacherWebboardPage() {
 
   // Helper function to render mentions in text
   const renderMentions = (text: string) => {
-    const parts = text.split(/(@\w+)/g);
+    // Match @mentions including Thai characters and spaces, until space or end
+    const parts = text.split(/(@[^\s@]+)/g);
     return parts.map((part, index) => {
       if (part.startsWith('@')) {
         return (
-          <span key={index} className="text-blue-600 font-medium">
+          <span key={index} className="text-blue-600 font-semibold">
             {part}
           </span>
         );

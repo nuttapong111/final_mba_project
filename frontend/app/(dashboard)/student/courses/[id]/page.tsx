@@ -78,6 +78,22 @@ export default function StudentCourseDetailPage() {
   const [replyContent, setReplyContent] = useState<Record<string, string>>({});
   const [courseUsers, setCourseUsers] = useState<any[]>([]);
 
+  // Helper function to render mentions in text
+  const renderMentions = (text: string) => {
+    // Match @mentions including Thai characters and spaces, until space or end
+    const parts = text.split(/(@[^\s@]+)/g);
+    return parts.map((part, index) => {
+      if (part.startsWith('@')) {
+        return (
+          <span key={index} className="text-blue-600 font-semibold">
+            {part}
+          </span>
+        );
+      }
+      return <span key={index}>{part}</span>;
+    });
+  };
+
   useEffect(() => {
     const fetchCourse = async () => {
       try {
@@ -961,7 +977,9 @@ export default function StudentCourseDetailPage() {
                               {new Date(post.createdAt).toLocaleString('th-TH')}
                               </span>
                           </div>
-                          <p className="text-gray-700 whitespace-pre-wrap">{post.question}</p>
+                          <div className="text-gray-700 whitespace-pre-wrap">
+                            {renderMentions(post.question)}
+                          </div>
                         </div>
                       </div>
 
@@ -1002,7 +1020,9 @@ export default function StudentCourseDetailPage() {
                                     {new Date(reply.createdAt).toLocaleString('th-TH')}
                                   </span>
                                 </div>
-                                <p className="text-gray-700 whitespace-pre-wrap">{reply.content}</p>
+                                <div className="text-gray-700 whitespace-pre-wrap">
+                                  {renderMentions(reply.content)}
+                                </div>
                               </div>
                             </div>
                           ))}
