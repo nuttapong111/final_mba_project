@@ -132,47 +132,47 @@ export default function NewCoursePage() {
     
     // Live class validation - Hidden for Phase 2
     // if (formData.courseType === 'live') {
-      if (!formData.livePlatform) {
-        await Swal.fire({
-          icon: 'error',
-          title: 'กรุณาเลือกช่องทางเรียนสด',
-          text: 'เมื่อเลือกเรียนแบบสด ต้องเลือกช่องทาง (Zoom หรือ Google Meet)',
-          confirmButtonText: 'ตกลง',
-        });
-        return;
-      }
-      
-      if (!formData.startDate || !formData.endDate) {
-        await Swal.fire({
-          icon: 'error',
-          title: 'กรุณากรอกวันเริ่มต้นและวันสิ้นสุด',
-          text: 'หลักสูตรเรียนสดต้องมีวันเริ่มต้นและวันสิ้นสุด',
-          confirmButtonText: 'ตกลง',
-        });
-        return;
-      }
-      
-      if (liveSessions.length === 0) {
-        await Swal.fire({
-          icon: 'error',
-          title: 'กรุณาเพิ่มตารางเรียน',
-          text: 'ต้องเพิ่มตารางเรียนอย่างน้อย 1 ครั้ง',
-          confirmButtonText: 'ตกลง',
-        });
-        return;
-      }
-      
-      // Validate all sessions have complete data
-      const incompleteSession = liveSessions.find(s => !s.date || !s.startTime || !s.endTime);
-      if (incompleteSession) {
-        await Swal.fire({
-          icon: 'error',
-          title: 'กรุณากรอกข้อมูลตารางเรียนให้ครบถ้วน',
-          text: 'ทุกครั้งเรียนต้องมีวัน เวลาเริ่มต้น และเวลาสิ้นสุด',
-          confirmButtonText: 'ตกลง',
-        });
-        return;
-      }
+    //   if (!formData.livePlatform) {
+    //     await Swal.fire({
+    //       icon: 'error',
+    //       title: 'กรุณาเลือกช่องทางเรียนสด',
+    //       text: 'เมื่อเลือกเรียนแบบสด ต้องเลือกช่องทาง (Zoom หรือ Google Meet)',
+    //       confirmButtonText: 'ตกลง',
+    //     });
+    //     return;
+    //   }
+    //   
+    //   if (!formData.startDate || !formData.endDate) {
+    //     await Swal.fire({
+    //       icon: 'error',
+    //       title: 'กรุณากรอกวันเริ่มต้นและวันสิ้นสุด',
+    //       text: 'หลักสูตรเรียนสดต้องมีวันเริ่มต้นและวันสิ้นสุด',
+    //       confirmButtonText: 'ตกลง',
+    //     });
+    //     return;
+    //   }
+    //   
+    //   if (liveSessions.length === 0) {
+    //     await Swal.fire({
+    //       icon: 'error',
+    //       title: 'กรุณาเพิ่มตารางเรียน',
+    //       text: 'ต้องเพิ่มตารางเรียนอย่างน้อย 1 ครั้ง',
+    //       confirmButtonText: 'ตกลง',
+    //     });
+    //     return;
+    //   }
+    //   
+    //   // Validate all sessions have complete data
+    //   const incompleteSession = liveSessions.find(s => !s.date || !s.startTime || !s.endTime);
+    //   if (incompleteSession) {
+    //     await Swal.fire({
+    //       icon: 'error',
+    //       title: 'กรุณากรอกข้อมูลตารางเรียนให้ครบถ้วน',
+    //       text: 'ทุกครั้งเรียนต้องมีวัน เวลาเริ่มต้น และเวลาสิ้นสุด',
+    //       confirmButtonText: 'ตกลง',
+    //     });
+    //     return;
+    //   }
     // }
     
     try {
