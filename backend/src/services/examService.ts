@@ -143,37 +143,35 @@ export const submitExam = async (
       const question = examQuestion.question;
       const questionType = question.type.toUpperCase();
 
+      // Determine if answer is correct and calculate points
+      let isCorrectValue: boolean | null = null;
+      let pointsValue: number | null = null;
+
+      if (questionType === 'MULTIPLE_CHOICE' || questionType === 'TRUE_FALSE') {
+        // For multiple choice and true/false, check if selected option is correct
+        const selectedOption = question.options.find(
+          (opt) => opt.text.trim() === answerData.answer.trim()
+        );
+        isCorrectValue = selectedOption ? selectedOption.isCorrect : false;
+        pointsValue = isCorrectValue ? question.points : 0;
+      } else if (questionType === 'SHORT_ANSWER') {
+        // For short answer, check if answer matches any correct option
+        const normalizedAnswer = answerData.answer.toLowerCase().trim();
+        const isAnswerCorrect = question.options.some(
+          (opt) => opt.isCorrect && opt.text.toLowerCase().trim() === normalizedAnswer
+        );
+        isCorrectValue = isAnswerCorrect;
+        pointsValue = isAnswerCorrect ? question.points : 0;
+      }
+
       // Create exam answer
       await tx.examAnswer.create({
         data: {
           submissionId: examSubmission.id,
           questionId: answerData.questionId,
           answer: answerData.answer,
-          // For non-essay questions, check if answer is correct
-          isCorrect:
-            questionType === 'MULTIPLE_CHOICE' || questionType === 'TRUE_FALSE'
-              ? question.options.some(
-                  (opt) => opt.isCorrect && opt.text === answerData.answer
-                )
-              : questionType === 'SHORT_ANSWER' && question.options.length > 0
-              ? question.options[0].text.toLowerCase().trim() ===
-                answerData.answer.toLowerCase().trim()
-              : null,
-          // Calculate points for non-essay questions
-          points:
-            questionType === 'MULTIPLE_CHOICE' ||
-            questionType === 'TRUE_FALSE' ||
-            questionType === 'SHORT_ANSWER'
-              ? question.options.some(
-                  (opt) => opt.isCorrect && opt.text === answerData.answer
-                ) ||
-                (questionType === 'SHORT_ANSWER' &&
-                  question.options.length > 0 &&
-                  question.options[0].text.toLowerCase().trim() ===
-                    answerData.answer.toLowerCase().trim())
-                ? question.points
-                : 0
-              : null,
+          isCorrect: isCorrectValue,
+          points: pointsValue,
         },
       });
 
