@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button';
 import { coursesApi, webboardApi, contentProgressApi, gradingApi } from '@/lib/api';
 import dynamic from 'next/dynamic';
 import YouTubePlayer from '@/components/YouTubePlayer';
+import MentionTextarea from '@/components/MentionTextarea';
 
 const StudentAssignmentsPage = dynamic(
   () => import('./assignments/page'),
@@ -75,6 +76,7 @@ export default function StudentCourseDetailPage() {
   const [newQuestion, setNewQuestion] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState<Record<string, string>>({});
+  const [courseUsers, setCourseUsers] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -312,9 +314,15 @@ export default function StudentCourseDetailPage() {
 
   const fetchWebboard = async () => {
     try {
-      const response = await webboardApi.getPosts(courseId);
-      if (response.success && response.data) {
-        setWebboardPosts(response.data);
+      const [postsResponse, usersResponse] = await Promise.all([
+        webboardApi.getPosts(courseId),
+        webboardApi.getCourseUsers(courseId),
+      ]);
+      if (postsResponse.success && postsResponse.data) {
+        setWebboardPosts(postsResponse.data);
+      }
+      if (usersResponse.success && usersResponse.data) {
+        setCourseUsers(usersResponse.data);
       }
     } catch (error) {
       console.error('Error fetching webboard:', error);
@@ -884,13 +892,18 @@ export default function StudentCourseDetailPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         คำถาม *
                       </label>
-                      <textarea
+                      <MentionTextarea
                         value={newQuestion}
-                        onChange={(e) => setNewQuestion(e.target.value)}
+                        onChange={setNewQuestion}
                         rows={4}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                        placeholder="กรอกคำถามของคุณ..."
+                        placeholder="กรอกคำถามของคุณ... (พิมพ์ @ เพื่อ tag ผู้ใช้ หรือ @all เพื่อ tag ทุกคน)"
+                        users={courseUsers}
+                        courseId={courseId}
                       />
+                      <p className="text-xs text-gray-500 mt-1">
+                        💡 พิมพ์ @ เพื่อเลือกผู้ใช้ หรือพิมพ์ @a เพื่อเลือก @all
+                      </p>
                     </div>
                     <div className="flex justify-end space-x-3">
                       <Button
@@ -998,13 +1011,18 @@ export default function StudentCourseDetailPage() {
 
                       {replyingTo === post.id ? (
                         <div className="ml-13 space-y-2">
-                          <textarea
+                          <MentionTextarea
                             value={replyContent[post.id] || ''}
-                            onChange={(e) => setReplyContent({ ...replyContent, [post.id]: e.target.value })}
+                            onChange={(value) => setReplyContent({ ...replyContent, [post.id]: value })}
                             rows={3}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                            placeholder="กรอกคำตอบ..."
+                            placeholder="กรอกคำตอบ... (พิมพ์ @ เพื่อ tag ผู้ใช้ หรือ @all เพื่อ tag ทุกคน)"
+                            users={courseUsers}
+                            courseId={courseId}
                           />
+                          <p className="text-xs text-gray-500 mt-1">
+                            💡 พิมพ์ @ เพื่อเลือกผู้ใช้ หรือพิมพ์ @a เพื่อเลือก @all
+                          </p>
                           <div className="flex justify-end space-x-2">
                             <Button
                               variant="outline"

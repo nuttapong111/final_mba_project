@@ -64,20 +64,31 @@ export default function MentionTextarea({
         // Filter users based on query
         let filteredUsers: User[] = [];
         
-        if (query === 'a' || query === 'al' || query === 'all' || query === '') {
-          // Show @all option when typing 'a' or empty
-          filteredUsers = [allOption as User];
+        // Always show @all option when query starts with 'a' or is empty
+        if (query === '' || query === 'a' || query.startsWith('al')) {
+          filteredUsers.push(allOption as User);
         }
         
         // Filter users by name
-        const matchingUsers = users.filter(user => 
-          user.name.toLowerCase().includes(query) && query !== ''
-        );
-        
-        filteredUsers = [...filteredUsers, ...matchingUsers].slice(0, 10); // Limit to 10 results
+        if (query === '') {
+          // Show all users when query is empty (just typed @)
+          filteredUsers = [...filteredUsers, ...users].slice(0, 9); // 9 users + @all = 10 total
+        } else if (query === 'a' || query.startsWith('al')) {
+          // When typing 'a' or 'al', show @all first, then users matching 'a'
+          const matchingUsers = users.filter(user => 
+            user.name.toLowerCase().includes(query)
+          );
+          filteredUsers = [...filteredUsers, ...matchingUsers].slice(0, 9);
+        } else {
+          // Filter users by name matching query
+          const matchingUsers = users.filter(user => 
+            user.name.toLowerCase().includes(query)
+          );
+          filteredUsers = [...filteredUsers, ...matchingUsers].slice(0, 10);
+        }
         
         setSuggestions(filteredUsers);
-        setShowSuggestions(filteredUsers.length > 0);
+        setShowSuggestions(filteredUsers.length > 0 && users.length > 0);
         setSelectedIndex(0);
       } else {
         setShowSuggestions(false);
@@ -152,7 +163,7 @@ export default function MentionTextarea({
 
   // Calculate dropdown position
   const getDropdownPosition = () => {
-    if (!textareaRef.current || mentionStart === null) return {};
+    if (!textareaRef.current || mentionStart === null) return { top: '0px', left: '0px' };
     
     const textarea = textareaRef.current;
     const textBeforeCursor = value.substring(0, mentionStart);
@@ -161,17 +172,27 @@ export default function MentionTextarea({
     const span = document.createElement('span');
     span.style.visibility = 'hidden';
     span.style.position = 'absolute';
+    span.style.whiteSpace = 'pre-wrap';
     span.style.font = window.getComputedStyle(textarea).font;
+    span.style.padding = window.getComputedStyle(textarea).padding;
     span.textContent = textBeforeCursor;
     document.body.appendChild(span);
     
     const rect = textarea.getBoundingClientRect();
     const textWidth = span.offsetWidth;
+    const lineHeight = parseInt(window.getComputedStyle(textarea).lineHeight) || 20;
+    
+    // Calculate which line we're on
+    const textBeforeCursorLines = textBeforeCursor.split('\n');
+    const currentLine = textBeforeCursorLines.length - 1;
+    const lineOffset = currentLine * lineHeight;
+    
     document.body.removeChild(span);
     
     return {
-      top: `${textarea.offsetTop + 30}px`,
-      left: `${textarea.offsetLeft + textWidth}px`,
+      top: `${lineOffset + lineHeight + 5}px`,
+      left: `${textWidth + 16}px`, // Add padding
+      position: 'absolute' as const,
     };
   };
 
@@ -190,7 +211,7 @@ export default function MentionTextarea({
       {showSuggestions && suggestions.length > 0 && (
         <div
           ref={dropdownRef}
-          className="absolute z-50 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto min-w-[200px]"
+          className="absolute z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto min-w-[250px]"
           style={getDropdownPosition()}
         >
           {suggestions.map((user, index) => (
