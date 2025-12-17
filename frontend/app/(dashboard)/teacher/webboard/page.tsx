@@ -162,6 +162,21 @@ export default function TeacherWebboardPage() {
     });
   };
 
+  // Helper function to render mentions in text
+  const renderMentions = (text: string) => {
+    const parts = text.split(/(@\w+)/g);
+    return parts.map((part, index) => {
+      if (part.startsWith('@')) {
+        return (
+          <span key={index} className="text-blue-600 font-medium">
+            {part}
+          </span>
+        );
+      }
+      return <span key={index}>{part}</span>;
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -242,7 +257,9 @@ export default function TeacherWebboardPage() {
 
                 {/* Question */}
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-gray-900 whitespace-pre-wrap">{post.question}</p>
+                  <div className="text-gray-900 whitespace-pre-wrap">
+                    {renderMentions(post.question)}
+                  </div>
                 </div>
 
                 {/* Replies */}
@@ -267,7 +284,9 @@ export default function TeacherWebboardPage() {
                               {formatDateTime(reply.createdAt)}
                             </span>
                           </div>
-                          <p className="text-gray-700 mt-1">{reply.content}</p>
+                          <div className="text-gray-700 mt-1">
+                            {renderMentions(reply.content)}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -282,10 +301,13 @@ export default function TeacherWebboardPage() {
                       onChange={(e) =>
                         setReplyContents({ ...replyContents, [post.id]: e.target.value })
                       }
-                      placeholder="พิมพ์คำตอบ..."
+                      placeholder="พิมพ์คำตอบ... (ใช้ @ชื่อ เพื่อ tag ผู้ใช้ หรือ @all เพื่อ tag ทุกคน)"
                       rows={3}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      💡 ใช้ @ชื่อ เพื่อ tag ผู้ใช้ หรือ @all เพื่อ tag ทุกคนในหลักสูตร
+                    </p>
                     <div className="flex justify-end space-x-2">
                       <Button
                         variant="outline"

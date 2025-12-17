@@ -1,5 +1,5 @@
 import { Context } from 'hono';
-import { getWebboardPosts, createWebboardPost, replyToPost, getTeacherWebboardPosts } from '../services/webboardService';
+import { getWebboardPosts, createWebboardPost, replyToPost, getTeacherWebboardPosts, getCourseUsersForMentions } from '../services/webboardService';
 
 export const getPostsController = async (c: Context) => {
   try {
@@ -56,6 +56,17 @@ export const getTeacherPostsController = async (c: Context) => {
 
     const posts = await getTeacherWebboardPosts(user);
     return c.json({ success: true, data: posts });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 400);
+  }
+};
+
+export const getCourseUsersController = async (c: Context) => {
+  try {
+    const user = c.get('user');
+    const courseId = c.req.param('courseId');
+    const users = await getCourseUsersForMentions(courseId, user);
+    return c.json({ success: true, data: users });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 400);
   }

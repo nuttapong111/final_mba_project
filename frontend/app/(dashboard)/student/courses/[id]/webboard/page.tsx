@@ -29,6 +29,21 @@ export default function StudentWebboardPage() {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState<Record<string, string>>({});
 
+  // Helper function to render mentions in text
+  const renderMentions = (text: string) => {
+    const parts = text.split(/(@\w+)/g);
+    return parts.map((part, index) => {
+      if (part.startsWith('@')) {
+        return (
+          <span key={index} className="text-blue-600 font-medium">
+            {part}
+          </span>
+        );
+      }
+      return <span key={index}>{part}</span>;
+    });
+  };
+
   useEffect(() => {
     fetchData();
   }, [courseId]);
@@ -183,8 +198,11 @@ export default function StudentWebboardPage() {
                 onChange={(e) => setNewQuestion(e.target.value)}
                 rows={4}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                placeholder="กรอกคำถามของคุณ..."
+                placeholder="กรอกคำถามของคุณ... (ใช้ @ชื่อ เพื่อ tag ผู้ใช้ หรือ @all เพื่อ tag ทุกคน)"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                💡 ใช้ @ชื่อ เพื่อ tag ผู้ใช้ หรือ @all เพื่อ tag ทุกคนในหลักสูตร
+              </p>
             </div>
             <div className="flex justify-end space-x-3">
               <Button variant="outline" onClick={() => {
@@ -236,7 +254,9 @@ export default function StudentWebboardPage() {
                         {new Date(post.createdAt).toLocaleString('th-TH')}
                       </span>
                     </div>
-                    <p className="text-gray-700 whitespace-pre-wrap">{post.question}</p>
+                    <div className="text-gray-700 whitespace-pre-wrap">
+                      {renderMentions(post.question)}
+                    </div>
                   </div>
                 </div>
 
@@ -277,7 +297,9 @@ export default function StudentWebboardPage() {
                               {new Date(reply.createdAt).toLocaleString('th-TH')}
                             </span>
                           </div>
-                          <p className="text-gray-700 whitespace-pre-wrap">{reply.content}</p>
+                          <div className="text-gray-700 whitespace-pre-wrap">
+                            {renderMentions(reply.content)}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -291,8 +313,11 @@ export default function StudentWebboardPage() {
                       onChange={(e) => setReplyContent({ ...replyContent, [post.id]: e.target.value })}
                       rows={3}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                      placeholder="กรอกคำตอบ..."
+                      placeholder="กรอกคำตอบ... (ใช้ @ชื่อ เพื่อ tag ผู้ใช้ หรือ @all เพื่อ tag ทุกคน)"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      💡 ใช้ @ชื่อ เพื่อ tag ผู้ใช้ หรือ @all เพื่อ tag ทุกคนในหลักสูตร
+                    </p>
                     <div className="flex justify-end space-x-2">
                       <Button
                         variant="outline"

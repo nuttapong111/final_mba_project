@@ -66,6 +66,21 @@ export const webboardApi = {
     const response = await apiClient.post(`/webboard/posts/${postId}/replies`, { content });
     return response.data;
   },
+
+  getCourseUsers: async (courseId: string): Promise<{
+    success: boolean;
+    data?: Array<{
+      id: string;
+      name: string;
+      email: string | null;
+      avatar: string | null;
+      role: string;
+    }>;
+    error?: string;
+  }> => {
+    const response = await apiClient.get(`/webboard/courses/${courseId}/users`);
+    return response.data;
+  },
 };
 
 
