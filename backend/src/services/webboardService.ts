@@ -150,6 +150,12 @@ export const createWebboardPost = async (
     throw new Error('ไม่พบหลักสูตรหรือไม่ได้ลงทะเบียน');
   }
 
+  // Get user details for notification
+  const userDetails = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { name: true },
+  });
+
   const post = await prisma.webboardPost.create({
     data: {
       courseId,
@@ -201,7 +207,7 @@ export const createWebboardPost = async (
       Array.from(notificationUserIds),
       {
         title: 'มีคำถามใหม่ใน Webboard',
-        message: `${user.name} ได้ตั้งคำถามในหลักสูตร ${course.title}`,
+        message: `${userDetails?.name || user.email} ได้ตั้งคำถามในหลักสูตร ${course.title}`,
         type: 'info',
         link: `/student/courses/${courseId}/webboard`,
       }
@@ -274,6 +280,12 @@ export const replyToPost = async (
     throw new Error('ไม่มีสิทธิ์ตอบคำถาม');
   }
 
+  // Get user details for notification
+  const userDetails = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { name: true },
+  });
+
   const reply = await prisma.webboardReply.create({
     data: {
       postId,
@@ -325,7 +337,7 @@ export const replyToPost = async (
         title: isTeacherReply 
           ? 'อาจารย์ได้ตอบคำถามของคุณ' 
           : 'มีคำตอบใหม่ใน Webboard',
-        message: `${user.name} ได้ตอบคำถามในหลักสูตร ${post.course.title}`,
+        message: `${userDetails?.name || user.email} ได้ตอบคำถามในหลักสูตร ${post.course.title}`,
         type: 'info',
         link: user.role === 'TEACHER' 
           ? `/teacher/webboard`
