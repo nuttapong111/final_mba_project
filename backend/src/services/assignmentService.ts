@@ -1,5 +1,6 @@
 import prisma from '../config/database';
 import { AuthUser } from '../middleware/auth';
+import { createNotificationsForUsers } from './notificationService';
 
 export interface CreateAssignmentData {
   courseId: string;
@@ -409,6 +410,16 @@ export const submitAssignment = async (
           students: {
             where: { studentId: user.id },
           },
+          instructor: {
+            select: { id: true, name: true },
+          },
+          teachers: {
+            select: {
+              teacher: {
+                select: { id: true, name: true },
+              },
+            },
+          },
         },
       },
     },
@@ -448,6 +459,12 @@ export const submitAssignment = async (
       }
     }
 
+    // Get user details for notification
+    const userDetails = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { name: true },
+    });
+
     // Update existing submission
     const updated = await prisma.assignmentSubmission.update({
       where: { id: existingSubmission.id },
@@ -463,8 +480,35 @@ export const submitAssignment = async (
     // Update content progress if assignment is linked to LessonContent
     await updateAssignmentContentProgress(assignmentId, assignment.courseId, user.id);
 
+    // Send notification to teachers
+    const notificationUserIds = new Set<string>();
+    if (assignment.course.instructorId) {
+      notificationUserIds.add(assignment.course.instructorId);
+    }
+    assignment.course.teachers.forEach((ct) => {
+      notificationUserIds.add(ct.teacher.id);
+    });
+
+    if (notificationUserIds.size > 0) {
+      await createNotificationsForUsers(
+        Array.from(notificationUserIds),
+        {
+          title: 'มีนักเรียนส่งการบ้านใหม่',
+          message: `${userDetails?.name || user.email} ได้ส่งการบ้าน "${assignment.title}" ในหลักสูตร ${assignment.course.title}`,
+          type: 'assignment',
+          link: `/teacher/assignments`,
+        }
+      );
+    }
+
     return updated;
   } else {
+    // Get user details for notification
+    const userDetails = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { name: true },
+    });
+
     // Create new submission
     const submission = await prisma.assignmentSubmission.create({
       data: {
@@ -480,6 +524,27 @@ export const submitAssignment = async (
 
     // Update content progress if assignment is linked to LessonContent
     await updateAssignmentContentProgress(assignmentId, assignment.courseId, user.id);
+
+    // Send notification to teachers
+    const notificationUserIds = new Set<string>();
+    if (assignment.course.instructorId) {
+      notificationUserIds.add(assignment.course.instructorId);
+    }
+    assignment.course.teachers.forEach((ct) => {
+      notificationUserIds.add(ct.teacher.id);
+    });
+
+    if (notificationUserIds.size > 0) {
+      await createNotificationsForUsers(
+        Array.from(notificationUserIds),
+        {
+          title: 'มีนักเรียนส่งการบ้านใหม่',
+          message: `${userDetails?.name || user.email} ได้ส่งการบ้าน "${assignment.title}" ในหลักสูตร ${assignment.course.title}`,
+          type: 'assignment',
+          link: `/teacher/assignments`,
+        }
+      );
+    }
 
     return submission;
   }
