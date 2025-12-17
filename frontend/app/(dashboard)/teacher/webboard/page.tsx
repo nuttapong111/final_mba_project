@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import MentionTextarea from '@/components/MentionTextarea';
 import { webboardApi, coursesApi } from '@/lib/api';
 import {
   ChatBubbleLeftRightIcon,
@@ -77,6 +78,27 @@ export default function TeacherWebboardPage() {
           })) || [],
         }));
         setPosts(transformedPosts);
+
+        // Fetch users for each unique course
+        const uniqueCourseIds = [...new Set(transformedPosts.map((p: Post) => p.courseId))];
+        const usersPromises = uniqueCourseIds.map(async (courseId: string) => {
+          try {
+            const usersResponse = await webboardApi.getCourseUsers(courseId);
+            if (usersResponse.success && usersResponse.data) {
+              return { courseId, users: usersResponse.data };
+            }
+          } catch (error) {
+            console.error(`Error fetching users for course ${courseId}:`, error);
+          }
+          return { courseId, users: [] };
+        });
+
+        const usersResults = await Promise.all(usersPromises);
+        const usersMap: Record<string, any[]> = {};
+        usersResults.forEach(({ courseId, users }) => {
+          usersMap[courseId] = users;
+        });
+        setCourseUsers(usersMap);
       }
 
       if (coursesResponse.success && coursesResponse.data) {
@@ -96,6 +118,7 @@ export default function TeacherWebboardPage() {
 
   const [replyContents, setReplyContents] = useState<Record<string, string>>({});
   const [showReplyInput, setShowReplyInput] = useState<Record<string, boolean>>({});
+  const [courseUsers, setCourseUsers] = useState<Record<string, any[]>>({});
 
   const filteredPosts = posts.filter((post) => {
     const courseMatch = selectedCourse === 'all' || post.courseId === selectedCourse;
@@ -296,17 +319,19 @@ export default function TeacherWebboardPage() {
                 {/* Reply Input */}
                 {showReplyInput[post.id] ? (
                   <div className="space-y-2">
-                    <textarea
+                    <MentionTextarea
                       value={replyContents[post.id] || ''}
-                      onChange={(e) =>
-                        setReplyContents({ ...replyContents, [post.id]: e.target.value })
+                      onChange={(value) =>
+                        setReplyContents({ ...replyContents, [post.id]: value })
                       }
-                      placeholder="พิมพ์คำตอบ... (ใช้ @ชื่อ เพื่อ tag ผู้ใช้ หรือ @all เพื่อ tag ทุกคน)"
+                      placeholder="พิมพ์คำตอบ... (พิมพ์ @ เพื่อ tag ผู้ใช้ หรือ @all เพื่อ tag ทุกคน)"
                       rows={3}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
+                      users={courseUsers[post.courseId] || []}
+                      courseId={post.courseId}
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      💡 ใช้ @ชื่อ เพื่อ tag ผู้ใช้ หรือ @all เพื่อ tag ทุกคนในหลักสูตร
+                      💡 พิมพ์ @ เพื่อเลือกผู้ใช้ หรือพิมพ์ @a เพื่อเลือก @all
                     </p>
                     <div className="flex justify-end space-x-2">
                       <Button

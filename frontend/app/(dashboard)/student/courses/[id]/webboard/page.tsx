@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/authStore';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import MentionTextarea from '@/components/MentionTextarea';
 import { coursesApi, webboardApi } from '@/lib/api';
 import {
   ArrowLeftIcon,
@@ -28,6 +29,7 @@ export default function StudentWebboardPage() {
   const [newQuestion, setNewQuestion] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState<Record<string, string>>({});
+  const [courseUsers, setCourseUsers] = useState<any[]>([]);
 
   // Helper function to render mentions in text
   const renderMentions = (text: string) => {
@@ -51,9 +53,10 @@ export default function StudentWebboardPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [courseResponse, postsResponse] = await Promise.all([
+      const [courseResponse, postsResponse, usersResponse] = await Promise.all([
         coursesApi.getById(courseId),
         webboardApi.getPosts(courseId),
+        webboardApi.getCourseUsers(courseId),
       ]);
 
       if (courseResponse.success && courseResponse.data) {
@@ -62,6 +65,10 @@ export default function StudentWebboardPage() {
 
       if (postsResponse.success && postsResponse.data) {
         setPosts(postsResponse.data);
+      }
+
+      if (usersResponse.success && usersResponse.data) {
+        setCourseUsers(usersResponse.data);
       }
     } catch (error) {
       console.error('Error fetching webboard data:', error);
@@ -193,15 +200,17 @@ export default function StudentWebboardPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 คำถาม *
               </label>
-              <textarea
+              <MentionTextarea
                 value={newQuestion}
-                onChange={(e) => setNewQuestion(e.target.value)}
+                onChange={setNewQuestion}
                 rows={4}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                placeholder="กรอกคำถามของคุณ... (ใช้ @ชื่อ เพื่อ tag ผู้ใช้ หรือ @all เพื่อ tag ทุกคน)"
+                placeholder="กรอกคำถามของคุณ... (พิมพ์ @ เพื่อ tag ผู้ใช้ หรือ @all เพื่อ tag ทุกคน)"
+                users={courseUsers}
+                courseId={courseId}
               />
               <p className="text-xs text-gray-500 mt-1">
-                💡 ใช้ @ชื่อ เพื่อ tag ผู้ใช้ หรือ @all เพื่อ tag ทุกคนในหลักสูตร
+                💡 พิมพ์ @ เพื่อเลือกผู้ใช้ หรือพิมพ์ @a เพื่อเลือก @all
               </p>
             </div>
             <div className="flex justify-end space-x-3">
@@ -308,15 +317,17 @@ export default function StudentWebboardPage() {
 
                 {replyingTo === post.id ? (
                   <div className="ml-13 space-y-2">
-                    <textarea
+                    <MentionTextarea
                       value={replyContent[post.id] || ''}
-                      onChange={(e) => setReplyContent({ ...replyContent, [post.id]: e.target.value })}
+                      onChange={(value) => setReplyContent({ ...replyContent, [post.id]: value })}
                       rows={3}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                      placeholder="กรอกคำตอบ... (ใช้ @ชื่อ เพื่อ tag ผู้ใช้ หรือ @all เพื่อ tag ทุกคน)"
+                      placeholder="กรอกคำตอบ... (พิมพ์ @ เพื่อ tag ผู้ใช้ หรือ @all เพื่อ tag ทุกคน)"
+                      users={courseUsers}
+                      courseId={courseId}
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      💡 ใช้ @ชื่อ เพื่อ tag ผู้ใช้ หรือ @all เพื่อ tag ทุกคนในหลักสูตร
+                      💡 พิมพ์ @ เพื่อเลือกผู้ใช้ หรือพิมพ์ @a เพื่อเลือก @all
                     </p>
                     <div className="flex justify-end space-x-2">
                       <Button
