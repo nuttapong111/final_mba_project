@@ -1,6 +1,7 @@
 import prisma from '../config/database';
 import { AuthUser } from '../middleware/auth';
 import { getAIGradingSuggestion } from './aiService';
+import { createNotification } from './notificationService';
 
 export interface AssignmentGradingTask {
   id: string;
@@ -538,6 +539,20 @@ export const gradeAssignmentSubmission = async (
   } catch (error: any) {
     console.error('[ASSIGNMENT GRADING] Error saving ML training data:', error);
     // Don't throw - this is not critical
+  }
+
+  // Send notification to student when graded
+  try {
+    await createNotification({
+      userId: updated.studentId,
+      title: 'อาจารย์ได้ให้คะแนนการบ้านของคุณ',
+      message: `อาจารย์ได้ให้คะแนนการบ้าน "${updated.assignment.title}" ในหลักสูตร ${updated.assignment.course.title} คุณได้ ${updated.score}/${updated.assignment.maxScore} คะแนน`,
+      type: 'grade',
+      link: `/student/courses/${updated.assignment.courseId}/assignments`,
+    });
+  } catch (error) {
+    console.error('[ASSIGNMENT GRADING] Error creating notification:', error);
+    // Don't throw - notification is not critical
   }
 
   // Generate presigned URL if needed

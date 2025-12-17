@@ -1,5 +1,6 @@
 import prisma from '../config/database';
 import { AuthUser } from '../middleware/auth';
+import { createNotificationsForUsers } from './notificationService';
 
 export interface SubmitExamData {
   examId: string;
@@ -65,7 +66,20 @@ export const submitExam = async (
         },
         orderBy: { order: 'asc' },
       },
-      course: true,
+      course: {
+        include: {
+          instructor: {
+            select: { id: true, name: true },
+          },
+          teachers: {
+            select: {
+              teacher: {
+                select: { id: true, name: true },
+              },
+            },
+          },
+        },
+      },
     },
   });
 
@@ -236,6 +250,45 @@ export const submitExam = async (
 
     return examSubmission;
   });
+
+  // Send notification to teachers if there are essay questions (outside transaction)
+  // Check if there are grading tasks created (essay questions)
+  const hasEssayQuestions = await prisma.gradingTask.count({
+    where: { submissionId: submission.id },
+  }) > 0;
+
+  if (hasEssayQuestions) {
+    try {
+      // Get user details for notification
+      const userDetails = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { name: true },
+      });
+
+      const notificationUserIds = new Set<string>();
+      if (exam.course.instructorId) {
+        notificationUserIds.add(exam.course.instructorId);
+      }
+      exam.course.teachers.forEach((ct) => {
+        notificationUserIds.add(ct.teacher.id);
+      });
+
+      if (notificationUserIds.size > 0) {
+        await createNotificationsForUsers(
+          Array.from(notificationUserIds),
+          {
+            title: 'มีนักเรียนส่งข้อสอบอัตนัยใหม่',
+            message: `${userDetails?.name || user.email} ได้ส่งข้อสอบ "${exam.title}" ที่มีข้อสอบอัตนัยรอการตรวจสอบ`,
+            type: 'exam',
+            link: `/teacher/grading`,
+          }
+        );
+      }
+    } catch (error) {
+      console.error('[EXAM] Error creating notification:', error);
+      // Don't throw - notification is not critical
+    }
+  }
 
   return submission;
 };

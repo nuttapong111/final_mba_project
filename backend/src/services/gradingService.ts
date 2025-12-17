@@ -2,6 +2,7 @@ import prisma from '../config/database';
 import { AuthUser } from '../middleware/auth';
 import { GradingSystemType } from '@prisma/client';
 import { getAIGradingSuggestion } from './aiService';
+import { createNotification } from './notificationService';
 
 export interface CreateGradingSystemData {
   courseId: string;
@@ -1211,6 +1212,12 @@ export const updateGradingTask = async (
           question: true,
         },
       },
+      course: {
+        select: {
+          id: true,
+          title: true,
+        },
+      },
     },
   });
 
@@ -1223,8 +1230,28 @@ export const updateGradingTask = async (
       data: {
         score: totalScore,
         percentage,
+        passed: percentage >= (task.submission.exam.passingScore || 70),
       },
     });
+
+    // Check if all grading tasks are completed
+    const allTasksCompleted = allTasks.every((t: any) => t.teacherScore !== null && t.teacherScore !== undefined);
+    
+    // Send notification to student when all grading tasks are completed
+    if (allTasksCompleted) {
+      try {
+        await createNotification({
+          userId: task.studentId,
+          title: 'อาจารย์ได้ให้คะแนนข้อสอบของคุณ',
+          message: `อาจารย์ได้ให้คะแนนข้อสอบ "${exam.title}" ในหลักสูตร ${exam.course.title} คุณได้ ${totalScore}/${maxScore} คะแนน (${percentage.toFixed(1)}%)`,
+          type: 'grade',
+          link: `/student/courses/${exam.course.id}/grades`,
+        });
+      } catch (error) {
+        console.error('[GRADING] Error creating notification:', error);
+        // Don't throw - notification is not critical
+      }
+    }
   }
 
   return updated;
